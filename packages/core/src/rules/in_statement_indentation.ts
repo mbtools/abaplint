@@ -1,6 +1,5 @@
 import {Issue} from "../issue";
 import {ABAPRule} from "./_abap_rule";
-import {ABAPFile} from "../files";
 import {IObject} from "../objects/_iobject";
 import {Class} from "../objects";
 import {BasicRuleConfig} from "./_basic_rule_config";
@@ -10,6 +9,7 @@ import {DDIC} from "../ddic";
 import {Unknown, Comment} from "../abap/2_statements/statements/_statement";
 import {EditHelper} from "../edit_helper";
 import {Position} from "../position";
+import {ABAPFile} from "../abap/abap_file";
 
 export class InStatementIndentationConf extends BasicRuleConfig {
   /** Ignore global exception classes */
@@ -27,10 +27,14 @@ export class InStatementIndentation extends ABAPRule {
       // eslint-disable-next-line max-len
       shortDescription: `Checks alignment within block statement declarations which span multiple lines, such as multiple conditions in IF statements.`,
       badExample: `IF 1 = 1
-  AND 2 = 2.`,
+  AND 2 = 2.
+  WRITE 'hello'.
+ENDIF.`,
       goodExample: `IF 1 = 1
-    AND 2 = 2.`,
-      tags: [RuleTag.Whitespace, RuleTag.Quickfix],
+    AND 2 = 2.
+  WRITE 'hello'.
+ENDIF.`,
+      tags: [RuleTag.Whitespace, RuleTag.Quickfix, RuleTag.SingleFile],
     };
   }
 
@@ -95,7 +99,7 @@ export class InStatementIndentation extends ABAPRule {
         }
         if (t.getCol() < expected) {
           const fix = EditHelper.replaceRange(file, new Position(t.getRow(), 1), t.getStart(), " ".repeat(expected - 1));
-          const issue = Issue.atToken(file, t, this.getMessage(), this.getMetadata().key, fix);
+          const issue = Issue.atToken(file, t, this.getMessage(), this.getMetadata().key, this.conf.severity, fix);
           ret.push(issue);
           break;
         }

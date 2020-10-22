@@ -418,4 +418,83 @@ ENDCLASS.`;
     expect(issues.length).to.equal(0);
   });
 
+  it("move-corresponding", async () => {
+    const abap = `
+FORM foo.
+  TYPES: BEGIN OF ty_stru,
+           bar TYPE i,
+         END OF ty_stru.
+  DATA tree TYPE ty_stru.
+  DATA structure LIKE tree.
+  MOVE-CORRESPONDING structure TO tree.
+ENDFORM.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("RAISE EVENT", async () => {
+    const abap = `
+  DATA lv_action TYPE string.
+  RAISE EVENT foobar
+    EXPORTING
+      action = lv_action.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("NEW", async () => {
+    const abap = `
+  CLASS lcl_bar DEFINITION.
+  ENDCLASS.
+  CLASS lcl_bar IMPLEMENTATION.
+  ENDCLASS.
+  DATA lv_action TYPE string.
+  NEW lcl_bar( lv_action ).`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("ASSERT", async () => {
+    const abap = `
+  DATA bar TYPE c.
+  ASSERT 2 = bar.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("IF with paren", async () => {
+    const abap = `
+  DATA foo TYPE c.
+  IF ( 2 = foo ).
+  ENDIF.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("GET PARAMETER", async () => {
+    const abap = `
+  DATA lv_field TYPE string.
+  DATA lv_package TYPE string.
+  GET PARAMETER ID lv_field FIELD lv_package.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("SET PARAMETER", async () => {
+    const abap = `
+  DATA lv_field TYPE string.
+  SET PARAMETER ID lv_field FIELD ''.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("insert into table assigning", async () => {
+    const abap = `
+  FIELD-SYMBOLS <bar> TYPE i.
+  DATA tab TYPE STANDARD TABLE OF i WITH EMPTY KEY.
+  INSERT 2 INTO TABLE tab ASSIGNING <bar>.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
 });

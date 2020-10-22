@@ -15,6 +15,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -31,6 +35,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -51,6 +59,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -67,6 +79,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -83,15 +99,19 @@
           "type": "boolean"
         },
         "defaultKey": {
-          "description": "Detects DEFAULT KEY definitions",
+          "description": "Detects DEFAULT KEY definitions, from version v740sp02 and up",
           "type": "boolean"
         },
         "define": {
-          "description": "Detects define (macro definitions)\r\nhttps://help.sap.com/doc/abapdocu_752_index_htm/7.52/en-US/abenmacros_guidl.htm",
+          "description": "Detects DEFINE (macro definitions)",
+          "type": "boolean"
+        },
+        "describeLines": {
+          "description": "Detects DESRIBE TABLE LINES, use lines() instead",
           "type": "boolean"
         },
         "endselect": {
-          "description": "Detects endselect",
+          "description": "Detects ENDSELECT",
           "type": "boolean"
         },
         "exclude": {
@@ -108,6 +128,10 @@
         "kernelCall": {
           "description": "Detects kernel calls",
           "type": "boolean"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         },
         "statics": {
           "description": "Detects statics",
@@ -127,7 +151,8 @@
         "statics",
         "systemCall",
         "defaultKey",
-        "break"
+        "break",
+        "describeLines"
       ],
       "type": "object"
     },
@@ -140,6 +165,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -153,6 +182,27 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        }
+      },
+      "type": "object"
+    },
+    "CallTransactionAuthorityCheckConf": {
+      "additionalProperties": false,
+      "properties": {
+        "exclude": {
+          "description": "List of file regex filename patterns to exclude, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -199,6 +249,10 @@
           "description": "Allow REFRESH statements to be chained",
           "type": "boolean"
         },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        },
         "unassign": {
           "description": "Allow UNASSIGN statements to be chained",
           "type": "boolean"
@@ -231,6 +285,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -248,6 +306,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -264,6 +326,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -277,6 +343,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -290,6 +360,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -328,6 +402,10 @@
         "selectSingle": {
           "type": "boolean"
         },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        },
         "updateDatabase": {
           "type": "boolean"
         }
@@ -354,6 +432,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -367,6 +449,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -380,6 +466,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -432,6 +522,10 @@
           "$ref": "#/definitions/PatternKind",
           "description": "Specifies whether the pattern is forbidden (violation if name matches) or required (violation if name does not match)."
         },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        },
         "statics": {
           "description": "The pattern for static variable names",
           "type": "string"
@@ -456,6 +550,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -469,6 +567,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -486,6 +588,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -502,6 +608,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -515,6 +625,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         },
         "spaces": {
           "description": "quick fix replace with number of spaces",
@@ -538,6 +652,10 @@
         },
         "max": {
           "type": "number"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -554,6 +672,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -567,6 +689,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -593,6 +719,10 @@
           "description": "Check for double space after keywords",
           "type": "boolean"
         },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        },
         "startParen": {
           "description": "Check for double space after start parenthesis",
           "type": "boolean"
@@ -615,6 +745,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -632,6 +766,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -648,6 +786,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -686,6 +828,10 @@
           "description": "Checks for empty SELECT blockss",
           "type": "boolean"
         },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        },
         "try": {
           "description": "Checks for empty TRY blocks",
           "type": "boolean"
@@ -716,6 +862,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -729,6 +879,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -749,6 +903,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -783,6 +941,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -809,6 +971,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -825,6 +991,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -842,10 +1012,41 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
         "checkData"
+      ],
+      "type": "object"
+    },
+    "FunctionModuleRecommendationsConf": {
+      "additionalProperties": false,
+      "properties": {
+        "exclude": {
+          "description": "List of file regex filename patterns to exclude, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "recommendations": {
+          "description": "Tuple of Function Module Name to be replaced, the recommended alternative and the version from which the recommendation is valid.",
+          "items": {
+            "$ref": "#/definitions/Recommendations"
+          },
+          "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        }
+      },
+      "required": [
+        "recommendations"
       ],
       "type": "object"
     },
@@ -862,6 +1063,10 @@
         "ignoreExceptions": {
           "description": "Ignore functional writing in exception classes, local + global",
           "type": "boolean"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -878,6 +1083,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -895,6 +1104,9 @@
         "global": {
           "$ref": "#/definitions/IGlobalConfig"
         },
+        "rename": {
+          "$ref": "#/definitions/IRenameSettings"
+        },
         "rules": {
           "additionalProperties": false,
           "properties": {
@@ -907,7 +1119,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Only allow characters from the 7bit ASCII set.\nhttps://rules.abaplint.org/7bit_ascii"
+              "description": "Only allow characters from the 7bit ASCII set.\nTags: SingleFile\nhttps://rules.abaplint.org/7bit_ascii"
             },
             "abapdoc": {
               "anyOf": [
@@ -918,7 +1130,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Various checks regarding abapdoc.\nBase rule checks for existence of abapdoc for public class methods and all interface methods.\nhttps://rules.abaplint.org/abapdoc"
+              "description": "Various checks regarding abapdoc.\nBase rule checks for existence of abapdoc for public class methods and all interface methods.\nTags: SingleFile\nhttps://rules.abaplint.org/abapdoc"
             },
             "allowed_object_naming": {
               "anyOf": [
@@ -929,7 +1141,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Enforces basic name length and namespace restrictions, see note SAP 104010\nTags: Naming\nhttps://rules.abaplint.org/allowed_object_naming"
+              "description": "Enforces basic name length and namespace restrictions, see note SAP 104010\nTags: Naming, SingleFile\nhttps://rules.abaplint.org/allowed_object_naming"
             },
             "allowed_object_types": {
               "anyOf": [
@@ -940,7 +1152,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Restricts the set of allowed object types.\nhttps://rules.abaplint.org/allowed_object_types"
+              "description": "Restricts the set of allowed object types.\nTags: SingleFile\nhttps://rules.abaplint.org/allowed_object_types"
             },
             "ambiguous_statement": {
               "anyOf": [
@@ -951,7 +1163,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks for ambiguity between deleting or modifying from internal and database table\nAdd \"TABLE\" keyword or \"@\" for escaping SQL variables\nhttps://rules.abaplint.org/ambiguous_statement"
+              "description": "Checks for ambiguity between deleting or modifying from internal and database table\nAdd \"TABLE\" keyword or \"@\" for escaping SQL variables\nTags: SingleFile\nhttps://rules.abaplint.org/ambiguous_statement"
             },
             "avoid_use": {
               "anyOf": [
@@ -962,7 +1174,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Detects usage of certain statements.\nTags: Styleguide\nhttps://rules.abaplint.org/avoid_use"
+              "description": "Detects usage of certain statements.\nTags: Styleguide, SingleFile\nhttps://rules.abaplint.org/avoid_use"
             },
             "begin_end_names": {
               "anyOf": [
@@ -973,7 +1185,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Check BEGIN OF and END OF names match\nTags: Syntax, Quickfix\nhttps://rules.abaplint.org/begin_end_names"
+              "description": "Check BEGIN OF and END OF names match\nTags: Syntax, Quickfix, SingleFile\nhttps://rules.abaplint.org/begin_end_names"
             },
             "begin_single_include": {
               "anyOf": [
@@ -984,7 +1196,18 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Finds TYPE BEGIN with just one INCLUDE TYPE, and DATA with single INCLUDE STRUCTURE\nhttps://rules.abaplint.org/begin_single_include"
+              "description": "Finds TYPE BEGIN with just one INCLUDE TYPE, and DATA with single INCLUDE STRUCTURE\nTags: SingleFile\nhttps://rules.abaplint.org/begin_single_include"
+            },
+            "call_transaction_authority_check": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/CallTransactionAuthorityCheckConf"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "Checks that usages of CALL TRANSACTION contain an authority-check.\nTags: Styleguide, SingleFile\nhttps://rules.abaplint.org/call_transaction_authority_check"
             },
             "chain_mainly_declarations": {
               "anyOf": [
@@ -995,7 +1218,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Chain mainly declarations, allows chaining for the configured statements, reports errors for other statements.\nhttps://rules.abaplint.org/chain_mainly_declarations"
+              "description": "Chain mainly declarations, allows chaining for the configured statements, reports errors for other statements.\nTags: SingleFile\nhttps://rules.abaplint.org/chain_mainly_declarations"
             },
             "check_abstract": {
               "anyOf": [
@@ -1006,7 +1229,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks abstract methods and classes:\n- class defined as abstract and final,\n- non-abstract class contains abstract methods\nhttps://rules.abaplint.org/check_abstract"
+              "description": "Checks abstract methods and classes:\n- class defined as abstract and final,\n- non-abstract class contains abstract methods\nTags: SingleFile\nhttps://rules.abaplint.org/check_abstract"
             },
             "check_comments": {
               "anyOf": [
@@ -1017,7 +1240,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Various checks for comment usage.\nTags: Styleguide\nhttps://rules.abaplint.org/check_comments"
+              "description": "\nVarious checks for comment usage.\n\n* End of line comments. Comments starting with \"#EC\" or \"##\" are ignored\nTags: Styleguide, SingleFile\nhttps://rules.abaplint.org/check_comments"
             },
             "check_ddic": {
               "anyOf": [
@@ -1050,7 +1273,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks NO_HANDLER pragmas that can be removed\nhttps://rules.abaplint.org/check_no_handler_pragma"
+              "description": "Checks NO_HANDLER pragmas that can be removed\nTags: SingleFile\nhttps://rules.abaplint.org/check_no_handler_pragma"
             },
             "check_subrc": {
               "anyOf": [
@@ -1061,7 +1284,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Check sy-subrc\nhttps://rules.abaplint.org/check_subrc"
+              "description": "Check sy-subrc\nTags: SingleFile\nhttps://rules.abaplint.org/check_subrc"
             },
             "check_syntax": {
               "anyOf": [
@@ -1105,7 +1328,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Allows you to enforce a pattern, such as a prefix, for class variable names.\nTags: Naming\nhttps://rules.abaplint.org/class_attribute_names"
+              "description": "Allows you to enforce a pattern, such as a prefix, for class variable names.\nTags: Naming, SingleFile\nhttps://rules.abaplint.org/class_attribute_names"
             },
             "cloud_types": {
               "anyOf": [
@@ -1116,7 +1339,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks that the package does not contain any object types unsupported in cloud ABAP.\nhttps://rules.abaplint.org/cloud_types"
+              "description": "Checks that the package does not contain any object types unsupported in cloud ABAP.\nTags: SingleFile\nhttps://rules.abaplint.org/cloud_types"
             },
             "colon_missing_space": {
               "anyOf": [
@@ -1127,7 +1350,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks for missing spaces after colons in chained statements.\nTags: Whitespace, Quickfix\nhttps://rules.abaplint.org/colon_missing_space"
+              "description": "Checks for missing spaces after colons in chained statements.\nTags: Whitespace, Quickfix, SingleFile\nhttps://rules.abaplint.org/colon_missing_space"
             },
             "commented_code": {
               "anyOf": [
@@ -1138,7 +1361,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Detects usage of commented out code.\nTags: Styleguide, Quickfix\nhttps://rules.abaplint.org/commented_code"
+              "description": "Detects usage of commented out code.\nTags: Styleguide, Quickfix, SingleFile\nhttps://rules.abaplint.org/commented_code"
             },
             "constructor_visibility_public": {
               "anyOf": [
@@ -1149,7 +1372,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Constructor must be placed in the public section, even if the class is not CREATE PUBLIC.\nTags: Styleguide\nhttps://rules.abaplint.org/constructor_visibility_public"
+              "description": "Constructor must be placed in the public section, even if the class is not CREATE PUBLIC.\nTags: Styleguide, SingleFile\nhttps://rules.abaplint.org/constructor_visibility_public"
             },
             "contains_tab": {
               "anyOf": [
@@ -1160,7 +1383,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks for usage of tabs (enable to enforce spaces)\nTags: Whitespace, Quickfix, Styleguide\nhttps://rules.abaplint.org/contains_tab"
+              "description": "Checks for usage of tabs (enable to enforce spaces)\nTags: Whitespace, Quickfix, Styleguide, SingleFile\nhttps://rules.abaplint.org/contains_tab"
             },
             "cyclomatic_complexity": {
               "anyOf": [
@@ -1171,7 +1394,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Cyclomatic complexity, only reported for methods\nhttps://rules.abaplint.org/cyclomatic_complexity"
+              "description": "Cyclomatic complexity, only reported for methods\nTags: SingleFile\nhttps://rules.abaplint.org/cyclomatic_complexity"
             },
             "definitions_top": {
               "anyOf": [
@@ -1182,7 +1405,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks that definitions are placed at the beginning of methods.\nhttps://rules.abaplint.org/definitions_top"
+              "description": "Checks that definitions are placed at the beginning of methods.\nTags: SingleFile\nhttps://rules.abaplint.org/definitions_top"
             },
             "description_empty": {
               "anyOf": [
@@ -1204,7 +1427,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks that only a single space follows certain common statements.\nTags: Whitespace, Quickfix\nhttps://rules.abaplint.org/double_space"
+              "description": "Checks that only a single space follows certain common statements.\nTags: Whitespace, Quickfix, SingleFile\nhttps://rules.abaplint.org/double_space"
             },
             "downport": {
               "anyOf": [
@@ -1226,7 +1449,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks that statements do not contain empty lines.\nhttps://rules.abaplint.org/empty_line_in_statement"
+              "description": "Checks that statements do not contain empty lines.\nTags: Quickfix, Whitespace, SingleFile\nhttps://rules.abaplint.org/empty_line_in_statement"
             },
             "empty_statement": {
               "anyOf": [
@@ -1237,7 +1460,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks for empty statements (an empty statement is a single dot)\nTags: Quickfix\nhttps://rules.abaplint.org/empty_statement"
+              "description": "Checks for empty statements (an empty statement is a single dot)\nTags: Quickfix, SingleFile\nhttps://rules.abaplint.org/empty_statement"
             },
             "empty_structure": {
               "anyOf": [
@@ -1248,7 +1471,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks that the code does not contain empty blocks.\nTags: Styleguide\nhttps://rules.abaplint.org/empty_structure"
+              "description": "Checks that the code does not contain empty blocks.\nTags: Styleguide, SingleFile\nhttps://rules.abaplint.org/empty_structure"
             },
             "exit_or_check": {
               "anyOf": [
@@ -1259,7 +1482,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Detects usages of EXIT or CHECK statements outside of loops.\nUse RETURN to leave procesing blocks instead.\nTags: Styleguide\nhttps://rules.abaplint.org/exit_or_check"
+              "description": "Detects usages of EXIT or CHECK statements outside of loops.\nUse RETURN to leave procesing blocks instead.\nTags: Styleguide, SingleFile\nhttps://rules.abaplint.org/exit_or_check"
             },
             "exporting": {
               "anyOf": [
@@ -1270,7 +1493,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Detects EXPORTING statements which can be omitted.\nTags: Styleguide, Quickfix\nhttps://rules.abaplint.org/exporting"
+              "description": "Detects EXPORTING statements which can be omitted.\nTags: Styleguide, Quickfix, SingleFile\nhttps://rules.abaplint.org/exporting"
             },
             "forbidden_identifier": {
               "anyOf": [
@@ -1281,7 +1504,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Forbid use of specified identifiers, list of regex.\nhttps://rules.abaplint.org/forbidden_identifier"
+              "description": "Forbid use of specified identifiers, list of regex.\nTags: SingleFile\nhttps://rules.abaplint.org/forbidden_identifier"
             },
             "forbidden_pseudo_and_pragma": {
               "anyOf": [
@@ -1292,7 +1515,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks for unwanted pseudo comments and pragma\nTags: Quickfix\nhttps://rules.abaplint.org/forbidden_pseudo_and_pragma"
+              "description": "Checks for unwanted pseudo comments and pragma\nTags: Quickfix, SingleFile\nhttps://rules.abaplint.org/forbidden_pseudo_and_pragma"
             },
             "forbidden_void_type": {
               "anyOf": [
@@ -1314,7 +1537,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks for TABLES parameters in forms.\nhttps://rules.abaplint.org/form_tables_obsolete"
+              "description": "Checks for TABLES parameters in forms.\nTags: SingleFile\nhttps://rules.abaplint.org/form_tables_obsolete"
             },
             "fully_type_constants": {
               "anyOf": [
@@ -1325,7 +1548,18 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks constants for full typing - no implicit typing allowed.\nhttps://rules.abaplint.org/fully_type_constants"
+              "description": "Checks constants for full typing - no implicit typing allowed.\nTags: SingleFile\nhttps://rules.abaplint.org/fully_type_constants"
+            },
+            "function_module_recommendations": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/FunctionModuleRecommendationsConf"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "Function Module Recommendations\nTags: SingleFile\nhttps://rules.abaplint.org/function_module_recommendations"
             },
             "functional_writing": {
               "anyOf": [
@@ -1336,7 +1570,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Detects usage of call method when functional style calls can be used.\nTags: Styleguide\nhttps://rules.abaplint.org/functional_writing"
+              "description": "Detects usage of call method when functional style calls can be used.\nTags: Styleguide, Quickfix, SingleFile\nhttps://rules.abaplint.org/functional_writing"
             },
             "global_class": {
               "anyOf": [
@@ -1358,7 +1592,18 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Find identical conditions in IF + CASE + WHILE etc\nhttps://rules.abaplint.org/identical_conditions"
+              "description": "Find identical conditions in IF + CASE + WHILE etc\n\nPrerequsites: code is pretty printed with identical cAsE\nTags: SingleFile\nhttps://rules.abaplint.org/identical_conditions"
+            },
+            "identical_contents": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/IdenticalContentsConf"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "Find identical contents in IFs\n\nPrerequsites: code is pretty printed with identical cAsE\n\nChained statments are ignored\nTags: SingleFile\nhttps://rules.abaplint.org/identical_contents"
             },
             "identical_form_names": {
               "anyOf": [
@@ -1380,7 +1625,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Detects nested ifs which can be refactored to a single condition using AND.\nTags: Styleguide\nhttps://rules.abaplint.org/if_in_if"
+              "description": "Detects nested ifs which can be refactored to a single condition using AND.\nTags: Styleguide, SingleFile\nhttps://rules.abaplint.org/if_in_if"
             },
             "implement_methods": {
               "anyOf": [
@@ -1402,7 +1647,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks alignment within block statement declarations which span multiple lines, such as multiple conditions in IF statements.\nTags: Whitespace, Quickfix\nhttps://rules.abaplint.org/in_statement_indentation"
+              "description": "Checks alignment within block statement declarations which span multiple lines, such as multiple conditions in IF statements.\nTags: Whitespace, Quickfix, SingleFile\nhttps://rules.abaplint.org/in_statement_indentation"
             },
             "indentation": {
               "anyOf": [
@@ -1413,7 +1658,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks indentation\nTags: Whitespace, Quickfix\nhttps://rules.abaplint.org/indentation"
+              "description": "Checks indentation\nTags: Whitespace, Quickfix, SingleFile\nhttps://rules.abaplint.org/indentation"
             },
             "inline_data_old_versions": {
               "anyOf": [
@@ -1424,7 +1669,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks for inline data declarations in older releases. Only active for versions less than v740sp02\nTags: Syntax\nhttps://rules.abaplint.org/inline_data_old_versions"
+              "description": "Checks for inline data declarations in older releases. Only active for versions less than v740sp02\nTags: Syntax, SingleFile\nhttps://rules.abaplint.org/inline_data_old_versions"
             },
             "keep_single_parameter_on_one_line": {
               "anyOf": [
@@ -1435,7 +1680,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Keep single parameter calls on one line\nTags: Whitespace, Styleguide\nhttps://rules.abaplint.org/keep_single_parameter_on_one_line"
+              "description": "Keep single parameter calls on one line\nTags: Whitespace, Styleguide, SingleFile\nhttps://rules.abaplint.org/keep_single_parameter_on_one_line"
             },
             "keyword_case": {
               "anyOf": [
@@ -1446,7 +1691,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks that keywords have the same case. Non-keywords must be lower case.\nTags: Styleguide\nhttps://rules.abaplint.org/keyword_case"
+              "description": "Checks that keywords have the same case. Non-keywords must be lower case.\nTags: Styleguide, SingleFile\nhttps://rules.abaplint.org/keyword_case"
             },
             "line_break_multiple_parameters": {
               "anyOf": [
@@ -1457,7 +1702,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Line break multiple parameters\nTags: Whitespace, Styleguide, Quickfix\nhttps://rules.abaplint.org/line_break_multiple_parameters"
+              "description": "Line break multiple parameters\nTags: Whitespace, Styleguide, Quickfix, SingleFile\nhttps://rules.abaplint.org/line_break_multiple_parameters"
             },
             "line_break_style": {
               "anyOf": [
@@ -1468,7 +1713,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Enforces LF as newlines in ABAP files\n\nabapGit does not work with CRLF\nTags: Whitespace\nhttps://rules.abaplint.org/line_break_style"
+              "description": "Enforces LF as newlines in ABAP files\n\nabapGit does not work with CRLF\nTags: Whitespace, SingleFile\nhttps://rules.abaplint.org/line_break_style"
             },
             "line_length": {
               "anyOf": [
@@ -1479,7 +1724,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Detects lines exceeding the provided maximum length.\nTags: Styleguide\nhttps://rules.abaplint.org/line_length"
+              "description": "Detects lines exceeding the provided maximum length.\nTags: Styleguide, SingleFile\nhttps://rules.abaplint.org/line_length"
             },
             "line_only_punc": {
               "anyOf": [
@@ -1490,7 +1735,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Detects lines containing only punctuation.\nTags: Styleguide, Quickfix\nhttps://rules.abaplint.org/line_only_punc"
+              "description": "Detects lines containing only punctuation.\nTags: Styleguide, Quickfix, SingleFile\nhttps://rules.abaplint.org/line_only_punc"
             },
             "local_class_naming": {
               "anyOf": [
@@ -1501,7 +1746,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Allows you to enforce a pattern, such as a prefix, for local class names.\nTags: Naming\nhttps://rules.abaplint.org/local_class_naming"
+              "description": "Allows you to enforce a pattern, such as a prefix, for local class names.\nTags: Naming, SingleFile\nhttps://rules.abaplint.org/local_class_naming"
             },
             "local_testclass_location": {
               "anyOf": [
@@ -1512,7 +1757,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks that local test classes are placed in the test include.\nhttps://rules.abaplint.org/local_testclass_location"
+              "description": "Checks that local test classes are placed in the test include.\nTags: SingleFile\nhttps://rules.abaplint.org/local_testclass_location"
             },
             "local_variable_names": {
               "anyOf": [
@@ -1523,7 +1768,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "\nAllows you to enforce a pattern, such as a prefix, for local variables, constants and field symbols.\nRegexes are case-insensitive.\nTags: Naming\nhttps://rules.abaplint.org/local_variable_names"
+              "description": "\nAllows you to enforce a pattern, such as a prefix, for local variables, constants and field symbols.\nRegexes are case-insensitive.\nTags: Naming, SingleFile\nhttps://rules.abaplint.org/local_variable_names"
             },
             "main_file_contents": {
               "anyOf": [
@@ -1536,6 +1781,17 @@
               ],
               "description": "Checks related to report declarations.\nhttps://rules.abaplint.org/main_file_contents"
             },
+            "many_parenthesis": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ManyParenthesisConf"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "Searches for expressions where extra parenthesis can safely be removed\nTags: SingleFile\nhttps://rules.abaplint.org/many_parenthesis"
+            },
             "max_one_statement": {
               "anyOf": [
                 {
@@ -1545,7 +1801,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks that each line contains only a single statement.\nTags: Styleguide, Quickfix\nhttps://rules.abaplint.org/max_one_statement"
+              "description": "Checks that each line contains only a single statement.\nTags: Styleguide, Quickfix, SingleFile\nhttps://rules.abaplint.org/max_one_statement"
             },
             "message_exists": {
               "anyOf": [
@@ -1567,7 +1823,18 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks relating to method length.\nTags: Styleguide\nhttps://rules.abaplint.org/method_length"
+              "description": "Checks relating to method length.\nTags: Styleguide, SingleFile\nhttps://rules.abaplint.org/method_length"
+            },
+            "method_overwrites_builtin": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/MethodOverwritesBuiltInConf"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "Checks Method names that overwrite builtin SAP functions\nTags: Naming, SingleFile\nhttps://rules.abaplint.org/method_overwrites_builtin"
             },
             "method_parameter_names": {
               "anyOf": [
@@ -1578,7 +1845,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Allows you to enforce a pattern, such as a prefix, for method parameter names\nTags: Naming\nhttps://rules.abaplint.org/method_parameter_names"
+              "description": "Allows you to enforce a pattern, such as a prefix, for method parameter names\nTags: Naming, SingleFile\nhttps://rules.abaplint.org/method_parameter_names"
             },
             "mix_returning": {
               "anyOf": [
@@ -1589,7 +1856,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks that methods don't have a mixture of returning and exporting/changing parameters\nTags: Styleguide\nhttps://rules.abaplint.org/mix_returning"
+              "description": "Checks that methods don't have a mixture of returning and exporting/changing parameters\nTags: Styleguide, SingleFile\nhttps://rules.abaplint.org/mix_returning"
             },
             "msag_consistency": {
               "anyOf": [
@@ -1611,7 +1878,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks for a \"-\" in FORM and DATA names\nhttps://rules.abaplint.org/names_no_dash"
+              "description": "Checks for a \"-\" in FORM and DATA names\nTags: SingleFile\nhttps://rules.abaplint.org/names_no_dash"
             },
             "nesting": {
               "anyOf": [
@@ -1622,7 +1889,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks for methods exceeding a maximum nesting depth\nTags: Styleguide\nhttps://rules.abaplint.org/nesting"
+              "description": "Checks for methods exceeding a maximum nesting depth\nTags: Styleguide, SingleFile\nhttps://rules.abaplint.org/nesting"
             },
             "newline_between_methods": {
               "anyOf": [
@@ -1633,7 +1900,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks for newlines between method implementations.\nTags: Whitespace\nhttps://rules.abaplint.org/newline_between_methods"
+              "description": "Checks for newlines between method implementations.\nTags: Whitespace, SingleFile\nhttps://rules.abaplint.org/newline_between_methods"
             },
             "no_public_attributes": {
               "anyOf": [
@@ -1644,7 +1911,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks that classes and interfaces don't contain any public attributes.\nExceptions are excluded from this rule.\nTags: Styleguide\nhttps://rules.abaplint.org/no_public_attributes"
+              "description": "Checks that classes and interfaces don't contain any public attributes.\nExceptions are excluded from this rule.\nTags: Styleguide, SingleFile\nhttps://rules.abaplint.org/no_public_attributes"
             },
             "object_naming": {
               "anyOf": [
@@ -1666,7 +1933,29 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks for usages of certain obsolete statements\nhttps://rules.abaplint.org/obsolete_statement"
+              "description": "Checks for usages of certain obsolete statements\nTags: SingleFile\nhttps://rules.abaplint.org/obsolete_statement"
+            },
+            "omit_parameter_name": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/OmitParameterNameConf"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "Omit the parameter name in single parameter calls\nTags: Styleguide\nhttps://rules.abaplint.org/omit_parameter_name"
+            },
+            "omit_receiving": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/OmitReceivingConf"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "Omit RECEIVING\nTags: Styleguide, SingleFile\nhttps://rules.abaplint.org/omit_receiving"
             },
             "parser_error": {
               "anyOf": [
@@ -1677,7 +1966,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks for syntax not recognized by abaplint.\n\nSee recognized syntax at https://syntax.abaplint.org\nTags: Syntax\nhttps://rules.abaplint.org/parser_error"
+              "description": "Checks for syntax not recognized by abaplint.\n\nSee recognized syntax at https://syntax.abaplint.org\nTags: Syntax, SingleFile\nhttps://rules.abaplint.org/parser_error"
             },
             "parser_missing_space": {
               "anyOf": [
@@ -1688,7 +1977,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "In special cases the ABAP language allows for not having spaces before or after string literals.\nThis rule makes sure the spaces are consistently required across the language.\nTags: Syntax\nhttps://rules.abaplint.org/parser_missing_space"
+              "description": "In special cases the ABAP language allows for not having spaces before or after string literals.\nThis rule makes sure the spaces are consistently required across the language.\nTags: Syntax, Whitespace, SingleFile\nhttps://rules.abaplint.org/parser_missing_space"
             },
             "prefer_inline": {
               "anyOf": [
@@ -1701,6 +1990,17 @@
               ],
               "description": "Prefer inline to up-front declarations.\nActivates if language version is v740sp02 or above.\nVariables must be local(METHOD or FORM).\nNo generic or void typed variables.\nFirst position used must be a full/pure write.\nTags: Styleguide, Upport, Experimental, Quickfix\nhttps://rules.abaplint.org/prefer_inline"
             },
+            "prefer_is_not": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PreferIsNotConf"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "Prefer IS NOT to NOT IS\nTags: Styleguide, SingleFile\nhttps://rules.abaplint.org/prefer_is_not"
+            },
             "prefer_returning_to_exporting": {
               "anyOf": [
                 {
@@ -1710,7 +2010,18 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Prefer RETURNING to EXPORTING. Generic types cannot be RETURNING.\nTags: Styleguide\nhttps://rules.abaplint.org/prefer_returning_to_exporting"
+              "description": "Prefer RETURNING to EXPORTING. Generic types cannot be RETURNING.\nTags: Styleguide, SingleFile\nhttps://rules.abaplint.org/prefer_returning_to_exporting"
+            },
+            "prefer_xsdbool": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PreferXsdboolConf"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "Prefer xsdbool over boolc\nTags: Styleguide, Upport, Quickfix, SingleFile\nhttps://rules.abaplint.org/prefer_xsdbool"
             },
             "preferred_compare_operator": {
               "anyOf": [
@@ -1721,7 +2032,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Configure undesired operator variants\nhttps://rules.abaplint.org/preferred_compare_operator"
+              "description": "Configure undesired operator variants\nTags: SingleFile\nhttps://rules.abaplint.org/preferred_compare_operator"
             },
             "prefix_is_current_class": {
               "anyOf": [
@@ -1732,7 +2043,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Reports errors if the current class or interface references itself with \"current_class=>\"\nTags: Styleguide, Quickfix\nhttps://rules.abaplint.org/prefix_is_current_class"
+              "description": "Reports errors if the current class or interface references itself with \"current_class=>\"\nTags: Styleguide, Quickfix, SingleFile\nhttps://rules.abaplint.org/prefix_is_current_class"
             },
             "reduce_string_templates": {
               "anyOf": [
@@ -1743,7 +2054,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks for string templates\nhttps://rules.abaplint.org/reduce_string_templates"
+              "description": "Checks for string templates\nTags: SingleFile\nhttps://rules.abaplint.org/reduce_string_templates"
             },
             "release_idoc": {
               "anyOf": [
@@ -1776,7 +2087,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks that exceptions 'system_failure' and 'communication_failure' are handled in RFC calls\nhttps://rules.abaplint.org/rfc_error_handling"
+              "description": "Checks that exceptions 'system_failure' and 'communication_failure' are handled in RFC calls\nTags: SingleFile\nhttps://rules.abaplint.org/rfc_error_handling"
             },
             "selection_screen_naming": {
               "anyOf": [
@@ -1787,7 +2098,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Allows you to enforce a pattern, such as a prefix, for selection-screen variable names.\nTags: Naming\nhttps://rules.abaplint.org/selection_screen_naming"
+              "description": "Allows you to enforce a pattern, such as a prefix, for selection-screen variable names.\nTags: Naming, SingleFile\nhttps://rules.abaplint.org/selection_screen_naming"
             },
             "sequential_blank": {
               "anyOf": [
@@ -1798,7 +2109,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks that code does not contain more than the configured number of blank lines in a row.\nTags: Whitespace, Quickfix\nhttps://rules.abaplint.org/sequential_blank"
+              "description": "Checks that code does not contain more than the configured number of blank lines in a row.\nTags: Whitespace, Quickfix, SingleFile\nhttps://rules.abaplint.org/sequential_blank"
             },
             "short_case": {
               "anyOf": [
@@ -1809,7 +2120,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks for CASE statements which have fewer than the specified number of branches\nhttps://rules.abaplint.org/short_case"
+              "description": "Checks for CASE statements which have fewer than the specified number of branches\nTags: SingleFile\nhttps://rules.abaplint.org/short_case"
             },
             "sicf_consistency": {
               "anyOf": [
@@ -1831,7 +2142,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks that there are no spaces in front of colons in chained statements.\nTags: Whitespace\nhttps://rules.abaplint.org/space_before_colon"
+              "description": "Checks that there are no spaces in front of colons in chained statements.\nTags: Whitespace, SingleFile\nhttps://rules.abaplint.org/space_before_colon"
             },
             "space_before_dot": {
               "anyOf": [
@@ -1842,7 +2153,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks for extra spaces before dots at the ends of statements\nTags: Whitespace, Quickfix\nhttps://rules.abaplint.org/space_before_dot"
+              "description": "Checks for extra spaces before dots at the ends of statements\nTags: Whitespace, Quickfix, Styleguide, SingleFile\nhttps://rules.abaplint.org/space_before_dot"
             },
             "sql_escape_host_variables": {
               "anyOf": [
@@ -1864,7 +2175,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks that statements start at tabstops.\nTags: Whitespace, Styleguide\nhttps://rules.abaplint.org/start_at_tab"
+              "description": "Checks that statements start at tabstops.\nTags: Whitespace, Styleguide, SingleFile\nhttps://rules.abaplint.org/start_at_tab"
             },
             "superclass_final": {
               "anyOf": [
@@ -1876,6 +2187,17 @@
                 }
               ],
               "description": "Checks that classes which are inherited from are not declared as FINAL.\nTags: Syntax\nhttps://rules.abaplint.org/superclass_final"
+            },
+            "sy_modification": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/SyModificationConf"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "Finds modification of sy fields\nTags: SingleFile\nhttps://rules.abaplint.org/sy_modification"
             },
             "tabl_enhancement_category": {
               "anyOf": [
@@ -1897,7 +2219,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks for TRY blocks without a CATCH and CLEANUP block\nhttps://rules.abaplint.org/try_without_catch"
+              "description": "Checks for TRY blocks without a CATCH and CLEANUP block\nTags: SingleFile\nhttps://rules.abaplint.org/try_without_catch"
             },
             "type_form_parameters": {
               "anyOf": [
@@ -1908,7 +2230,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks for untyped FORM parameters\nhttps://rules.abaplint.org/type_form_parameters"
+              "description": "Checks for untyped FORM parameters\nTags: SingleFile\nhttps://rules.abaplint.org/type_form_parameters"
             },
             "types_naming": {
               "anyOf": [
@@ -1919,7 +2241,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Allows you to enforce a pattern for TYPES definitions\nTags: Naming\nhttps://rules.abaplint.org/types_naming"
+              "description": "Allows you to enforce a pattern for TYPES definitions\nTags: Naming, SingleFile\nhttps://rules.abaplint.org/types_naming"
             },
             "unknown_types": {
               "anyOf": [
@@ -1941,7 +2263,18 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks for unreachable code.\nhttps://rules.abaplint.org/unreachable_code"
+              "description": "Checks for unreachable code.\nTags: SingleFile\nhttps://rules.abaplint.org/unreachable_code"
+            },
+            "unused_methods": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/UnusedMethodsConf"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "Checks for unused methods\nTags: Experimental\nhttps://rules.abaplint.org/unused_methods"
             },
             "unused_types": {
               "anyOf": [
@@ -1965,6 +2298,17 @@
               ],
               "description": "Checks for unused variables and constants\nTags: Experimental, Quickfix\nhttps://rules.abaplint.org/unused_variables"
             },
+            "use_bool_expression": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/UseBoolExpressionConf"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "Use boolean expression, xsdbool from 740sp08 and up, boolc from 702 and up\nTags: Upport, Styleguide, Quickfix, SingleFile\nhttps://rules.abaplint.org/use_bool_expression"
+            },
             "use_line_exists": {
               "anyOf": [
                 {
@@ -1974,7 +2318,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Use line_exists, from 740sp02 and up\nTags: Upport, Styleguide\nhttps://rules.abaplint.org/use_line_exists"
+              "description": "Use line_exists, from 740sp02 and up\nTags: Upport, Styleguide, SingleFile\nhttps://rules.abaplint.org/use_line_exists"
             },
             "use_new": {
               "anyOf": [
@@ -1985,7 +2329,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks for deprecated CREATE OBJECT statements.\nTags: Upport, Styleguide, Quickfix\nhttps://rules.abaplint.org/use_new"
+              "description": "Checks for deprecated CREATE OBJECT statements.\nTags: Upport, Styleguide, Quickfix, SingleFile\nhttps://rules.abaplint.org/use_new"
             },
             "when_others_last": {
               "anyOf": [
@@ -1996,7 +2340,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks that WHEN OTHERS is placed the last within a CASE statement.\nhttps://rules.abaplint.org/when_others_last"
+              "description": "Checks that WHEN OTHERS is placed the last within a CASE statement.\nTags: SingleFile\nhttps://rules.abaplint.org/when_others_last"
             },
             "whitespace_end": {
               "anyOf": [
@@ -2007,7 +2351,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks for redundant whitespace at the end of each line.\nTags: Whitespace, Quickfix\nhttps://rules.abaplint.org/whitespace_end"
+              "description": "Checks for redundant whitespace at the end of each line.\nTags: Whitespace, Quickfix, SingleFile\nhttps://rules.abaplint.org/whitespace_end"
             },
             "xml_consistency": {
               "anyOf": [
@@ -2018,7 +2362,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks the consistency of main XML files, eg. naming\nhttps://rules.abaplint.org/xml_consistency"
+              "description": "Checks the consistency of main XML files, eg. naming for CLAS and INTF objects\nTags: Naming, Syntax\nhttps://rules.abaplint.org/xml_consistency"
             }
           },
           "type": "object"
@@ -2091,6 +2435,54 @@
       ],
       "type": "object"
     },
+    "IRenameSettings": {
+      "additionalProperties": false,
+      "properties": {
+        "output": {
+          "description": "output folder",
+          "type": "string"
+        },
+        "patterns": {
+          "description": "List of rename patterns",
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "newName": {
+                "description": "new name, match groups from oldName regex can be used",
+                "type": "string"
+              },
+              "oldName": {
+                "description": "Matches object name, regex, case insensitive",
+                "type": "string"
+              },
+              "type": {
+                "description": "Object type, example \"CLAS\", regex, case insensitive",
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "oldName",
+              "newName"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "skip": {
+          "description": "list of regex, matches filenames to be skipped, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "output",
+        "patterns"
+      ],
+      "type": "object"
+    },
     "ISyntaxSettings": {
       "additionalProperties": false,
       "properties": {
@@ -2132,6 +2524,27 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        }
+      },
+      "type": "object"
+    },
+    "IdenticalContentsConf": {
+      "additionalProperties": false,
+      "properties": {
+        "exclude": {
+          "description": "List of file regex filename patterns to exclude, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -2145,6 +2558,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -2158,6 +2575,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -2171,6 +2592,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -2188,6 +2613,10 @@
         "ignoreExceptions": {
           "description": "Ignore global exception classes",
           "type": "boolean"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -2220,6 +2649,10 @@
         },
         "ignoreGlobalInterface": {
           "type": "boolean"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -2240,6 +2673,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -2257,6 +2694,10 @@
         "length": {
           "description": "Max line length, in characters",
           "type": "number"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -2300,6 +2741,10 @@
         "ignoreLowerClassImplmentationStatement": {
           "type": "boolean"
         },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        },
         "style": {
           "$ref": "#/definitions/KeywordCaseStyle"
         }
@@ -2332,6 +2777,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -2345,6 +2794,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -2362,6 +2815,10 @@
         "length": {
           "description": "Maximum line length in characters, trailing whitespace ignored",
           "type": "number"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -2382,6 +2839,10 @@
         "ignoreExceptions": {
           "description": "Ignore lines with only puncutation in global exception classes",
           "type": "boolean"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -2425,6 +2886,10 @@
           "$ref": "#/definitions/PatternKind",
           "description": "Specifies whether the pattern is forbidden (violation if name matches) or required (violation if name does not match)."
         },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        },
         "test": {
           "description": "The pattern for local test class names",
           "type": "string"
@@ -2446,6 +2911,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -2489,6 +2958,10 @@
         "patternKind": {
           "$ref": "#/definitions/PatternKind",
           "description": "Specifies whether the pattern is forbidden (violation if name matches) or required (violation if name does not match)."
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -2507,6 +2980,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -2520,6 +2997,27 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        }
+      },
+      "type": "object"
+    },
+    "ManyParenthesisConf": {
+      "additionalProperties": false,
+      "properties": {
+        "exclude": {
+          "description": "List of file regex filename patterns to exclude, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -2533,6 +3031,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -2546,6 +3048,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -2568,6 +3074,10 @@
           "description": "Option to ignore test classes for this check.",
           "type": "boolean"
         },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        },
         "statements": {
           "description": "Maximum method length in statements",
           "type": "number"
@@ -2578,6 +3088,23 @@
         "errorWhenEmpty",
         "ignoreTestClasses"
       ],
+      "type": "object"
+    },
+    "MethodOverwritesBuiltInConf": {
+      "additionalProperties": false,
+      "properties": {
+        "exclude": {
+          "description": "List of file regex filename patterns to exclude, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        }
+      },
       "type": "object"
     },
     "MethodParameterNamesConf": {
@@ -2627,6 +3154,10 @@
         "returning": {
           "description": "The pattern for returning parameters",
           "type": "string"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -2647,6 +3178,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -2660,6 +3195,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -2677,6 +3216,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -2700,7 +3243,11 @@
         },
         "logic": {
           "$ref": "#/definitions/NewlineLogic",
-          "description": "Exact: the exact number of required newlines between methods is defined by \"newlineAmount\"\r\n\r\nLess: the required number of newlines has to be less than \"newlineAmount\""
+          "description": "Exact: the exact number of required newlines between methods is defined by \"newlineAmount\"\n\nLess: the required number of newlines has to be less than \"newlineAmount\""
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -2729,6 +3276,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -2808,6 +3359,10 @@
           "description": "The pattern for program (report) names",
           "type": "string"
         },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        },
         "shlp": {
           "description": "The pattern for search helps",
           "type": "string"
@@ -2882,7 +3437,11 @@
           "type": "array"
         },
         "fieldSymbolStructure": {
-          "description": "Checks for FIELD-SYMBOL ... STRUCTURE",
+          "description": "Checks for FIELD-SYMBOLS ... STRUCTURE",
+          "type": "boolean"
+        },
+        "load": {
+          "description": "Checks for addition LOAD",
           "type": "boolean"
         },
         "move": {
@@ -2906,11 +3465,19 @@
           "type": "boolean"
         },
         "setExtended": {
-          "description": "Checks for SET EXTENDED CHECK, https://help.sap.com/doc/abapdocu_751_index_htm/7.51/en-us/abapset_extended_check.htm",
+          "description": "Checks for SET EXTENDED CHECK",
           "type": "boolean"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         },
         "subtract": {
           "description": "Check for SUBTRACT statement",
+          "type": "boolean"
+        },
+        "typePools": {
+          "description": "Checks for TYPE-POOLS",
           "type": "boolean"
         },
         "withHeaderLine": {
@@ -2930,8 +3497,44 @@
         "occurs",
         "setExtended",
         "withHeaderLine",
-        "fieldSymbolStructure"
+        "fieldSymbolStructure",
+        "typePools",
+        "load"
       ],
+      "type": "object"
+    },
+    "OmitParameterNameConf": {
+      "additionalProperties": false,
+      "properties": {
+        "exclude": {
+          "description": "List of file regex filename patterns to exclude, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        }
+      },
+      "type": "object"
+    },
+    "OmitReceivingConf": {
+      "additionalProperties": false,
+      "properties": {
+        "exclude": {
+          "description": "List of file regex filename patterns to exclude, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        }
+      },
       "type": "object"
     },
     "ParserErrorConf": {
@@ -2943,6 +3546,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -2956,6 +3563,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -2976,6 +3587,27 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        }
+      },
+      "type": "object"
+    },
+    "PreferIsNotConf": {
+      "additionalProperties": false,
+      "properties": {
+        "exclude": {
+          "description": "List of file regex filename patterns to exclude, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -2989,6 +3621,27 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        }
+      },
+      "type": "object"
+    },
+    "PreferXsdboolConf": {
+      "additionalProperties": false,
+      "properties": {
+        "exclude": {
+          "description": "List of file regex filename patterns to exclude, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -3009,6 +3662,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -3029,6 +3686,10 @@
         "omitMeInstanceCalls": {
           "description": "Checks usages of self references with 'me' when calling instance methods",
           "type": "boolean"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -3045,8 +3706,31 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
+      "type": "object"
+    },
+    "Recommendations": {
+      "additionalProperties": false,
+      "properties": {
+        "from": {
+          "$ref": "#/definitions/Version"
+        },
+        "name": {
+          "type": "string"
+        },
+        "replace": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "replace"
+      ],
       "type": "object"
     },
     "ReduceStringTemplatesConf": {
@@ -3058,6 +3742,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -3071,6 +3759,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -3092,6 +3784,10 @@
         "ignoreWorkflow": {
           "description": "Ignore global workflow classes",
           "type": "boolean"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -3109,6 +3805,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -3122,6 +3822,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -3161,6 +3865,10 @@
         "selectOption": {
           "description": "The pattern for selection-screen select-options",
           "type": "string"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -3180,8 +3888,12 @@
           "type": "array"
         },
         "lines": {
-          "description": "An equal or higher number of sequential blank lines will trigger a violation.\r\nExample: if lines = 3, a maximum of 2 is allowed.",
+          "description": "An equal or higher number of sequential blank lines will trigger a violation. Example: if lines = 3, a maximum of 2 is allowed.",
           "type": "number"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -3198,9 +3910,21 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
+    },
+    "Severity": {
+      "enum": [
+        "Error",
+        "Warning",
+        "Info"
+      ],
+      "type": "string"
     },
     "ShortCaseConf": {
       "additionalProperties": false,
@@ -3220,8 +3944,12 @@
           "type": "array"
         },
         "length": {
-          "description": "The smallest number of WHEN branches which will trigger a violation.\r\nExample: if length = 1, at least 2 branches are required",
+          "description": "The smallest number of WHEN branches which will trigger a violation. Example: if length = 1, at least 2 branches are required",
           "type": "number"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -3239,6 +3967,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -3258,6 +3990,10 @@
         },
         "ignoreGlobalDefinition": {
           "type": "boolean"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -3275,6 +4011,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -3288,6 +4028,27 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        }
+      },
+      "type": "object"
+    },
+    "SyModificationConf": {
+      "additionalProperties": false,
+      "properties": {
+        "exclude": {
+          "description": "List of file regex filename patterns to exclude, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -3301,6 +4062,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -3314,6 +4079,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -3327,6 +4096,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -3344,6 +4117,10 @@
         "pattern": {
           "description": "The pattern for TYPES",
           "type": "string"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "required": [
@@ -3360,6 +4137,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -3373,6 +4154,27 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        }
+      },
+      "type": "object"
+    },
+    "UnusedMethodsConf": {
+      "additionalProperties": false,
+      "properties": {
+        "exclude": {
+          "description": "List of file regex filename patterns to exclude, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -3386,6 +4188,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         },
         "skipNames": {
           "description": "skip specific names, case insensitive",
@@ -3410,6 +4216,10 @@
           },
           "type": "array"
         },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        },
         "skipNames": {
           "description": "skip specific names, case insensitive",
           "items": {
@@ -3423,6 +4233,23 @@
       ],
       "type": "object"
     },
+    "UseBoolExpressionConf": {
+      "additionalProperties": false,
+      "properties": {
+        "exclude": {
+          "description": "List of file regex filename patterns to exclude, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        }
+      },
+      "type": "object"
+    },
     "UseLineExistsConf": {
       "additionalProperties": false,
       "properties": {
@@ -3432,6 +4259,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -3445,6 +4276,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -3475,6 +4310,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -3488,6 +4327,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"
@@ -3501,6 +4344,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
         }
       },
       "type": "object"

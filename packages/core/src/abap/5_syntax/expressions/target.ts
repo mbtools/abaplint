@@ -14,10 +14,13 @@ import {ReferenceType} from "../_reference";
 export class Target {
   public runSyntax(node: ExpressionNode, scope: CurrentScope, filename: string): AbstractType | undefined {
 
-    const found = scope.findVariable(node.concatTokens()); // workaround for names with dashes
-    if (found) {
-      scope.addReference(node.getFirstToken(), found, ReferenceType.DataWriteReference, filename);
-      return found.getType();
+    if (node.concatTokens().includes("-")) {
+      // workaround for names with dashes
+      const found = scope.findVariable(node.concatTokens());
+      if (found) {
+        scope.addReference(node.getFirstToken(), found, ReferenceType.DataWriteReference, filename);
+        return found.getType();
+      }
     }
 
     const children = node.getChildren().slice();
@@ -85,7 +88,7 @@ export class Target {
     }
 
     const token = node.getFirstToken();
-    const name = node.getFirstToken().getStr();
+    const name = token.getStr();
 
     if (node.get() instanceof Expressions.TargetField
         || node.get() instanceof Expressions.TargetFieldSymbol) {
@@ -93,11 +96,20 @@ export class Target {
       if (found) {
         scope.addReference(token, found, ReferenceType.DataWriteReference, filename);
       }
+      if (name.includes("~")) {
+        const idef = scope.findInterfaceDefinition(name.split("~")[0]);
+        if (idef) {
+          scope.addReference(token, idef, ReferenceType.ObjectOrientedReference, filename);
+        }
+      }
       return found?.getType();
     } else if (node.get() instanceof Expressions.ClassName) {
-      if (scope.findObjectDefinition(name)) {
-        return new ObjectReferenceType(name);
+      const found = scope.findObjectDefinition(name);
+      if (found) {
+        scope.addReference(token, found, ReferenceType.ObjectOrientedReference, filename);
+        return new ObjectReferenceType(found);
       } else if (scope.getDDIC().inErrorNamespace(name) === false) {
+        scope.addReference(token, undefined, ReferenceType.ObjectOrientedVoidReference, filename);
         return new VoidType(name);
       } else {
         return new UnknownType(name + " unknown, Target");

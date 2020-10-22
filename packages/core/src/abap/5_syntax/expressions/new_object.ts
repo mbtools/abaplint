@@ -12,26 +12,31 @@ export class NewObject {
     const typeName = typeToken?.getStr();
     if (typeName === undefined) {
       throw new Error("NewObject, child TypeNameOrInfer not found");
+    } else if (typeName === "#" && targetType && targetType instanceof ObjectReferenceType) {
+      scope.addReference(typeToken, targetType.getIdentifier(), ReferenceType.InferredType, filename);
+      return targetType;
     } else if (typeName === "#" && targetType) {
       return targetType;
     } else if (typeName === "#") {
       throw new Error("NewObject, todo, infer type");
     }
 
+    for (const s of node.findAllExpressions(Expressions.Source)) {
+      new Source().runSyntax(s, scope, filename);
+    }
+
     const objDefinition = scope.findObjectDefinition(typeName);
     if (objDefinition) {
       scope.addReference(typeToken, objDefinition, ReferenceType.ObjectOrientedReference, filename);
-      return new ObjectReferenceType(typeName);
+      return new ObjectReferenceType(objDefinition);
+    } else {
+      scope.addReference(typeToken, undefined, ReferenceType.ObjectOrientedVoidReference, filename, {className: typeName});
     }
 
     const type = scope.findType(typeName);
     if (type) {
       // todo: scope.addReference
       return new DataReference(type.getType());
-    }
-
-    for (const s of node.findAllExpressions(Expressions.Source)) {
-      new Source().runSyntax(s, scope, filename);
     }
 
     if (scope.getDDIC().inErrorNamespace(typeName) === false) {

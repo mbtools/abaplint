@@ -1,10 +1,11 @@
 import * as Expressions from "../abap/2_statements/expressions";
 import {Issue} from "../issue";
 import {ABAPRule} from "./_abap_rule";
-import {ABAPFile} from "../files";
 import {BasicRuleConfig} from "./_basic_rule_config";
 import {EditHelper} from "../edit_helper";
 import {Token} from "../abap/1_lexer/tokens/_token";
+import {IRuleMetadata, RuleTag} from "./_irule";
+import {ABAPFile} from "../abap/abap_file";
 
 export class PreferredCompareOperatorConf extends BasicRuleConfig {
   /** Operators which are not allowed */
@@ -17,11 +18,12 @@ export class PreferredCompareOperator extends ABAPRule {
 
   private readonly operatorMapping: Map<string, string> = new Map<string, string>();
 
-  public getMetadata() {
+  public getMetadata(): IRuleMetadata {
     return {
       key: "preferred_compare_operator",
       title: "Preferred compare operator",
       shortDescription: `Configure undesired operator variants`,
+      tags: [RuleTag.SingleFile],
     };
   }
 
@@ -83,11 +85,11 @@ export class PreferredCompareOperator extends ABAPRule {
     // values in badOperators can be entered by the user and may not necessarily be actual operators
     if (replacementToken) {
       const fix = EditHelper.replaceRange(file, token.getStart(), token.getEnd(), replacementToken);
-      const issue = Issue.atToken(file, token, message, this.getMetadata().key, fix);
+      const issue = Issue.atToken(file, token, message, this.getMetadata().key, this.conf.severity, fix);
       return issue;
     }
     else {
-      const issue = Issue.atToken(file, token, message, this.getMetadata().key);
+      const issue = Issue.atToken(file, token, message, this.getMetadata().key, this.conf.severity);
       return issue;
     }
   }

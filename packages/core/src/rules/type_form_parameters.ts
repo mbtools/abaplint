@@ -2,10 +2,10 @@ import {Issue} from "../issue";
 import {Class} from "../objects";
 import {BasicRuleConfig} from "./_basic_rule_config";
 import {ABAPRule} from "./_abap_rule";
-import {ABAPFile} from "../files";
 import * as Expressions from "../abap/2_statements/expressions";
 import {ABAPObject} from "../objects/_abap_object";
-import {IRuleMetadata} from "./_irule";
+import {IRuleMetadata, RuleTag} from "./_irule";
+import {ABAPFile} from "../abap/abap_file";
 
 export class TypeFormParametersConf extends BasicRuleConfig {
 }
@@ -19,6 +19,7 @@ export class TypeFormParameters extends ABAPRule {
       key: "type_form_parameters",
       title: "Type FORM parameters",
       shortDescription: `Checks for untyped FORM parameters`,
+      tags: [RuleTag.SingleFile],
       badExample: `FORM foo USING bar.`,
       goodExample: `FORM foo USING bar TYPE string.`,
     };
@@ -47,7 +48,7 @@ export class TypeFormParameters extends ABAPRule {
     for (const formparam of stru.findAllExpressions(Expressions.FormParam)) {
       if (formparam.findFirstExpression(Expressions.FormParamType) === undefined) {
         const token = formparam.getFirstToken();
-        const issue = Issue.atToken(file, token, this.getDescription(token.getStr()), this.getMetadata().key);
+        const issue = Issue.atToken(file, token, this.getDescription(token.getStr()), this.getMetadata().key, this.conf.severity);
         ret.push(issue);
       }
     }

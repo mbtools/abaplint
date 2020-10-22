@@ -1,6 +1,5 @@
 import {Issue} from "../issue";
 import {ABAPRule} from "./_abap_rule";
-import {ABAPFile} from "../files";
 import {BasicRuleConfig} from "./_basic_rule_config";
 import {Token} from "../abap/1_lexer/tokens/_token";
 import {ParenLeftW, Comment, WParenRightW, WParenRight} from "../abap/1_lexer/tokens";
@@ -10,6 +9,7 @@ import {MethodDef} from "../abap/2_statements/statements";
 import {Position} from "../position";
 import {EditHelper} from "../edit_helper";
 import {IRuleMetadata, RuleTag} from "./_irule";
+import {ABAPFile} from "../abap/abap_file";
 
 export class DoubleSpaceConf extends BasicRuleConfig {
   /** Check for double space after keywords */
@@ -31,7 +31,7 @@ export class DoubleSpace extends ABAPRule {
       key: "double_space",
       title: "Double space",
       shortDescription: `Checks that only a single space follows certain common statements.`,
-      tags: [RuleTag.Whitespace, RuleTag.Quickfix],
+      tags: [RuleTag.Whitespace, RuleTag.Quickfix, RuleTag.SingleFile],
       badExample: `DATA  foo TYPE i.`,
       goodExample: `DATA foo TYPE i.`,
     };
@@ -100,7 +100,7 @@ export class DoubleSpace extends ABAPRule {
           const issueStartPos = new Position(cPosition.getRow(), cPosition.getCol() + 2);
           const issueEndPos = new Position(t.getRow(), t.getCol());
           const fix = EditHelper.deleteRange(file, issueStartPos, issueEndPos);
-          issues.push(Issue.atRange( file, issueStartPos, issueEndPos, this.getMessage(), this.getMetadata().key, fix));
+          issues.push(Issue.atRange( file, issueStartPos, issueEndPos, this.getMessage(), this.getMetadata().key, this.conf.severity, fix));
         }
 
         break;
@@ -128,7 +128,7 @@ export class DoubleSpace extends ABAPRule {
         const issueStartPos = new Position(prev.getRow(), prev.getCol() + 2);
         const issueEndPos = new Position(t.getRow(), t.getCol());
         const fix = EditHelper.deleteRange(file, issueStartPos, issueEndPos);
-        issues.push(Issue.atRange( file, issueStartPos, issueEndPos, this.getMessage(), this.getMetadata().key, fix));
+        issues.push(Issue.atRange( file, issueStartPos, issueEndPos, this.getMessage(), this.getMetadata().key, this.conf.severity, fix));
       }
 
       if (this.getConfig().endParen === true
@@ -139,7 +139,7 @@ export class DoubleSpace extends ABAPRule {
         const issueStartPos = new Position(prev.getEnd().getRow(), prev.getEnd().getCol() + 1);
         const issueEndPos = new Position(t.getRow(), t.getCol());
         const fix = EditHelper.deleteRange(file, issueStartPos, issueEndPos);
-        issues.push(Issue.atRange( file, issueStartPos, issueEndPos, this.getMessage(), this.getMetadata().key, fix));
+        issues.push(Issue.atRange( file, issueStartPos, issueEndPos, this.getMessage(), this.getMetadata().key, this.conf.severity, fix));
       }
 
       prev = t;
@@ -178,7 +178,7 @@ export class DoubleSpace extends ABAPRule {
         const issueStartPos = new Position(prev.get().getEnd().getRow(), prev.get().getEnd().getCol() + 1 );
         const issueEndPos = new Position(n.get().getRow(), n.get().getCol());
         const fix = EditHelper.deleteRange(file, issueStartPos, issueEndPos);
-        issues.push(Issue.atRange( file, issueStartPos, issueEndPos, this.getMessage(), this.getMetadata().key, fix));
+        issues.push(Issue.atRange( file, issueStartPos, issueEndPos, this.getMessage(), this.getMetadata().key, this.conf.severity, fix));
         return issues;
       }
 

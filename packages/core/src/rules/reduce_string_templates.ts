@@ -1,10 +1,10 @@
 import * as Expressions from "../abap/2_statements/expressions";
 import {Issue} from "../issue";
 import {ABAPRule} from "./_abap_rule";
-import {ABAPFile} from "../files";
 import {BasicRuleConfig} from "./_basic_rule_config";
 import {IObject} from "../objects/_iobject";
-import {IRuleMetadata} from "./_irule";
+import {IRuleMetadata, RuleTag} from "./_irule";
+import {ABAPFile} from "../abap/abap_file";
 
 export class ReduceStringTemplatesConf extends BasicRuleConfig {
 }
@@ -18,7 +18,7 @@ export class ReduceStringTemplates extends ABAPRule {
       key: "reduce_string_templates",
       title: "Reduce string templates",
       shortDescription: `Checks for string templates`,
-      tags: [],
+      tags: [RuleTag.SingleFile],
       badExample: `WRITE |{ |sdf| }|.\nWRITE |{ 'sdf' }|.`,
       goodExample: `WRITE |sdf|.`,
     };
@@ -43,12 +43,12 @@ export class ReduceStringTemplates extends ABAPRule {
     for (const template of structure.findAllExpressions(Expressions.StringTemplate)) {
       for (const source of template.findDirectExpressions(Expressions.Source)) {
         for (const second of source.findDirectExpressions(Expressions.StringTemplate)) {
-          issues.push(Issue.atToken(file, second.getFirstToken(), "Nested string templates, reduce", this.getMetadata().key));
+          issues.push(Issue.atToken(file, second.getFirstToken(), "Nested string templates, reduce", this.getMetadata().key, this.conf.severity));
         }
 
         for (const constant of source.findDirectExpressions(Expressions.Constant)) {
           for (const constantString of constant.findDirectExpressions(Expressions.ConstantString)) {
-            issues.push(Issue.atToken(file, constantString.getFirstToken(), "Constant string in text template, reduce", this.getMetadata().key));
+            issues.push(Issue.atToken(file, constantString.getFirstToken(), "Constant string in text template, reduce", this.getMetadata().key, this.conf.severity));
           }
         }
       }
@@ -75,7 +75,7 @@ export class ReduceStringTemplates extends ABAPRule {
       const end = sub[0].getLastToken().getEnd();
       if (start.getRow() === end.getRow()) {
         const message = "Reduce template, remove \"&&\"";
-        issues.push(Issue.atToken(file, children[1].getFirstToken(), message, this.getMetadata().key));
+        issues.push(Issue.atToken(file, children[1].getFirstToken(), message, this.getMetadata().key, this.conf.severity));
       }
     }
 

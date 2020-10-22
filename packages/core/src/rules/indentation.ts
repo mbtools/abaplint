@@ -1,6 +1,5 @@
 import {Issue} from "../issue";
 import {ABAPRule} from "./_abap_rule";
-import {ABAPFile} from "../files";
 import {IObject} from "../objects/_iobject";
 import {Class} from "../objects";
 import {BasicRuleConfig} from "./_basic_rule_config";
@@ -12,6 +11,7 @@ import {IRuleMetadata, RuleTag} from "./_irule";
 import {DDIC} from "../ddic";
 import {Position, VirtualPosition} from "../position";
 import {EditHelper} from "../edit_helper";
+import {ABAPFile} from "../abap/abap_file";
 
 export class IndentationConf extends BasicRuleConfig {
   /** Ignore global exception classes */
@@ -30,7 +30,7 @@ export class Indentation extends ABAPRule {
       key: "indentation",
       title: "Indentation",
       shortDescription: `Checks indentation`,
-      tags: [RuleTag.Whitespace, RuleTag.Quickfix],
+      tags: [RuleTag.Whitespace, RuleTag.Quickfix, RuleTag.SingleFile],
     };
   }
 
@@ -69,6 +69,11 @@ export class Indentation extends ABAPRule {
     const expected = new Indent(indentOpts).getExpectedIndents(file);
 
     for (const statement of file.getStatements()) {
+      const position = statement.getFirstToken().getStart();
+      if (position instanceof VirtualPosition) {
+        continue;
+      }
+
       const indent = expected.shift();
 
       if (this.conf.ignoreGlobalClassDefinition) {
@@ -97,16 +102,11 @@ export class Indentation extends ABAPRule {
         }
       }
 
-      const position = statement.getFirstToken().getStart();
-      if (position instanceof VirtualPosition) {
-        continue;
-      }
-
       if (indent && indent > 0 && indent !== position.getCol()) {
         const expected = indent - 1;
         const fix = EditHelper.replaceRange(file, new Position(position.getRow(), 1), position, " ".repeat(expected));
         const message = "Indentation problem, expected " + expected + " spaces";
-        const issue = Issue.atPosition(file, position, message, this.getMetadata().key, fix);
+        const issue = Issue.atPosition(file, position, message, this.getMetadata().key, this.conf.severity, fix);
         return [issue]; // only one finding per include
       }
     }

@@ -1,10 +1,10 @@
 import {Issue} from "../issue";
 import {ABAPRule} from "./_abap_rule";
-import {ABAPFile} from "../files";
 import * as Statements from "../abap/2_statements/statements";
 import * as Expressions from "../abap/2_statements/expressions";
 import {BasicRuleConfig} from "./_basic_rule_config";
 import {RuleTag} from "./_irule";
+import {ABAPFile} from "../abap/abap_file";
 
 export class MixReturningConf extends BasicRuleConfig {
 }
@@ -20,7 +20,7 @@ export class MixReturning extends ABAPRule {
       shortDescription: `Checks that methods don't have a mixture of returning and exporting/changing parameters`,
       // eslint-disable-next-line max-len
       extendedInformation: `https://github.com/SAP/styleguides/blob/master/clean-abap/CleanABAP.md#use-either-returning-or-exporting-or-changing-but-not-a-combination`,
-      tags: [RuleTag.Styleguide],
+      tags: [RuleTag.Styleguide, RuleTag.SingleFile],
     };
   }
 
@@ -50,7 +50,7 @@ export class MixReturning extends ABAPRule {
       if (def.findFirstExpression(Expressions.MethodDefExporting)
           || def.findFirstExpression(Expressions.MethodDefChanging)) {
         const token = def.getFirstToken();
-        const issue = Issue.atToken(file, token, this.getMessage(), this.getMetadata().key);
+        const issue = Issue.atToken(file, token, this.getMessage(), this.getMetadata().key, this.conf.severity);
         ret.push(issue);
       }
     }

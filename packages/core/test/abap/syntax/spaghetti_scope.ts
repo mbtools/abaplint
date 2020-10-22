@@ -1,5 +1,4 @@
 import {expect} from "chai";
-import {MemoryFile} from "../../../src/files";
 import {Registry} from "../../../src/registry";
 import {SyntaxLogic} from "../../../src/abap/5_syntax/syntax";
 import {Position} from "../../../src/position";
@@ -7,6 +6,7 @@ import {ScopeType} from "../../../src/abap/5_syntax/_scope_type";
 import {IRegistry} from "../../../src/_iregistry";
 import {getABAPObjects} from "../../get_abap";
 import {ISpaghettiScope} from "../../../src/abap/5_syntax/_spaghetti_scope";
+import {MemoryFile} from "../../../src/files/memory_file";
 
 const filename = "zfoobar.prog.abap";
 
@@ -88,9 +88,6 @@ ENDCLASS.`;
     expect(scope1?.getIdentifier().stype).to.equal(ScopeType.Method);
     expect(scope1?.getIdentifier().sname).to.equal("blahblah");
   });
-});
-
-describe("Spaghetti Scope, Definition + Read + Write positions", () => {
 
   it("inline FIELD-SYMBOL, check definition and write position", () => {
     const abap = `
@@ -104,6 +101,51 @@ describe("Spaghetti Scope, Definition + Read + Write positions", () => {
     expect(reads.length).to.equal(1, "reads");
     const writes = spaghetti.listWritePositions(filename);
     expect(writes.length).to.equal(1, "writes");
+  });
+
+  it("FORM should not add references to _global", () => {
+    const abap = `
+    FORM foo CHANGING bar TYPE sy.
+    ENDFORM.`;
+    const spaghetti = runProgram(abap);
+
+    const glob = spaghetti.getTop().getFirstChild();
+    expect(glob?.getIdentifier().stype).to.equal(ScopeType.Global);
+    expect(glob?.getData().forms.length).to.equal(1);
+    expect(glob?.getData().references.length).to.equal(0);
+
+    const prog = glob?.getFirstChild();
+    expect(prog?.getIdentifier().stype).to.equal(ScopeType.Program);
+    expect(prog?.getData().references.length).to.equal(0);
+
+    const form = prog?.getFirstChild();
+    expect(form?.getIdentifier().stype).to.equal(ScopeType.Form);
+    expect(form?.getData().references.length).to.equal(1);
+  });
+
+  it("FORM variable 'foo' is read in one place", () => {
+    const abap = `
+CLASS cla DEFINITION.
+  PUBLIC SECTION.
+    CLASS-METHODS: foo IMPORTING int TYPE i.
+    METHODS: bar RETURNING VALUE(int) TYPE i.
+ENDCLASS.
+CLASS cla IMPLEMENTATION.
+  METHOD bar.
+  ENDMETHOD.
+  METHOD foo.
+  ENDMETHOD.
+ENDCLASS.
+
+FORM form.
+  DATA foo TYPE REF TO cla.
+  cla=>foo( int = foo->bar( ) ).
+ENDFORM.`;
+
+    const spaghetti = runProgram(abap);
+
+    const reads = spaghetti.listReadPositions(filename);
+    expect(reads.length).to.equal(1);
   });
 
 });

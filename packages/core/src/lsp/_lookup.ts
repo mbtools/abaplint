@@ -2,7 +2,6 @@ import * as LServer from "vscode-languageserver-types";
 import * as Statements from "../abap/2_statements/statements";
 import * as Expressions from "../abap/2_statements/expressions";
 import {IRegistry} from "../_iregistry";
-import {ABAPFile} from "../files";
 import {ABAPObject} from "../objects/_abap_object";
 import {SyntaxLogic} from "../abap/5_syntax/syntax";
 import {IFormDefinition} from "../abap/types/_form_definition";
@@ -14,11 +13,18 @@ import {Token} from "../abap/1_lexer/tokens/_token";
 import {IReference, ReferenceType} from "../abap/5_syntax/_reference";
 import {IClassDefinition} from "../abap/types/_class_definition";
 import {BuiltIn} from "../abap/5_syntax/_builtin";
+import {ScopeType} from "../abap/5_syntax/_scope_type";
+import {Class, Interface} from "../objects";
+import {IInterfaceDefinition} from "../abap/types/_interface_definition";
+import {ABAPFile} from "../abap/abap_file";
 
 export interface LSPLookupResult {
-  hover: string | undefined;                     // in markdown
-  definition?: LServer.Location | undefined;     // used for go to definition
-  implementation?: LServer.Location | undefined; // used for go to implementation
+  /** in markdown */
+  hover: string | undefined;
+  /** used for go to definition */
+  definition?: LServer.Location | undefined;
+  /** used for go to implementation */
+  implementation?: LServer.Location | undefined;
   definitionId?: Identifier;
   scope?: ISpaghettiScopeNode;
 }
@@ -31,6 +37,12 @@ export class LSPLookup {
       const found = this.ABAPFileResult(inc);
       return {hover: "Include", definition: found, implementation: found};
     }
+
+    const fm = this.findFunctionModule(cursor);
+    if (fm) {
+      return {hover: "Function Module " + fm};
+    }
+
     const bottomScope = new SyntaxLogic(reg, obj).run().spaghetti.lookupPosition(
       cursor.identifier.getStart(),
       cursor.identifier.getFilename());
@@ -65,14 +77,21 @@ export class LSPLookup {
     }
 
     const type = bottomScope.findType(cursor.token.getStr());
-    if (type instanceof TypedIdentifier && type.getStart().equals(cursor.token.getStart())) {
+    if (type !== undefined && type.getStart().equals(cursor.token.getStart())) {
       const found = LSPUtils.identiferToLocation(type);
       const hover = "Type definition, " + cursor.token.getStr() + "\n\n" + this.dumpType(type);
       return {hover, definition: found, definitionId: type, scope: bottomScope};
     }
 
+    const method = this.findMethodDefinition(cursor, bottomScope);
+    if (method !== undefined && method.getStart().equals(cursor.token.getStart())) {
+      const found = LSPUtils.identiferToLocation(method);
+      const hover = "Method definition \"" + method.getName() + "\"";
+      return {hover, definition: found, definitionId: method, scope: bottomScope};
+    }
+
     const variable = bottomScope.findVariable(cursor.token.getStr());
-    if (variable instanceof TypedIdentifier && variable.getStart().equals(cursor.token.getStart())) {
+    if (variable !== undefined && variable.getStart().equals(cursor.token.getStart())) {
       const hover = "Variable definition\n\n" + this.dumpType(variable);
 
       let location: LServer.Location | undefined = undefined;
@@ -82,14 +101,24 @@ export class LSPLookup {
       return {hover, definition: location, implementation: location, definitionId: variable, scope: bottomScope};
     }
 
-    const ref = this.searchReferences(bottomScope, cursor.token);
-    if (ref !== undefined) {
-      const value = this.referenceHover(ref, bottomScope);
-      let definition: LServer.Location | undefined = LSPUtils.identiferToLocation(ref.resolved);
-      if (definition.uri === BuiltIn.filename) {
-        definition = undefined;
+    const refs = this.searchReferences(bottomScope, cursor.token);
+    if (refs.length > 0) {
+      let value = "";
+      for (const ref of refs) {
+        if (value !== "") {
+          value += "\n_________________\n";
+        }
+        value += this.referenceHover(ref, bottomScope, reg);
       }
-      return {hover: value, definition, definitionId: ref.resolved, scope: bottomScope};
+
+      let definition: LServer.Location | undefined = undefined;
+      if (refs[0].resolved) {
+        definition = LSPUtils.identiferToLocation(refs[0].resolved);
+        if (definition.uri === BuiltIn.filename) {
+          definition = undefined;
+        }
+      }
+      return {hover: value, definition, definitionId: refs[0].resolved, scope: bottomScope};
     }
 
     return undefined;
@@ -98,7 +127,9 @@ export class LSPLookup {
 ////////////////////////////////////////////
 
   private static dumpType(variable: TypedIdentifier): string {
-    let value = "Type: " + variable.getType().toText(0);
+    let value = variable.toText() +
+      (variable.getTypeName() ? "\n\nTypename: \"" + variable.getTypeName() + "\"" : "") +
+      "\n\nType: " + variable.getType().toText(0);
     if (variable.getValue()) {
       value = value + "\n\nValue: ```" + variable.getValue() + "```";
     }
@@ -115,14 +146,27 @@ export class LSPLookup {
     return value;
   }
 
-  private static referenceHover(ref: IReference, scope: ISpaghettiScopeNode): string {
-    let ret = "Resolved Reference: " + ref.referenceType + " " + ref.resolved.getName();
+  private static referenceHover(ref: IReference, scope: ISpaghettiScopeNode, reg: IRegistry): string {
+    let name = "";
+    if (ref.resolved) {
+      name = "```" + ref.resolved.getName() + "```";
+    }
+    let ret = "Resolved Reference: " + ref.referenceType + " " + name;
 
     if (ref.referenceType === ReferenceType.MethodReference && ref.extra?.className) {
-      ret += "\n\n" + this.hoverMethod(ref.position.getName(), scope.findClassDefinition(ref.extra?.className));
-    }
+      let cdef: IClassDefinition | IInterfaceDefinition | undefined = scope.findClassDefinition(ref.extra.className);
+      if (cdef === undefined) {
+        cdef = scope.findInterfaceDefinition(ref.extra.className);
+      }
+      if (cdef === undefined) {
+        cdef = (reg.getObject("CLAS", ref.extra.className) as Class | undefined)?.getDefinition();
+      }
+      if (cdef === undefined) {
+        cdef = (reg.getObject("INTF", ref.extra.className) as Interface | undefined)?.getDefinition();
+      }
 
-    if (ref.resolved instanceof TypedIdentifier) {
+      ret += "\n\n" + this.hoverMethod(ref.position.getName(), cdef);
+    } else if (ref.resolved instanceof TypedIdentifier) {
       ret += "\n\n" + this.dumpType(ref.resolved);
     }
 
@@ -133,48 +177,76 @@ export class LSPLookup {
     return ret;
   }
 
-  private static hoverMethod(method: string, cdef: IClassDefinition | undefined): string {
-    if (cdef === undefined) {
-      return "";
+  private static hoverMethod(method: string, def: IClassDefinition | IInterfaceDefinition | undefined): string {
+    if (def === undefined) {
+      return "class not found";
     }
 
-    const mdef = cdef.getMethodDefinitions().getByName(method);
+    const mdef = def.getMethodDefinitions().getByName(method);
     if (mdef === undefined) {
-      return "";
+      return "method not found in definition";
     }
 
     let ret = "";
-    for (const p of mdef.getParameters().getImporting()) {
-      ret = ret + p.getName() + ": TYPE " + p.getType().toText(0) + "\n\n";
+    if (mdef.getParameters().getImporting().length > 0) {
+      ret += "IMPORTING\n";
+      for (const p of mdef.getParameters().getImporting()) {
+        ret += this.singleParameter(p);
+      }
     }
-    for (const p of mdef.getParameters().getExporting()) {
-      ret = ret + p.getName() + ": TYPE " + p.getType().toText(0) + "\n\n";
+
+    if (mdef.getParameters().getExporting().length > 0) {
+      ret += "EXPORTING\n";
+      for (const p of mdef.getParameters().getExporting()) {
+        ret += this.singleParameter(p);
+      }
     }
-    for (const p of mdef.getParameters().getChanging()) {
-      ret = ret + p.getName() + ": TYPE " + p.getType().toText(0) + "\n\n";
+
+    if (mdef.getParameters().getChanging().length > 0) {
+      ret += "CHANGING\n";
+      for (const p of mdef.getParameters().getChanging()) {
+        ret += this.singleParameter(p);
+      }
     }
+
     const r = mdef.getParameters().getReturning();
     if (r) {
-      ret = ret + r.getName() + ": TYPE " + r.getType().toText(0) + "\n\n";
+      ret += "RETURNING\n" + this.singleParameter(r);
     }
 
-    return ret === "" ? ret : ret + "\n\n";
+    if (mdef.getRaising().length > 0) {
+      ret += "RAISING\n";
+      for (const p of mdef.getRaising()) {
+        ret += "* " + p;
+      }
+    }
+
+    return ret;
   }
 
-  private static searchReferences(scope: ISpaghettiScopeNode, token: Token): IReference | undefined {
+  private static singleParameter(p: TypedIdentifier): string {
+    let extra = p.getMeta().join(", ");
+    if (extra !== "") {
+      extra = "(Meta: " + extra + ")";
+    }
+    return "* " + p.getName() + extra + " TYPE " + p.getType().toText(1) + "\n\n";
+  }
+
+  private static searchReferences(scope: ISpaghettiScopeNode, token: Token): IReference[] {
+    let ret: IReference[] = [];
 
     for (const r of scope.getData().references) {
       if (r.position.getStart().equals(token.getStart())) {
-        return r;
+        ret.push(r);
       }
     }
 
     const parent = scope.getParent();
     if (parent) {
-      return this.searchReferences(parent, token);
+      ret = ret.concat(this.searchReferences(parent, token));
     }
 
-    return undefined;
+    return ret;
   }
 
   private static ABAPFileResult(abap: ABAPFile): LServer.Location {
@@ -182,6 +254,31 @@ export class LSPLookup {
       uri: abap.getFilename(),
       range: LServer.Range.create(0, 0, 0, 0),
     };
+  }
+
+  private static findMethodDefinition(found: ICursorData, scope: ISpaghettiScopeNode): Identifier | undefined {
+    if (scope.getIdentifier().stype !== ScopeType.ClassDefinition
+        || !(found.snode.get() instanceof Statements.MethodDef)) {
+      return undefined;
+    }
+
+    const nameToken = found.snode.findFirstExpression(Expressions.MethodName)?.getFirstToken();
+    if (nameToken === undefined) {
+      return undefined;
+    }
+
+    if (found.snode.findFirstExpression(Expressions.Redefinition)) {
+      return undefined;
+    }
+
+    // check the cursor is at the right token
+    if (nameToken.getStart().getCol() !== found.token.getStart().getCol()
+        || nameToken.getStart().getRow() !== found.token.getStart().getRow()) {
+      return undefined;
+    }
+
+    const def = scope.getParent()?.findClassDefinition(scope.getIdentifier().sname)?.getMethodDefinitions()?.getByName(nameToken.getStr());
+    return def;
   }
 
   private static findPerform(found: ICursorData, scope: ISpaghettiScopeNode): IFormDefinition | undefined {
@@ -207,6 +304,26 @@ export class LSPLookup {
     }
 
     return undefined;
+  }
+
+  private static findFunctionModule(found: ICursorData): string | undefined {
+    if (!(found.snode.get() instanceof Statements.CallFunction)) {
+      return undefined;
+    }
+
+    const name = found.snode.findFirstExpression(Expressions.FunctionName);
+    if (name === undefined) {
+      return undefined;
+    }
+
+    // check the cursor is at the right token
+    const token = name.getFirstToken();
+    if (token.getStart().getCol() !== found.token.getStart().getCol()
+        || token.getStart().getRow() !== found.token.getStart().getRow()) {
+      return undefined;
+    }
+
+    return token.getStr();
   }
 
   private static findInclude(found: ICursorData, reg: IRegistry): ABAPFile | undefined {

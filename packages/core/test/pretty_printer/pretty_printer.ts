@@ -1,11 +1,12 @@
 import {expect} from "chai";
 import {PrettyPrinter} from "../../src/pretty_printer/pretty_printer";
-import {MemoryFile, ABAPFile} from "../../src/files";
 import {Registry} from "../../src/registry";
 import {Indent} from "../../src/pretty_printer/indent";
 import {KeywordCaseConf, KeywordCaseStyle} from "../../src/rules";
 import {Config} from "../../src/config";
 import {getABAPObjects} from "../get_abap";
+import {ABAPFile} from "../../src/abap/abap_file";
+import {MemoryFile} from "../../src/files/memory_file";
 
 const testTitle = (text: string): string => {return text.split("\n")[0]; };
 
@@ -24,13 +25,13 @@ describe("Pretty printer, keywords upper case", () => {
     {input: "WRITE foo.\nwrite bar.", expected: "WRITE foo.\nWRITE bar."},
     {input: "CALL FUNCTION 'FOOBAR' EXCEPTIONS OTHERS = 1.",
       expected: "CALL FUNCTION 'FOOBAR' EXCEPTIONS OTHERS = 1."},
-    {input: `DEFINE _bar.
+    {input: `DEFINE _pretty1.
 write 'a'.
 END-OF-DEFINITION.
-_bar.`, expected: `DEFINE _bar.
+_pretty1.`, expected: `DEFINE _pretty1.
 write 'a'.
 END-OF-DEFINITION.
-_bar.`},
+_pretty1.`},
   ];
 
   tests.forEach((test) => {

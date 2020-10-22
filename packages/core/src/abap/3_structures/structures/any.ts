@@ -8,7 +8,7 @@ export class Any implements IStructure {
 
   public getMatcher(): IStructureRunnable {
 
-    return star(alt(sta(Statements.ClassOther),
+    return star(alt(sta(Statements.ClassLocalFriends),
                     sta(Statements.ClassDeferred),
                     sta(Statements.Report),
                     sta(Statements.Program),
@@ -31,13 +31,13 @@ export class Any implements IStructure {
                     sta(Statements.TypePools),
                     sta(Statements.TypePool),
                     sta(Statements.FunctionPool),
-                    sub(new Structures.Normal()),
-                    sub(new Structures.Form()),
-                    sub(new Structures.Module()),
-                    sub(new Structures.FunctionModule()),
-                    sub(new Structures.Interface()),
-                    sub(new Structures.ClassDefinition()),
-                    sub(new Structures.ClassImplementation())));
+                    sub(Structures.Normal),
+                    sub(Structures.Form),
+                    sub(Structures.Module),
+                    sub(Structures.FunctionModule),
+                    sub(Structures.Interface),
+                    sub(Structures.ClassDefinition),
+                    sub(Structures.ClassImplementation)));
 
   }
 

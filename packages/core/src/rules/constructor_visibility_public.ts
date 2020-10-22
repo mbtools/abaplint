@@ -20,7 +20,7 @@ export class ConstructorVisibilityPublic implements IRule {
       extendedInformation:
 `https://github.com/SAP/styleguides/blob/master/clean-abap/CleanABAP.md#if-your-global-class-is-create-private-leave-the-constructor-public
 https://help.sap.com/doc/abapdocu_751_index_htm/7.51/en-US/abeninstance_constructor_guidl.htm`,
-      tags: [RuleTag.Styleguide],
+      tags: [RuleTag.Styleguide, RuleTag.SingleFile],
     };
   }
 
@@ -55,7 +55,7 @@ https://help.sap.com/doc/abapdocu_751_index_htm/7.51/en-US/abeninstance_construc
     for (const method of def.methods) {
       if (method.name.toUpperCase() === "CONSTRUCTOR"
           && method.visibility !== Visibility.Public) {
-        const issue = Issue.atIdentifier(method.identifier, this.getMessage(), this.getMetadata().key);
+        const issue = Issue.atIdentifier(method.identifier, this.getMessage(), this.getMetadata().key, this.conf.severity);
         issues.push(issue);
       }
     }

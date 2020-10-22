@@ -1,10 +1,10 @@
 import {Registry} from "../src/registry";
-import {MemoryFile} from "../src/files";
 import {expect} from "chai";
 import {getABAPObjects} from "./get_abap";
 import {ABAPObject} from "../src/objects/_abap_object";
 import {Version} from "../src/version";
 import {Config} from "../src/config";
+import {MemoryFile} from "../src/files/memory_file";
 
 describe("Registry", () => {
 
@@ -181,6 +181,16 @@ ENDINTERFACE.`;
     expect(reg.getObject("PROG", "<icon>")).to.not.equal(undefined);
   });
 
+  it("Should give errors, not crash", async () => {
+    const abap = `METHOD blah.
+DATA tree TYPE if_types=>ts_type.
+MOVE-CORRESPONDING structure TO tree.
+ENDMETHOD.`;
+    const reg = new Registry().addFile(new MemoryFile("zmethod123.prog.abap", abap));
+    const issues = reg.findIssues();
+    expect(issues.length).to.be.greaterThan(0);
+  });
+
 });
 
 describe("Registry, object types", () => {
@@ -191,6 +201,15 @@ describe("Registry, object types", () => {
     const issues = registry.findIssues();
     expect(issues.length).to.equal(1);
     expect(issues[0].getKey()).to.equal("registry_add");
+    expect(issues[0].getMessage()).to.include("not supported");
+  });
+
+  it("Unknown object type, .abap extension, file is ignored", async () => {
+    const file = new MemoryFile("zprogram.abap", "BREAK-POINT.");
+    const registry = new Registry().addFile(file);
+    const issues = registry.findIssues();
+    expect(issues.length).to.equal(0);
+    expect(registry.getObjectCount()).to.equal(0);
   });
 
   it("Unknown object type, multi files", async () => {
@@ -275,6 +294,38 @@ describe("exclude list", () => {
 
     return new Config(JSON.stringify(conf));
   }
+
+  it("will return parser errors about unknown objects types", () => {
+
+    const config = getConfig({});
+    const file = new MemoryFile("foo.abcd.abap", "BREAK-POINT.");
+
+    config.getGlobal().exclude = [];
+    const registry = new Registry(config).addFile(file);
+    const issues = registry.findIssues();
+    expect(issues.length).to.equal(1);
+    expect(issues.length).to.equal(1);
+    expect(issues[0].getKey()).to.equal("registry_add");
+    expect(issues[0].getMessage()).to.include("not supported");
+
+  });
+
+  it("will not return parser errors about unknown objects types for globally excluded files", () => {
+
+    const config = getConfig({});
+    config.getGlobal().exclude = ["foo.abcd.abap"];
+
+    const file = new MemoryFile("foo.abcd.abap", "BREAK-POINT.");
+
+    let registry = new Registry(config).addFile(file);
+    let issues = registry.findIssues();
+
+
+    registry = new Registry(config).addFile(file);
+    issues = registry.findIssues();
+    expect(issues.length).to.equal(0);
+
+  });
 
   it("will exclude issues based on the global exclude patterns", () => {
 

@@ -1,10 +1,10 @@
 import {expect} from "chai";
-import {MemoryFile} from "../../src/files";
 import {Registry} from "../../src/registry";
 import {Rename} from "../../src/lsp/rename";
 import {ApplyWorkSpaceEdit} from "./_apply_edit";
 import * as LServer from "vscode-languageserver-types";
 import {Class} from "../../src/objects";
+import {MemoryFile} from "../../src/files/memory_file";
 
 describe("LSP, prepare rename, global class", () => {
 
@@ -96,11 +96,11 @@ ENDCLASS.`);
     await reg.parseAsync();
     const rename = new Rename(reg);
 
-    const result = rename.rename({
+    const func = () => rename.rename({
       textDocument: {uri: abap.getFilename()},
       position: LServer.Position.create(0, 10),
       newName: "foobar_foobar_foobar_foobar_foobar_foobar_foobar_foobar_foobar"});
-    expect(result).to.equal(undefined);
+    expect(() => { func(); }).to.throw("Name not allowed");
   });
 
   it("rename global class, normal naming", async () => {
@@ -151,7 +151,7 @@ ENDCLASS.`);
     expect(obj.getMainABAPFile()!.getFilename()).to.equal(newName.toLowerCase() + ".clas.abap");
 
     const issues = reg.findIssues();
-    expect(issues.length).to.equal(0);
+    expect(issues.length).to.equal(0, "expected zero issues");
   });
 
   it("rename global class, add namespace", async () => {

@@ -3,13 +3,13 @@ import {AbstractObject} from "./_abstract_object";
 import {xmlToArray} from "../xml_utils";
 import {IRegistry} from "../_iregistry";
 import {DDIC} from "../ddic";
+import {IdentifierMeta, TypedIdentifier} from "../abap/types/_typed_identifier";
 
 export class View extends AbstractObject {
   private parsedData: {
     fields: {
       VIEWFIELD: string,
       TABNAME: string,
-      ROLLNAME: string,
       FIELDNAME: string}[]} | undefined;
 
   public getType(): string {
@@ -28,12 +28,12 @@ export class View extends AbstractObject {
     super.setDirty();
   }
 
-  public parseType(reg: IRegistry): Types.StructureType | Types.UnknownType | Types.VoidType {
+  public parseType(reg: IRegistry): TypedIdentifier {
     if (this.parsedData === undefined) {
       this.parseXML();
     }
     if (this.parsedData === undefined) {
-      return new Types.UnknownType("View, parser error");
+      return TypedIdentifier.from(this.getIdentifier()!, new Types.UnknownType("View, parser error"));
     }
 
     const components: Types.IStructureComponent[] = [];
@@ -43,12 +43,28 @@ export class View extends AbstractObject {
         // ignore, this is a special case of old style .INCLUDE
         continue;
       }
+      let found = ddic.lookupTableOrView(field.TABNAME);
+      if (found instanceof TypedIdentifier) {
+        found = found.getType();
+      }
+      if (found instanceof Types.StructureType) {
+        const s = found.getComponentByName(field.FIELDNAME);
+        if (s === undefined) {
+          found = new Types.UnknownType(field.FIELDNAME + " not found in " + field.TABNAME + ", VIEW parse type");
+        } else {
+          found = s;
+        }
+      }
       components.push({
         name: field.VIEWFIELD,
-        type: ddic.lookupDataElement(field.ROLLNAME)});
+        type: found});
     }
 
-    return new Types.StructureType(components);
+    if (components.length === 0) {
+      throw new Error("View " + this.getName() + " does not contain any components");
+    }
+
+    return TypedIdentifier.from(this.getIdentifier()!, new Types.StructureType(components), [IdentifierMeta.DDIC]);
   }
 
 ///////////////
@@ -66,7 +82,6 @@ export class View extends AbstractObject {
       this.parsedData.fields.push({
         VIEWFIELD: field.VIEWFIELD?._text,
         TABNAME: field.TABNAME?._text,
-        ROLLNAME: field.ROLLNAME?._text,
         FIELDNAME: field.FIELDNAME?._text,
       });
     }

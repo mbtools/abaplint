@@ -1,10 +1,10 @@
 import {Issue} from "../issue";
 import * as Structures from "../abap/3_structures/structures";
 import {ABAPRule} from "./_abap_rule";
-import {ABAPFile} from "../files";
 import {BasicRuleConfig} from "./_basic_rule_config";
 import {StructureNode} from "../abap/nodes";
 import {IRuleMetadata, RuleTag} from "./_irule";
+import {ABAPFile} from "../abap/abap_file";
 
 export class EmptyStructureConf extends BasicRuleConfig {
   /** Checks for empty LOOP blocks */
@@ -23,7 +23,7 @@ export class EmptyStructureConf extends BasicRuleConfig {
   public at: boolean = true;
   /** Checks for empty TRY blocks */
   public try: boolean = true;
-// todo, other category containing WHEN, ELSE
+  // todo, other category containing WHEN, ELSE
 }
 
 export class EmptyStructure extends ABAPRule {
@@ -36,7 +36,7 @@ export class EmptyStructure extends ABAPRule {
       title: "Find empty blocks",
       shortDescription: `Checks that the code does not contain empty blocks.`,
       extendedInformation: `https://github.com/SAP/styleguides/blob/master/clean-abap/CleanABAP.md#no-empty-if-branches`,
-      tags: [RuleTag.Styleguide],
+      tags: [RuleTag.Styleguide, RuleTag.SingleFile],
     };
   }
 
@@ -83,7 +83,7 @@ export class EmptyStructure extends ABAPRule {
     for (const l of candidates) {
       if (l.getChildren().length === 2) {
         const token = l.getFirstToken();
-        const issue = Issue.atToken(file, token, this.getDescription(l.get().constructor.name), this.getMetadata().key);
+        const issue = Issue.atToken(file, token, this.getDescription(l.get().constructor.name), this.getMetadata().key, this.conf.severity);
         issues.push(issue);
       }
     }
@@ -94,7 +94,12 @@ export class EmptyStructure extends ABAPRule {
         const normal = t.findDirectStructure(Structures.Normal);
         if (normal === undefined) {
           const token = t.getFirstToken();
-          const issue = Issue.atToken(file, token, this.getDescription(t.get().constructor.name), this.getMetadata().key);
+          const issue = Issue.atToken(
+            file,
+            token,
+            this.getDescription(t.get().constructor.name),
+            this.getMetadata().key,
+            this.conf.severity);
           issues.push(issue);
         }
       }
@@ -108,7 +113,12 @@ export class EmptyStructure extends ABAPRule {
         const normal = t.findDirectStructure(Structures.Body);
         if (normal === undefined) {
           const token = t.getFirstToken();
-          const issue = Issue.atToken(file, token, this.getDescription(t.get().constructor.name), this.getMetadata().key);
+          const issue = Issue.atToken(
+            file,
+            token,
+            this.getDescription(t.get().constructor.name),
+            this.getMetadata().key,
+            this.conf.severity);
           issues.push(issue);
         }
       }

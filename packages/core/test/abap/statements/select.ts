@@ -180,6 +180,58 @@ ORDER BY PRIMARY KEY ##DB_FEATURE_MODE[VIEWS_WITH_PARAMETERS].`,
   `select count(*) as score from sdfsd where object = @object_id-object and obj_name = @object_id-obj_name into @data(count).`,
 
   `SELECT SINGLE foo FROM bar WHERE column IN (sdf, char-).`,
+
+  `SELECT DISTINCT roosourcet~oltpsource,
+  roosourcet~txtsh,
+  roosourcet~txtmd,
+  roosourcet~txtlg INTO TABLE @DATA(lt_roosourcet)
+  FROM roosourcet JOIN /xyz/ztest ON /xyz/ztest~oltpsource = roosourcet~oltpsource
+  FOR ALL ENTRIES IN @lt_active
+  WHERE roosourcet~oltpsource = @lt_active-oltpsource
+  AND roosourcet~objvers = 'A'
+  AND roosourcet~langu = 'E'.`,
+
+  `SELECT DISTINCT matnr
+  FROM zfoobar1
+  WHERE timestamp > @iv_timestamp_from
+  AND   timestamp <= @iv_timestamp_to
+  UNION DISTINCT
+  SELECT DISTINCT matnr
+  FROM zfoobar2
+  WHERE timestamp > @iv_timestamp_from
+  AND   timestamp <= @iv_timestamp_to.
+  `,
+
+  `
+  SELECT DISTINCT b~partner, c~name_first, c~name_last, c~name_org1, c~name_grp1, a~mc_city1, a~post_code1, l~vendor, b~iban
+  FROM but0bk AS b
+  INNER JOIN but000 AS c
+    ON b~partner = c~partner
+  INNER JOIN but020 AS d
+    ON b~partner = d~partner
+  INNER JOIN adrc AS a
+    ON d~addrnumber = a~addrnumber
+  INNER JOIN cvi_vend_link AS l
+    ON l~partner_guid = c~partner_guid
+  WHERE b~iban = 'IBAN'
+UNION DISTINCT
+SELECT DISTINCT b~partner, c~name_first, c~name_last, c~name_org1, c~name_grp1, a~mc_city1, a~post_code1, l~vendor, t~iban
+  FROM tiban AS t
+  INNER JOIN but0bk AS b
+    ON  t~banks = b~banks
+    AND t~bankl = b~bankl
+    AND t~bankn = b~bankn
+    AND t~bkont = b~bkont
+  INNER JOIN but000 AS c
+    ON b~partner = c~partner
+  INNER JOIN but020 AS d
+    ON b~partner = d~partner
+  INNER JOIN adrc AS a
+    ON d~addrnumber = a~addrnumber
+  INNER JOIN cvi_vend_link AS l
+    ON l~partner_guid = c~partner_guid
+  WHERE t~iban = 'IBAN'
+  INTO TABLE @DATA(foo).`,
 ];
 
 statementType(tests, "SELECT", Statements.Select);

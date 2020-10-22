@@ -15,7 +15,7 @@ export class AllowedObjectNaming implements IRule {
       key: "allowed_object_naming",
       title: "Allowed object naming",
       shortDescription: `Enforces basic name length and namespace restrictions, see note SAP 104010`,
-      tags: [RuleTag.Naming],
+      tags: [RuleTag.Naming, RuleTag.SingleFile],
     };
   }
 
@@ -44,7 +44,7 @@ export class AllowedObjectNaming implements IRule {
     }
 
     if (message.length > 0) {
-      return [Issue.atRow(obj.getFiles()[0], 1, message, this.getMetadata().key)];
+      return [Issue.atRow(obj.getFiles()[0], 1, message, this.getMetadata().key, this.conf.severity)];
     }
 
     return [];

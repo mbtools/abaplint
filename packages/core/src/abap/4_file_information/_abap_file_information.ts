@@ -36,6 +36,7 @@ export interface InfoMethodDefinition {
 // todo, level, Instance or Static
   isRedefinition: boolean,
   isEventHandler: boolean,
+  isForTesting: boolean,
   isAbstract: boolean,
   visibility: Visibility,
   parameters: InfoMethodParameter[],
@@ -47,6 +48,7 @@ export interface InfoInterfaceDefinition {
   identifier: Identifier;
   isLocal: boolean;
   isGlobal: boolean;
+  interfaces: readonly InfoImplementing[];
   methods: readonly InfoMethodDefinition[];
 // todo, constants
 // todo, types
@@ -63,6 +65,7 @@ export interface InfoAlias {
 export interface InfoImplementing {
   name: string,
   partial: boolean,
+  allAbstract: boolean,
   abstractMethods: string[],
   finalMethods: string[],
 }

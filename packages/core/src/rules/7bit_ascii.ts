@@ -2,7 +2,7 @@ import {Issue} from "../issue";
 import {Position} from "../position";
 import {BasicRuleConfig} from "./_basic_rule_config";
 import {IObject} from "../objects/_iobject";
-import {IRule} from "./_irule";
+import {IRule, IRuleMetadata, RuleTag} from "./_irule";
 import {IRegistry} from "../_iregistry";
 
 export class SevenBitAsciiConf extends BasicRuleConfig {
@@ -11,12 +11,13 @@ export class SevenBitAsciiConf extends BasicRuleConfig {
 export class SevenBitAscii implements IRule {
   private conf = new SevenBitAsciiConf();
 
-  public getMetadata() {
+  public getMetadata(): IRuleMetadata {
     return {
       key: "7bit_ascii",
       title: "Check for 7bit ascii",
       shortDescription: `Only allow characters from the 7bit ASCII set.`,
       extendedInformation: `https://docs.abapopenchecks.org/checks/05/`,
+      tags: [RuleTag.SingleFile],
     };
   }
 
@@ -46,7 +47,7 @@ export class SevenBitAscii implements IRule {
             const start = new Position(i + 1, column);
             const end = new Position(i + 1, column + 1);
             const message = "Contains non 7 bit ascii character";
-            const issue = Issue.atRange(file, start, end, message, this.getMetadata().key);
+            const issue = Issue.atRange(file, start, end, message, this.getMetadata().key, this.conf.severity);
             output.push(issue);
           }
 
@@ -58,7 +59,7 @@ export class SevenBitAscii implements IRule {
             const start = new Position(i + 1, column);
             const end = new Position(i + 1, column + 1);
             const message = "Dangling carriage return";
-            const issue = Issue.atRange(file, start, end, message, this.getMetadata().key);
+            const issue = Issue.atRange(file, start, end, message, this.getMetadata().key, this.conf.severity);
             output.push(issue);
           }
 

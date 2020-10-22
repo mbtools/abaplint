@@ -1,4 +1,4 @@
-import {IGlobalConfig, IDependency, ISyntaxSettings} from "../src/_config";
+import {IGlobalConfig, IDependency, ISyntaxSettings, IRenameSettings} from "../src/_config";
 import {SevenBitAsciiConf} from "../src/rules/7bit_ascii";
 import {AbapdocConf} from "../src/rules/abapdoc";
 import {AllowedObjectNamingConf} from "../src/rules/allowed_object_naming";
@@ -7,6 +7,7 @@ import {AmbiguousStatementConf} from "../src/rules/ambiguous_statement";
 import {AvoidUseConf} from "../src/rules/avoid_use";
 import {BeginEndNamesConf} from "../src/rules/begin_end_names";
 import {BeginSingleIncludeConf} from "../src/rules/begin_single_include";
+import {CallTransactionAuthorityCheckConf} from "../src/rules/call_transaction_authority_check";
 import {ChainMainlyDeclarationsConf} from "../src/rules/chain_mainly_declarations";
 import {CheckAbstractConf} from "../src/rules/check_abstract";
 import {CheckCommentsConf} from "../src/rules/check_comments";
@@ -38,9 +39,11 @@ import {ForbiddenPseudoAndPragmaConf} from "../src/rules/forbidden_pseudo_and_pr
 import {ForbiddenVoidTypeConf} from "../src/rules/forbidden_void_type";
 import {FormTablesObsoleteConf} from "../src/rules/form_tables_obsolete";
 import {FullyTypeConsantsConf} from "../src/rules/fully_type_constants";
+import {FunctionModuleRecommendationsConf} from "../src/rules/function_module_recommendations";
 import {FunctionalWritingConf} from "../src/rules/functional_writing";
 import {GlobalClassConf} from "../src/rules/global_class";
 import {IdenticalConditionsConf} from "../src/rules/identical_conditions";
+import {IdenticalContentsConf} from "../src/rules/identical_contents";
 import {IdenticalFormNamesConf} from "../src/rules/identical_form_names";
 import {IfInIfConf} from "../src/rules/if_in_if";
 import {ImplementMethodsConf} from "../src/rules/implement_methods";
@@ -57,9 +60,11 @@ import {LocalClassNamingConf} from "../src/rules/local_class_naming";
 import {LocalTestclassLocationConf} from "../src/rules/local_testclass_location";
 import {LocalVariableNamesConf} from "../src/rules/local_variable_names";
 import {MainFileContentsConf} from "../src/rules/main_file_contents";
+import {ManyParenthesisConf} from "../src/rules/many_parenthesis";
 import {MaxOneStatementConf} from "../src/rules/max_one_statement";
 import {MessageExistsConf} from "../src/rules/message_exists";
 import {MethodLengthConf} from "../src/rules/method_length";
+import {MethodOverwritesBuiltInConf} from "../src/rules/method_overwrites_builtin";
 import {MethodParameterNamesConf} from "../src/rules/method_parameter_names";
 import {MixReturningConf} from "../src/rules/mix_returning";
 import {MSAGConsistencyConf} from "../src/rules/msag_consistency";
@@ -69,10 +74,14 @@ import {NewlineBetweenMethodsConf} from "../src/rules/newline_between_methods";
 import {NoPublicAttributesConf} from "../src/rules/no_public_attributes";
 import {ObjectNamingConf} from "../src/rules/object_naming";
 import {ObsoleteStatementConf} from "../src/rules/obsolete_statement";
+import {OmitParameterNameConf} from "../src/rules/omit_parameter_name";
+import {OmitReceivingConf} from "../src/rules/omit_receiving";
 import {ParserErrorConf} from "../src/rules/parser_error";
 import {ParserMissingSpaceConf} from "../src/rules/parser_missing_space";
 import {PreferInlineConf} from "../src/rules/prefer_inline";
+import {PreferIsNotConf} from "../src/rules/prefer_is_not";
 import {PreferReturningToExportingConf} from "../src/rules/prefer_returning_to_exporting";
+import {PreferXsdboolConf} from "../src/rules/prefer_xsdbool";
 import {PreferredCompareOperatorConf} from "../src/rules/preferred_compare_operator";
 import {PrefixIsCurrentClassConf} from "../src/rules/prefix_is_current_class";
 import {ReduceStringTemplatesConf} from "../src/rules/reduce_string_templates";
@@ -88,14 +97,17 @@ import {SpaceBeforeDotConf} from "../src/rules/space_before_dot";
 import {SQLEscapeHostVariablesConf} from "../src/rules/sql_escape_host_variables";
 import {StartAtTabConf} from "../src/rules/start_at_tab";
 import {SuperclassFinalConf} from "../src/rules/superclass_final";
+import {SyModificationConf} from "../src/rules/sy_modification";
 import {TABLEnhancementCategoryConf} from "../src/rules/tabl_enhancement_category";
 import {TryWithoutCatchConf} from "../src/rules/try_without_catch";
 import {TypeFormParametersConf} from "../src/rules/type_form_parameters";
 import {TypesNamingConf} from "../src/rules/types_naming";
 import {UnknownTypesConf} from "../src/rules/unknown_types";
 import {UnreachableCodeConf} from "../src/rules/unreachable_code";
+import {UnusedMethodsConf} from "../src/rules/unused_methods";
 import {UnusedTypesConf} from "../src/rules/unused_types";
 import {UnusedVariablesConf} from "../src/rules/unused_variables";
+import {UseBoolExpressionConf} from "../src/rules/use_bool_expression";
 import {UseLineExistsConf} from "../src/rules/use_line_exists";
 import {UseNewConf} from "../src/rules/use_new";
 import {WhenOthersLastConf} from "../src/rules/when_others_last";
@@ -107,6 +119,7 @@ export interface IConfig {
   /** External git dependencies used for syntax checks */
   dependencies?: IDependency[];
   syntax: ISyntaxSettings;
+  rename?: IRenameSettings;
   rules: {
     "7bit_ascii"?: SevenBitAsciiConf | boolean,
     "abapdoc"?: AbapdocConf | boolean,
@@ -116,6 +129,7 @@ export interface IConfig {
     "avoid_use"?: AvoidUseConf | boolean,
     "begin_end_names"?: BeginEndNamesConf | boolean,
     "begin_single_include"?: BeginSingleIncludeConf | boolean,
+    "call_transaction_authority_check"?: CallTransactionAuthorityCheckConf | boolean,
     "chain_mainly_declarations"?: ChainMainlyDeclarationsConf | boolean,
     "check_abstract"?: CheckAbstractConf | boolean,
     "check_comments"?: CheckCommentsConf | boolean,
@@ -147,9 +161,11 @@ export interface IConfig {
     "forbidden_void_type"?: ForbiddenVoidTypeConf | boolean,
     "form_tables_obsolete"?: FormTablesObsoleteConf | boolean,
     "fully_type_constants"?: FullyTypeConsantsConf | boolean,
+    "function_module_recommendations"?: FunctionModuleRecommendationsConf | boolean,
     "functional_writing"?: FunctionalWritingConf | boolean,
     "global_class"?: GlobalClassConf | boolean,
     "identical_conditions"?: IdenticalConditionsConf | boolean,
+    "identical_contents"?: IdenticalContentsConf | boolean,
     "identical_form_names"?: IdenticalFormNamesConf | boolean,
     "if_in_if"?: IfInIfConf | boolean,
     "implement_methods"?: ImplementMethodsConf | boolean,
@@ -166,9 +182,11 @@ export interface IConfig {
     "local_testclass_location"?: LocalTestclassLocationConf | boolean,
     "local_variable_names"?: LocalVariableNamesConf | boolean,
     "main_file_contents"?: MainFileContentsConf | boolean,
+    "many_parenthesis"?: ManyParenthesisConf | boolean,
     "max_one_statement"?: MaxOneStatementConf | boolean,
     "message_exists"?: MessageExistsConf | boolean,
     "method_length"?: MethodLengthConf | boolean,
+    "method_overwrites_builtin"?: MethodOverwritesBuiltInConf | boolean,
     "method_parameter_names"?: MethodParameterNamesConf | boolean,
     "mix_returning"?: MixReturningConf | boolean,
     "msag_consistency"?: MSAGConsistencyConf | boolean,
@@ -178,10 +196,14 @@ export interface IConfig {
     "no_public_attributes"?: NoPublicAttributesConf | boolean,
     "object_naming"?: ObjectNamingConf | boolean,
     "obsolete_statement"?: ObsoleteStatementConf | boolean,
+    "omit_parameter_name"?: OmitParameterNameConf | boolean,
+    "omit_receiving"?: OmitReceivingConf | boolean,
     "parser_error"?: ParserErrorConf | boolean,
     "parser_missing_space"?: ParserMissingSpaceConf | boolean,
     "prefer_inline"?: PreferInlineConf | boolean,
+    "prefer_is_not"?: PreferIsNotConf | boolean,
     "prefer_returning_to_exporting"?: PreferReturningToExportingConf | boolean,
+    "prefer_xsdbool"?: PreferXsdboolConf | boolean,
     "preferred_compare_operator"?: PreferredCompareOperatorConf | boolean,
     "prefix_is_current_class"?: PrefixIsCurrentClassConf | boolean,
     "reduce_string_templates"?: ReduceStringTemplatesConf | boolean,
@@ -197,14 +219,17 @@ export interface IConfig {
     "sql_escape_host_variables"?: SQLEscapeHostVariablesConf | boolean,
     "start_at_tab"?: StartAtTabConf | boolean,
     "superclass_final"?: SuperclassFinalConf | boolean,
+    "sy_modification"?: SyModificationConf | boolean,
     "tabl_enhancement_category"?: TABLEnhancementCategoryConf | boolean,
     "try_without_catch"?: TryWithoutCatchConf | boolean,
     "type_form_parameters"?: TypeFormParametersConf | boolean,
     "types_naming"?: TypesNamingConf | boolean,
     "unknown_types"?: UnknownTypesConf | boolean,
     "unreachable_code"?: UnreachableCodeConf | boolean,
+    "unused_methods"?: UnusedMethodsConf | boolean,
     "unused_types"?: UnusedTypesConf | boolean,
     "unused_variables"?: UnusedVariablesConf | boolean,
+    "use_bool_expression"?: UseBoolExpressionConf | boolean,
     "use_line_exists"?: UseLineExistsConf | boolean,
     "use_new"?: UseNewConf | boolean,
     "when_others_last"?: WhenOthersLastConf | boolean,

@@ -15,7 +15,9 @@ export function runMulti(files: {filename: string, contents: string}[]): readonl
   return reg.parse().findIssues();
 }
 
-export function testRule(tests: {abap: string, cnt: number, only?: boolean}[], rule: new () => IRule, config?: any, testTitle?: string) {
+export type TestRuleType = {abap: string, cnt: number, only?: boolean}[];
+
+export function testRule(tests: TestRuleType, rule: new () => IRule, config?: any, testTitle?: string) {
   const nrule = new rule();
   if (config) {
     nrule.setConfig(config);
@@ -67,9 +69,12 @@ export function testRuleFixSingle(input: string, expected: string, rule: IRule, 
   expect(fix).to.not.equal(undefined, "Fix should exist");
   applyEditSingle(reg, fix!);
 
+  // console.dir(reg.getFirstObject()?.getFiles()[0].getRaw());
+
   reg.parse();
   issues = rule.initialize(reg).run(reg.getFirstObject()!);
-  expect(issues.length).to.equal(0);
+  // console.dir(issues);
+  expect(issues.length).to.equal(0, "after fix, no issue expected");
   const output = reg.getFirstObject()!.getFiles()[0];
   expect(output.getRaw()).to.equal(expected);
 }

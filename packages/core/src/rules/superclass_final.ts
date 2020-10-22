@@ -1,12 +1,12 @@
 import {Issue} from "../issue";
 import {ABAPRule} from "./_abap_rule";
-import {ABAPFile} from "../files";
 import {IObject} from "../objects/_iobject";
 import * as Objects from "../objects";
 import {BasicRuleConfig} from "./_basic_rule_config";
 import {Class} from "../objects";
 import {InfoClassDefinition} from "../abap/4_file_information/_abap_file_information";
 import {RuleTag} from "./_irule";
+import {ABAPFile} from "../abap/abap_file";
 
 export class SuperclassFinalConf extends BasicRuleConfig {
 }
@@ -60,12 +60,12 @@ export class SuperclassFinal extends ABAPRule {
       }
       if (found === undefined) {
         const message = "Super class \"" + sup + "\" not found";
-        const issue = Issue.atIdentifier(definition.identifier, message, this.getMetadata().key);
+        const issue = Issue.atIdentifier(definition.identifier, message, this.getMetadata().key, this.conf.severity);
         output.push(issue);
         continue;
       }
       if (found.isFinal === true) {
-        const issue = Issue.atIdentifier(definition.identifier, this.getMessage(), this.getMetadata().key);
+        const issue = Issue.atIdentifier(definition.identifier, this.getMessage(), this.getMetadata().key, this.conf.severity);
         output.push(issue);
       }
     }

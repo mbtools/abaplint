@@ -1,10 +1,10 @@
 import {AbstractObject} from "./_abstract_object";
-import {ABAPFile} from "../files";
 import {xmlToArray} from "../xml_utils";
 import {ABAPParser} from "../abap/abap_parser";
 import {Version} from "../version";
 import {ISyntaxResult} from "../abap/5_syntax/_spaghetti_scope";
 import {IParseResult} from "./_iobject";
+import {ABAPFile} from "../abap/abap_file";
 
 export interface ITextElement {
   key: string;
@@ -24,11 +24,11 @@ export abstract class ABAPObject extends AbstractObject {
     this.texts = undefined;
   }
 
-  public static is(x: any): x is ABAPObject{
+  public static is(x: any): x is ABAPObject {
     return !!x && x instanceof ABAPObject;
   }
 
-  public parse(version: Version, globalMacros: readonly string[] | undefined): IParseResult {
+  public parse(version: Version, globalMacros?: readonly string[]): IParseResult {
     if (this.isDirty() === false) {
       return {updated: false, runtime: 0};
     }
@@ -40,7 +40,7 @@ export abstract class ABAPObject extends AbstractObject {
     this.old = result.issues;
     this.dirty = false;
 
-    return {updated: true, runtime: result.runtime};
+    return {updated: true, runtime: result.runtime, runtimeExtra: result.runtimeExtra};
   }
 
   public setDirty(): void {
@@ -100,7 +100,8 @@ export abstract class ABAPObject extends AbstractObject {
         }
         this.texts.push({
           key: t.KEY._text,
-          text: t.ENTRY ? t.ENTRY._text : ""});
+          text: t.ENTRY ? t.ENTRY._text : "",
+        });
       }
     }
   }

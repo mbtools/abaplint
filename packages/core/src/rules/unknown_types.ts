@@ -8,6 +8,7 @@ import * as BasicTypes from "../abap/types/basic";
 import {IRuleMetadata, RuleTag, IRule} from "./_irule";
 import {ISpaghettiScopeNode} from "../abap/5_syntax/_spaghetti_scope";
 import {AbstractType} from "../abap/types/basic/_abstract_type";
+import {TypedIdentifier} from "../abap/types/_typed_identifier";
 
 export class UnknownTypesConf extends BasicRuleConfig {
 }
@@ -57,7 +58,7 @@ export class UnknownTypes implements IRule {
       const found = this.containsUnknown(v.identifier.getType());
       if (found) {
         const message = "Type of \"" + v.name + "\" contains unknown: " + found;
-        ret.push(Issue.atIdentifier(v.identifier, message, this.getMetadata().key));
+        ret.push(Issue.atIdentifier(v.identifier, message, this.getMetadata().key, this.conf.severity));
       }
     }
 
@@ -65,7 +66,7 @@ export class UnknownTypes implements IRule {
       const found = this.containsUnknown(v.identifier.getType());
       if (found) {
         const message = "Type of \"" + v.name + "\" contains unknown: " + found;
-        ret.push(Issue.atIdentifier(v.identifier, message, this.getMetadata().key));
+        ret.push(Issue.atIdentifier(v.identifier, message, this.getMetadata().key, this.conf.severity));
       }
     }
 
@@ -81,7 +82,7 @@ export class UnknownTypes implements IRule {
       return type.getError();
     } else if (type instanceof BasicTypes.StructureType) {
       for (const c of type.getComponents()) {
-        const found = this.containsUnknown(c.type);
+        const found = this.containsUnknown(c.type instanceof TypedIdentifier ? c.type.getType() : c.type);
         if (found) {
           return found;
         }

@@ -1,8 +1,8 @@
 import {expect} from "chai";
 import {ImplementMethods} from "../../src/rules";
 import {Registry} from "../../src/registry";
-import {MemoryFile} from "../../src/files";
 import {Issue} from "../../src/issue";
+import {MemoryFile} from "../../src/files/memory_file";
 
 async function runMulti(files: {filename: string, contents: string}[]): Promise<Issue[]> {
   const reg = new Registry();
@@ -264,6 +264,103 @@ ENDCLASS.`;
       {filename: "zcl_abapgit_res_repos.clas.testclasses.abap", contents: testclasses},
       {filename: "zcl_abapgit_res_repos.clas.abap", contents: main},
     ]);
+    expect(issues.length).to.equals(0);
+  });
+
+  it("PROG, interfaced interface", async () => {
+    const prog = `
+INTERFACE lif_top.
+  METHODS moo.
+ENDINTERFACE.
+
+INTERFACE lif_sub.
+  INTERFACES lif_top.
+ENDINTERFACE.
+
+CLASS lcl_clas DEFINITION.
+  PUBLIC SECTION.
+    INTERFACES lif_sub.
+ENDCLASS.
+
+CLASS lcl_clas IMPLEMENTATION.
+ENDCLASS.`;
+    const issues = await runMulti([
+      {filename: "zfoobar.prog.abap", contents: prog}]);
+    expect(issues.length).to.equals(1);
+  });
+
+  it("PROG, interfaced interface, fixed", async () => {
+    const prog = `
+INTERFACE lif_top.
+  METHODS moo.
+ENDINTERFACE.
+
+INTERFACE lif_sub.
+  INTERFACES lif_top.
+ENDINTERFACE.
+
+CLASS lcl_clas DEFINITION.
+  PUBLIC SECTION.
+    INTERFACES lif_sub.
+ENDCLASS.
+
+CLASS lcl_clas IMPLEMENTATION.
+  METHOD lif_top~moo.
+    RETURN.
+  ENDMETHOD.
+ENDCLASS.`;
+    const issues = await runMulti([
+      {filename: "zfoobar.prog.abap", contents: prog}]);
+    expect(issues.length).to.equals(0);
+  });
+
+  it("PROG, no problems, interfaced interface implemented in super class", async () => {
+    const prog = `
+INTERFACE lif_top.
+  METHODS moo.
+ENDINTERFACE.
+
+INTERFACE lif_sub.
+  INTERFACES lif_top.
+ENDINTERFACE.
+
+CLASS lcl_super DEFINITION.
+  PUBLIC SECTION.
+    INTERFACES lif_top.
+ENDCLASS.
+
+CLASS lcl_super IMPLEMENTATION.
+  METHOD lif_top~moo.
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS lcl_clas DEFINITION INHERITING FROM lcl_super.
+  PUBLIC SECTION.
+    INTERFACES lif_sub.
+ENDCLASS.
+
+CLASS lcl_clas IMPLEMENTATION.
+ENDCLASS.`;
+    const issues = await runMulti([
+      {filename: "zfoobar.prog.abap", contents: prog}]);
+    expect(issues.length).to.equals(0);
+  });
+
+  it("ALL METHODS ABSTRACT", async () => {
+    const prog = `
+INTERFACE lif_bar.
+  METHODS m1.
+ENDINTERFACE.
+
+CLASS lcl_foo DEFINITION ABSTRACT.
+  PUBLIC SECTION.
+    INTERFACES lif_bar ALL METHODS ABSTRACT.
+ENDCLASS.
+
+CLASS lcl_foo IMPLEMENTATION.
+ENDCLASS.`;
+    const issues = await runMulti([
+      {filename: "zfoobar.prog.abap", contents: prog}]);
     expect(issues.length).to.equals(0);
   });
 

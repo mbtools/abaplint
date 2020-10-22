@@ -115,6 +115,7 @@ export class ABAPFileInformation implements IABAPFileInformation {
         identifier: new Identifier(interfaceName, this.filename),
         isLocal: found.findFirstExpression(Expressions.ClassGlobal) === undefined,
         isGlobal: found.findFirstExpression(Expressions.ClassGlobal) !== undefined,
+        interfaces: this.getImplementing(found),
         methods,
         attributes,
       });
@@ -177,11 +178,14 @@ export class ABAPFileInformation implements IABAPFileInformation {
         }
       }
 
-      const partial = node.concatTokens().toUpperCase().includes("PARTIALLY IMPLEMENTED");
+      const allAbstract = node.concatTokens().toUpperCase().includes(" ALL METHODS ABSTRACT");
+
+      const partial = node.concatTokens().toUpperCase().includes(" PARTIALLY IMPLEMENTED");
       const name = node.findFirstExpression(Expressions.InterfaceName)!.getFirstToken().getStr().toUpperCase();
       ret.push({
         name,
         partial,
+        allAbstract,
         abstractMethods,
         finalMethods,
       });
@@ -273,6 +277,7 @@ export class ABAPFileInformation implements IABAPFileInformation {
         name: methodName.getStr(),
         identifier: new Identifier(methodName, this.filename),
         isRedefinition: def.findFirstExpression(Expressions.Redefinition) !== undefined,
+        isForTesting: def.concatTokens().includes(" FOR TESTING"),
         isAbstract: def.findFirstExpression(Expressions.Abstract) !== undefined,
         isEventHandler: node.findFirstExpression(Expressions.EventHandler) !== undefined,
         visibility,

@@ -1,7 +1,8 @@
 import {IStatement} from "./_statement";
-import {str, seq, alt, opt, optPrio, plus, per} from "../combi";
-import {Field, Source, Dynamic, FieldSub, ComponentChain, ReadTableTarget} from "../expressions";
+import {str, seq, alt, opt, altPrio, optPrio, plus, per, ver} from "../combi";
+import {Field, Source, Dynamic, FieldSub, ComponentChain, ReadTableTarget, BasicSource} from "../expressions";
 import {IStatementRunnable} from "../statement_runnable";
+import {Version} from "../../../version";
 
 export class ReadTable implements IStatement {
 
@@ -10,13 +11,13 @@ export class ReadTable implements IStatement {
 
     const index = seq(str("INDEX"), new Source());
 
-    const compare = seq(alt(new ComponentChain(), new Dynamic()),
+    const compare = seq(altPrio(new ComponentChain(), new Dynamic()),
                         str("="),
                         new Source());
 
     const components = seq(alt(new Field(), new Dynamic()), str("COMPONENTS"), plus(compare));
 
-    const key = seq(alt(str("WITH KEY"), str("WITH TABLE KEY")),
+    const key = seq(altPrio(str("WITH KEY"), str("WITH TABLE KEY")),
                     alt(plus(compare),
                         components,
                         seq(optPrio(str("=")), new Source())));
@@ -33,11 +34,11 @@ export class ReadTable implements IStatement {
                      comparing,
                      str("CASTING"),
                      str("TRANSPORTING ALL FIELDS"),
-                     seq(str("TRANSPORTING"), alt(new Dynamic(), plus(new Field()))),
+                     seq(str("TRANSPORTING"), altPrio(new Dynamic(), plus(new Field()))),
                      str("BINARY SEARCH"));
 
     return seq(str("READ TABLE"),
-               new Source(),
+               alt(ver(Version.v740sp02, new Source()), new BasicSource()),
                opt(perm));
   }
 

@@ -1,9 +1,10 @@
 import * as Expressions from "../abap/2_statements/expressions";
 import {Issue} from "../issue";
 import {ABAPRule} from "./_abap_rule";
-import {ABAPFile} from "../files";
 import {BasicRuleConfig} from "./_basic_rule_config";
 import {MessageClass} from "../objects";
+import {DDIC} from "../ddic";
+import {ABAPFile} from "../abap/abap_file";
 
 export class MessageExistsConf extends BasicRuleConfig {
 }
@@ -44,9 +45,11 @@ export class MessageExistsRule extends ABAPRule {
     for (const node of expressions) {
       if (node.get() instanceof Expressions.MessageClass) {
         const token = node.getFirstToken();
-        if (this.reg.getObject("MSAG", token.getStr()) === undefined) {
-          const message = this.getDescription("Message class \"" + token.getStr() + "\" not found");
-          const issue = Issue.atToken(file, token, message, this.getMetadata().key);
+        const name = token.getStr();
+        if (this.reg.getObject("MSAG", name) === undefined
+            && new DDIC(this.reg).inErrorNamespace(name) === true) {
+          const message = this.getDescription("Message class \"" + name + "\" not found");
+          const issue = Issue.atToken(file, token, message, this.getMetadata().key, this.conf.severity);
           issues.push(issue);
         }
       }
@@ -61,11 +64,13 @@ export class MessageExistsRule extends ABAPRule {
         }
         const token = clas.getFirstToken();
         const name = token.getStr();
-        const msag = this.reg.getObject("MSAG", name) as MessageClass;
+        const msag = this.reg.getObject("MSAG", name) as MessageClass | undefined;
         if (msag === undefined) {
-          const message = this.getDescription("Message class \"" + token.getStr() + "\" not found");
-          const issue = Issue.atToken(file, token, message, this.getMetadata().key);
-          issues.push(issue);
+          if (new DDIC(this.reg).inErrorNamespace(name) === true) {
+            const message = this.getDescription("Message class \"" + token.getStr() + "\" not found");
+            const issue = Issue.atToken(file, token, message, this.getMetadata().key, this.conf.severity);
+            issues.push(issue);
+          }
           continue;
         }
         const typeNumber = node.findFirstExpression(Expressions.MessageTypeAndNumber);
@@ -76,7 +81,7 @@ export class MessageExistsRule extends ABAPRule {
         const num = numberToken.getStr().substr(1);
         if (msag.getByNumber(num) === undefined) {
           const message = this.getDescription("Message number \"" + num + "\" not found in class \"" + name + "\"");
-          const issue = Issue.atToken(file, numberToken, message, this.getMetadata().key);
+          const issue = Issue.atToken(file, numberToken, message, this.getMetadata().key, this.conf.severity);
           issues.push(issue);
         }
       }

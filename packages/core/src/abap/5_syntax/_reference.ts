@@ -3,6 +3,7 @@ import {Identifier} from "../4_file_information/_identifier";
 export enum ReferenceType {
   /** for classes and interface references */
   ObjectOrientedReference = "ObjectOrientedReference",
+  ObjectOrientedVoidReference = "ObjectOrientedVoidReference",
 
   MethodReference = "MethodReference",
   BuiltinMethodReference = "BuiltinMethodReference",
@@ -14,6 +15,8 @@ export enum ReferenceType {
 
   DataReadReference = "DataReadReference",
   DataWriteReference = "DataWriteReference",
+
+  InferredType = "InferredType",
 }
 
 export interface IReferenceExtras {
@@ -22,7 +25,7 @@ export interface IReferenceExtras {
 
 export interface IReference {
   position: Identifier,
-  resolved: Identifier,
+  resolved: Identifier | undefined,
   referenceType: ReferenceType,
   extra?: IReferenceExtras,
 }

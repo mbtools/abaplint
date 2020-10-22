@@ -1,13 +1,14 @@
 import {Issue} from "../issue";
 import * as Statements from "../abap/2_statements/statements";
 import {ABAPRule} from "./_abap_rule";
-import {ABAPFile} from "../files";
 import {BasicRuleConfig} from "./_basic_rule_config";
 import {StatementNode} from "../abap/nodes";
 import {IStatement} from "../abap/2_statements/statements/_statement";
 import {Combi} from "../abap/2_statements/combi";
 import {IRegistry} from "../_iregistry";
 import {Version} from "../version";
+import {IRuleMetadata, RuleTag} from "./_irule";
+import {ABAPFile} from "../abap/abap_file";
 
 export class AmbiguousStatementConf extends BasicRuleConfig {
 }
@@ -15,12 +16,13 @@ export class AmbiguousStatementConf extends BasicRuleConfig {
 export class AmbiguousStatement extends ABAPRule {
   private conf = new AmbiguousStatementConf();
 
-  public getMetadata() {
+  public getMetadata(): IRuleMetadata {
     return {
       key: "ambiguous_statement",
       title: "Check for ambigious statements",
       shortDescription: `Checks for ambiguity between deleting or modifying from internal and database table
 Add "TABLE" keyword or "@" for escaping SQL variables`,
+      tags: [RuleTag.SingleFile],
     };
   }
 
@@ -57,7 +59,7 @@ Add "TABLE" keyword or "@" for escaping SQL variables`,
       }
 
       if (match) {
-        const issue = Issue.atStatement(file, statement, this.getMessage(), this.getMetadata().key);
+        const issue = Issue.atStatement(file, statement, this.getMessage(), this.getMetadata().key, this.conf.severity);
         issues.push(issue);
       }
 

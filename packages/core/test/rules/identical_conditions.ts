@@ -1,7 +1,7 @@
 import {expect} from "chai";
 import {IdenticalConditions} from "../../src/rules/identical_conditions";
 import {Registry} from "../../src/registry";
-import {MemoryFile} from "../../src/files";
+import {MemoryFile} from "../../src/files/memory_file";
 
 async function run(abap: string){
   const reg = new Registry().addFile(new MemoryFile("zidentical_cond.prog.abap", abap));
@@ -71,6 +71,22 @@ describe("Rule: identical_conditions", () => {
     ENDWHILE.`;
     const issues = await run(abap);
     expect(issues.length).to.equal(1);
+  });
+
+  it("not identical, WHEN", async () => {
+    const abap = `CASE bar.
+      WHEN 'd' OR 'D'.
+    ENDCASE.`;
+    const issues = await run(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("not identical, IF", async () => {
+    const abap = `
+    IF <ls_e>-line CP '#M#o#d#u#l#e*' OR <ls_e>-line CP '#m#o#d#u#l#e*'.
+    ENDIF.`;
+    const issues = await run(abap);
+    expect(issues.length).to.equal(0);
   });
 
 });

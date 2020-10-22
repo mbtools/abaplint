@@ -7,12 +7,12 @@ import {FormDefinition, FunctionModuleParameterDirection} from "../types";
 import {CurrentScope} from "./_current_scope";
 import {ScopeType} from "./_scope_type";
 import {FunctionGroup} from "../../objects";
-import {ABAPFile} from "../../files";
 import {IRegistry} from "../../_iregistry";
 import {TypedIdentifier} from "../types/_typed_identifier";
 import {TableType, CharacterType} from "../types/basic";
 import {DDIC} from "../../ddic";
 import {AbstractType} from "../types/basic/_abstract_type";
+import {ABAPFile} from "../abap_file";
 
 export class Procedural {
   private readonly scope: CurrentScope;
@@ -26,8 +26,9 @@ export class Procedural {
   public addAllFormDefinitions(file: ABAPFile, obj: ABAPObject) {
     const structure = file.getStructure();
     if (structure) {
+      const dummy = CurrentScope.buildDefault(this.reg);
       for (const found of structure.findAllStructures(Structures.Form)) {
-        this.scope.addFormDefinitions([new FormDefinition(found, file.getFilename(), this.scope)]);
+        this.scope.addFormDefinitions([new FormDefinition(found, file.getFilename(), dummy)]);
       }
     }
 
@@ -85,7 +86,7 @@ export class Procedural {
     const ddic = new DDIC(this.reg);
 
     for (const param of definition.getParameters()) {
-      let found: AbstractType = new CharacterType(1); // fallback
+      let found: TypedIdentifier | AbstractType = new CharacterType(1); // fallback
       if (param.type) {
         found = ddic.lookup(param.type);
       }
@@ -95,15 +96,6 @@ export class Procedural {
       const type = new TypedIdentifier(nameToken, filename, found);
       this.scope.addNamedIdentifier(param.name, type);
     }
-  }
-
-  public findFormScope(node: StatementNode, filename: string) {
-    const form = new FormDefinition(node, filename, this.scope);
-    this.scope.push(ScopeType.Form, form.getName(), node.getFirstToken().getStart(), filename);
-
-    this.scope.addList(form.getUsingParameters());
-    this.scope.addList(form.getChangingParameters());
-    this.scope.addList(form.getTablesParameters());
   }
 
 }

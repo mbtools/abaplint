@@ -4,7 +4,7 @@ import {AbstractType} from "../../types/basic/_abstract_type";
 import {INode} from "../../nodes/_inode";
 import * as Expressions from "../../2_statements/expressions";
 import {Dash, InstanceArrow} from "../../1_lexer/tokens";
-import {StructureType, ObjectReferenceType, VoidType, DataReference, TableType, UnknownType} from "../../types/basic";
+import {StructureType, ObjectReferenceType, VoidType, DataReference, TableType, UnknownType, GenericObjectReferenceType} from "../../types/basic";
 import {ComponentName} from "./component_name";
 import {AttributeName} from "./attribute_name";
 import {ReferenceType} from "../_reference";
@@ -20,12 +20,15 @@ export class FieldChain {
     filename: string,
     refType?: ReferenceType | undefined): AbstractType | undefined {
 
-    const found = scope.findVariable(node.concatTokens()); // workaround for names with dashes
-    if (found) {
-      if (refType) {
-        scope.addReference(node.getFirstToken(), found, refType, filename);
+    if (node.concatTokens().includes("-")) {
+      // workaround for names with dashes
+      const found = scope.findVariable(node.concatTokens());
+      if (found) {
+        if (refType) {
+          scope.addReference(node.getFirstToken(), found, refType, filename);
+        }
+        return found.getType();
       }
-      return found.getType();
     }
 
     const children = node.getChildren().slice();
@@ -100,16 +103,25 @@ export class FieldChain {
       if (type) {
         scope.addReference(token, found, type, filename);
       }
+      if (name.includes("~")) {
+        const idef = scope.findInterfaceDefinition(name.split("~")[0]);
+        if (idef) {
+          scope.addReference(token, idef, ReferenceType.ObjectOrientedReference, filename);
+        }
+      }
       return found.getType();
     }
 
     if (node.get() instanceof Expressions.ClassName) {
       const classTok = node.getFirstToken();
       const classNam = classTok.getStr();
+      if (classNam.toUpperCase() === "OBJECT") {
+        return new GenericObjectReferenceType();
+      }
       const found = scope.existsObject(classNam);
-      if (found.found === true) {
+      if (found.found === true && found.id) {
         scope.addReference(classTok, found.id, found.type, filename);
-        return new ObjectReferenceType(classNam);
+        return new ObjectReferenceType(found.id);
       } else if (scope.getDDIC().inErrorNamespace(classNam) === false) {
         return new VoidType(classNam);
       } else {

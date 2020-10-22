@@ -8,6 +8,7 @@ import {Class} from "../../../objects/class";
 import * as BasicTypes from "../../types/basic";
 import {AbstractType} from "../../types/basic/_abstract_type";
 import {IProgress} from "../../../progress";
+import {TypedIdentifier} from "../../types/_typed_identifier";
 
 // todo: rewrite all of this to use a graph based deterministic approach instead
 
@@ -84,7 +85,7 @@ export class FindGlobalDefinitions {
     return count;
   }
 
-  private count(type: AbstractType): number {
+  private count(type: TypedIdentifier | AbstractType): number {
     if (type instanceof BasicTypes.UnknownType || type instanceof BasicTypes.VoidType) {
       return 1;
     } else if (type instanceof BasicTypes.TableType) {
@@ -106,9 +107,10 @@ export class FindGlobalDefinitions {
     const struc = file?.getStructure();
 
     if (obj instanceof Interface) {
-      if (struc && file) {
+      const found = struc?.findFirstStructure(Structures.Interface);
+      if (struc && file && found) {
         try {
-          const def = new InterfaceDefinition(struc, file.getFilename(), CurrentScope.buildDefault(this.reg));
+          const def = new InterfaceDefinition(found, file.getFilename(), CurrentScope.buildDefault(this.reg));
           obj.setDefinition(def);
         } catch {
           obj.setDefinition(undefined);

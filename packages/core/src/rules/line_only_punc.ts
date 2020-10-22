@@ -1,13 +1,13 @@
 import {Issue} from "../issue";
 import {Position} from "../position";
 import {ABAPRule} from "./_abap_rule";
-import {ABAPFile} from "../files";
 import {BasicRuleConfig} from "./_basic_rule_config";
 import {IObject} from "../objects/_iobject";
 import {Class} from "../objects";
-import {RuleTag} from "./_irule";
+import {IRuleMetadata, RuleTag} from "./_irule";
 import {EditHelper} from "../edit_helper";
 import {DDIC} from "../ddic";
+import {ABAPFile} from "../abap/abap_file";
 
 export class LineOnlyPuncConf extends BasicRuleConfig {
   /** Ignore lines with only puncutation in global exception classes */
@@ -18,14 +18,16 @@ export class LineOnlyPunc extends ABAPRule {
 
   private conf = new LineOnlyPuncConf();
 
-  public getMetadata() {
+  public getMetadata(): IRuleMetadata {
     return {
       key: "line_only_punc",
       title: "Line containing only punctuation",
       shortDescription: `Detects lines containing only punctuation.`,
       extendedInformation: `https://github.com/SAP/styleguides/blob/master/clean-abap/CleanABAP.md#close-brackets-at-line-end
 https://docs.abapopenchecks.org/checks/16/`,
-      tags: [RuleTag.Styleguide, RuleTag.Quickfix],
+      tags: [RuleTag.Styleguide, RuleTag.Quickfix, RuleTag.SingleFile],
+      badExample: "zcl_class=>method(\n).",
+      goodExample: "zcl_class=>method( ).",
     };
   }
 
@@ -77,7 +79,7 @@ https://docs.abapopenchecks.org/checks/16/`,
         const endPos = new Position(i + 1, rows[i].length + 1);
         const fix = EditHelper.replaceRange(file, startPos, endPos, rowContent);
 
-        const issue = Issue.atPosition(file, position, this.getMessage(), this.getMetadata().key, fix);
+        const issue = Issue.atPosition(file, position, this.getMessage(), this.getMetadata().key, this.conf.severity, fix);
         issues.push(issue);
       }
     }

@@ -1,4 +1,3 @@
-import {MemoryFile} from "../../src/files";
 import {Config} from "../../src/config";
 import {expect} from "chai";
 import {Version, getPreviousVersion, defaultVersion} from "../../src/version";
@@ -11,6 +10,7 @@ import {IFile} from "../../src/files/_ifile";
 import {Token} from "../../src/abap/1_lexer/tokens/_token";
 import {Lexer} from "../../src/abap/1_lexer/lexer";
 import {getABAPObjects} from "../get_abap";
+import {MemoryFile} from "../../src/files/memory_file";
 
 // utils for testing
 
@@ -35,7 +35,10 @@ export function findIssues(abap: string) {
 export function parse(abap: string, config?: Config) {
   const file = new MemoryFile("zfoo.prog.abap", abap);
   const reg = new Registry(config).addFile(file).parse();
-  return getABAPObjects(reg)[0].getABAPFiles()[0];
+  const abapObjects = getABAPObjects(reg);
+  const firstObject = abapObjects[0];
+  const files = firstObject.getABAPFiles();
+  return files[0];
 }
 
 function run(abap: string, text: string, type: any, version?: Version | undefined) {
@@ -68,10 +71,10 @@ function runExpectFail(abap: string, text: string, version?: Version | undefined
   });
 }
 
-export function structureType(cas: {abap: string}[], expected: IStructure): void {
+export function structureType(cases: {abap: string, only?: boolean}[], expected: IStructure): void {
   describe("Structure type", () => {
-    cas.forEach((c: {abap: string}) => {
-      it(c.abap, () => {
+    cases.forEach(c => {
+      const callback = () => {
         const file = parse(c.abap);
         const statements = file.getStatements();
         const length = statements.length;
@@ -81,7 +84,13 @@ export function structureType(cas: {abap: string}[], expected: IStructure): void
         expect(length).to.equal(statements.length);
         expect(match.error).to.equal(false);
         expect(match.matched.length).to.equal(length);
-      });
+      };
+
+      if (c.only === true) {
+        it.only(c.abap, callback);
+      } else {
+        it(c.abap, callback);
+      }
     });
   });
 }

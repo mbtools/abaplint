@@ -4,14 +4,13 @@ import {Issue} from "../../issue";
 import {INode} from "../nodes/_inode";
 import {Token} from "../1_lexer/tokens/_token";
 import {StatementNode, StructureNode} from "../nodes";
-import {ABAPFile} from "../../files";
 import {IRegistry} from "../../_iregistry";
 import {ABAPObject} from "../../objects/_abap_object";
 import {CurrentScope} from "./_current_scope";
 import {ScopeType} from "./_scope_type";
 import {ObjectOriented} from "./_object_oriented";
 import {Procedural} from "./_procedural";
-import {Program} from "../../objects";
+import {FunctionGroup, Program} from "../../objects";
 import {Position} from "../../position";
 import {Data as DataStructure} from "./structures/data";
 import {TypeEnum} from "./structures/type_enum";
@@ -37,6 +36,7 @@ import {Call} from "./statements/call";
 import {ClassImplementation} from "./statements/class_implementation";
 import {MethodImplementation} from "./statements/method_implementation";
 import {Move} from "./statements/move";
+import {MoveCorresponding} from "./statements/move_corresponding";
 import {Catch} from "./statements/catch";
 import {Loop} from "./statements/loop";
 import {ReadTable} from "./statements/read_table";
@@ -102,6 +102,13 @@ import {While} from "./statements/while";
 import {SelectLoop} from "./statements/select_loop";
 import {Check} from "./statements/check";
 import {LogPoint} from "./statements/log_point";
+import {Severity} from "../../severity";
+import {RaiseEvent} from "./statements/raise_event";
+import {Form} from "./statements/form";
+import {ABAPFile} from "../abap_file";
+import {Assert} from "./statements/assert";
+import {SetParameter} from "./statements/set_parameter";
+import {ClassLocalFriends} from "./statements/class_local_friends";
 
 export class SyntaxLogic {
   private currentFile: ABAPFile;
@@ -122,7 +129,7 @@ export class SyntaxLogic {
     this.issues = [];
 
     this.object = object;
-    this.scope = CurrentScope.buildDefault(this.reg);
+    this.scope = CurrentScope.buildDefault(this.reg, object);
 
     this.helpers = {
       oooc: new ObjectOriented(this.scope),
@@ -160,17 +167,19 @@ export class SyntaxLogic {
   private traverseObject(): CurrentScope {
     const traversal = this.object.getSequencedFiles();
 
-    const main = this.object.getMainABAPFile();
-    if (main !== undefined) {
-      this.helpers.proc.addAllFormDefinitions(main, this.object);
-    }
+    if (this.object instanceof Program
+        || this.object instanceof FunctionGroup) {
+      const main = this.object.getMainABAPFile();
+      if (main !== undefined) {
+        // add FORM defintions to the _global object scope
+        this.helpers.proc.addAllFormDefinitions(main, this.object);
 
-    if (this.object instanceof Program && main !== undefined) {
-      // todo, this seems like a hack?
-      this.scope.push(ScopeType.Program,
-                      this.object.getName(),
-                      new Position(1, 1),
-                      main.getFilename());
+        if (this.object instanceof Program) {
+          this.scope.push(ScopeType.Program, this.object.getName(), new Position(1, 1), main.getFilename());
+        } else if (this.object instanceof FunctionGroup) {
+          this.scope.push(ScopeType.FunctionGroup, this.object.getName(), new Position(1, 1), main.getFilename());
+        }
+      }
     }
 
     for (const file of traversal) {
@@ -178,14 +187,6 @@ export class SyntaxLogic {
       const structure = this.currentFile.getStructure();
       if (structure === undefined) {
         return this.scope;
-      } else if (structure.get() instanceof Structures.Interface) {
-        // special case for global interfaces, todo, look into if the case can be removed
-        try {
-          this.updateScopeStructure(structure);
-        } catch (e) {
-          this.newIssue(structure.getFirstToken(), e.message);
-          break;
-        }
       } else {
         this.traverse(structure);
       }
@@ -195,7 +196,7 @@ export class SyntaxLogic {
   }
 
   private newIssue(token: Token, message: string): void {
-    const issue = Issue.atToken(this.currentFile, token, message, "check_syntax");
+    const issue = Issue.atToken(this.currentFile, token, message, "check_syntax", Severity.Error);
     this.issues.push(issue);
   }
 
@@ -235,10 +236,10 @@ export class SyntaxLogic {
     const filename = this.currentFile.getFilename();
     const stru = node.get();
     if (stru instanceof Structures.ClassDefinition) {
-      this.scope.addClassDefinition(new ClassDefinition(node, filename, this.scope));
+      new ClassDefinition(node, filename, this.scope);
       return true;
     } else if (stru instanceof Structures.Interface) {
-      this.scope.addInterfaceDefinition(new InterfaceDefinition(node, filename, this.scope));
+      new InterfaceDefinition(node, filename, this.scope);
       return true;
     } else if (stru instanceof Structures.Types) {
       this.scope.addType(new Types().runSyntax(node, this.scope, filename));
@@ -296,6 +297,8 @@ export class SyntaxLogic {
       new Move().runSyntax(node, this.scope, filename);
     } else if (s instanceof Statements.Replace) {
       new Replace().runSyntax(node, this.scope, filename);
+    } else if (s instanceof Statements.Assert) {
+      new Assert().runSyntax(node, this.scope, filename);
     } else if (s instanceof Statements.Catch) {
       new Catch().runSyntax(node, this.scope, filename);
     } else if (s instanceof Statements.Loop) {
@@ -324,6 +327,8 @@ export class SyntaxLogic {
       new Receive().runSyntax(node, this.scope, filename);
     } else if (s instanceof Statements.GetBit) {
       new GetBit().runSyntax(node, this.scope, filename);
+    } else if (s instanceof Statements.ClassLocalFriends) {
+      new ClassLocalFriends().runSyntax(node, this.scope, filename);
     } else if (s instanceof Statements.Select) {
       new Select().runSyntax(node, this.scope, filename);
     } else if (s instanceof Statements.InsertInternal) {
@@ -332,6 +337,8 @@ export class SyntaxLogic {
       new Assign().runSyntax(node, this.scope, filename);
     } else if (s instanceof Statements.SetLocale) {
       new SetLocale().runSyntax(node, this.scope, filename);
+    } else if (s instanceof Statements.SetParameter) {
+      new SetParameter().runSyntax(node, this.scope, filename);
     } else if (s instanceof Statements.Convert) {
       new Convert().runSyntax(node, this.scope, filename);
     } else if (s instanceof Statements.Controls) {
@@ -402,6 +409,8 @@ export class SyntaxLogic {
       new SelectLoop().runSyntax(node, this.scope, filename);
     } else if (s instanceof Statements.Write) {
       new Write().runSyntax(node, this.scope, filename);
+    } else if (s instanceof Statements.MoveCorresponding) {
+      new MoveCorresponding().runSyntax(node, this.scope, filename);
     } else if (s instanceof Statements.AuthorityCheck) {
       new AuthorityCheck().runSyntax(node, this.scope, filename);
     } else if (s instanceof Statements.InsertReport) {
@@ -412,6 +421,8 @@ export class SyntaxLogic {
       new Ranges().runSyntax(node, this.scope, filename);
     } else if (s instanceof Statements.Add) {
       new Add().runSyntax(node, this.scope, filename);
+    } else if (s instanceof Statements.RaiseEvent) {
+      new RaiseEvent().runSyntax(node, this.scope, filename);
     } else if (s instanceof Statements.Subtract) {
       new Subtract().runSyntax(node, this.scope, filename);
     } else if (s instanceof Statements.AddCorresponding) {
@@ -424,18 +435,17 @@ export class SyntaxLogic {
       new Divide().runSyntax(node, this.scope, filename);
     } else if (s instanceof Statements.Check) {
       new Check().runSyntax(node, this.scope, filename);
-
-
     } else if (s instanceof Statements.Form) {
-      this.helpers.proc.findFormScope(node, filename);
+      new Form().runSyntax(node, this.scope, filename);
+
     } else if (s instanceof Statements.FunctionModule) {
       this.helpers.proc.findFunctionScope(this.object, node, filename);
 
-    } else if (s instanceof Statements.EndMethod) {
-      this.scope.pop();
     } else if (s instanceof Statements.EndForm
         || s instanceof Statements.EndFunction
-        || s instanceof Statements.EndClass) {
+        || s instanceof Statements.EndMethod
+        || s instanceof Statements.EndClass
+        || s instanceof Statements.EndInterface) {
       this.scope.pop();
     }
   }

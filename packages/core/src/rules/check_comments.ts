@@ -2,8 +2,8 @@ import {Issue} from "../issue";
 import {Comment} from "../abap/2_statements/statements/_statement";
 import {BasicRuleConfig} from "./_basic_rule_config";
 import {ABAPRule} from "./_abap_rule";
-import {ABAPFile} from "../files";
 import {IRuleMetadata, RuleTag} from "./_irule";
+import {ABAPFile} from "../abap/abap_file";
 
 export class CheckCommentsConf extends BasicRuleConfig {
   /** Allows the use of end-of-line comments. */
@@ -20,10 +20,13 @@ export class CheckComments extends ABAPRule {
     return {
       key: "check_comments",
       title: "Check Comments",
-      shortDescription: `Various checks for comment usage.`,
+      shortDescription: `
+Various checks for comment usage.
+
+* End of line comments. Comments starting with "#EC" or "##" are ignored`,
       extendedInformation:
         `https://github.com/SAP/styleguides/blob/master/clean-abap/CleanABAP.md#put-comments-before-the-statement-they-relate-to`,
-      tags: [RuleTag.Styleguide],
+      tags: [RuleTag.Styleguide, RuleTag.SingleFile],
     };
   }
 
@@ -68,7 +71,8 @@ export class CheckComments extends ABAPRule {
             file,
             statement,
             this.getDescription(IssueType.EndOfLine),
-            this.getMetadata().key));
+            this.getMetadata().key,
+            this.conf.severity));
       }
     }
     return issues;

@@ -7,13 +7,12 @@ import {Position} from "../../position";
 import {IStructureResult} from "./structure_result";
 import {IStatementResult} from "../2_statements/statement_result";
 import {IFile} from "../../files/_ifile";
+import {Severity} from "../../severity";
 
 export class StructureParser {
 
   public static run(input: IStatementResult): IStructureResult {
     const structure = this.findStructureForFile(input.file.getFilename());
-// todo, comments and empty statements will not be part of the structure
-// is this a problem? Plus unknowns
     const statements = input.statements.slice().filter((s) => {
       return !(s.get() instanceof StatementComment || s.get() instanceof Empty || s.get() instanceof Unknown);
     });
@@ -27,7 +26,7 @@ export class StructureParser {
     if (filename.match(/\.clas\.abap$/)) {
       return new Structures.ClassGlobal();
     } else if (filename.match(/\.intf\.abap$/)) {
-      return new Structures.Interface();
+      return new Structures.InterfaceGlobal();
     } else {
 // todo
       return new Structures.Any();
@@ -39,13 +38,13 @@ export class StructureParser {
     const result = structure.getMatcher().run(statements, parent);
 
     if (result.error) {
-      const issue = Issue.atPosition(file, new Position(1, 1), result.errorDescription, "structure");
+      const issue = Issue.atPosition(file, new Position(1, 1), result.errorDescription, "structure", Severity.Error);
       return {issues: [issue], node: undefined};
     }
     if (result.unmatched.length > 0) {
       const statement = result.unmatched[0];
       const descr = "Unexpected " + statement.get().constructor.name.toUpperCase();
-      const issue = Issue.atPosition(file, statement.getStart(), descr, "structure");
+      const issue = Issue.atPosition(file, statement.getStart(), descr, "structure", Severity.Error);
       return {issues: [issue], node: undefined};
     }
 

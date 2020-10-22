@@ -31,7 +31,7 @@ export class MethodParameterNames implements IRule {
       key: "method_parameter_names",
       title: "Method parameter naming conventions",
       shortDescription: `Allows you to enforce a pattern, such as a prefix, for method parameter names`,
-      tags: [RuleTag.Naming],
+      tags: [RuleTag.Naming, RuleTag.SingleFile],
     };
   }
 
@@ -119,7 +119,7 @@ export class MethodParameterNames implements IRule {
     const name = param.name;
     if (NameValidator.violatesRule(name, regex, this.conf)) {
       const message = this.getDescription(expected, name);
-      const issue = Issue.atIdentifier(param.identifier, message, this.getMetadata().key);
+      const issue = Issue.atIdentifier(param.identifier, message, this.getMetadata().key, this.conf.severity);
       ret.push(issue);
     }
 

@@ -37,6 +37,24 @@ class WorkArea {
   }
 }
 
+function removeDuplicates(list: readonly TypedIdentifier[]): readonly TypedIdentifier[] {
+  const deduplicated: TypedIdentifier[] = [];
+  for (const result of list) {
+    let cont = false;
+    for (const d of deduplicated) {
+      if (result.getStart().equals(d.getStart())) {
+        cont = true;
+        break;
+      }
+    }
+    if (cont === true) {
+      continue;
+    }
+    deduplicated.push(result);
+  }
+  return deduplicated;
+}
+
 export class UnusedTypesConf extends BasicRuleConfig {
   /** skip specific names, case insensitive */
   public skipNames: string[] = [];
@@ -105,10 +123,10 @@ export class UnusedTypes implements IRule {
 
     // what is left is unused
     const ret: Issue[] = [];
-    for (const t of this.workarea.get()) {
+    for (const t of removeDuplicates(this.workarea.get())) {
       const message = "Type \"" + t.getName() + "\" not used";
       const fix = this.buildFix(t, obj);
-      ret.push(Issue.atIdentifier(t, message, this.getMetadata().key, fix));
+      ret.push(Issue.atIdentifier(t, message, this.getMetadata().key, this.conf.severity, fix));
     }
     return ret;
   }
@@ -144,7 +162,7 @@ export class UnusedTypes implements IRule {
     }
 
     for (const r of node.getData().references) {
-      if (r.referenceType === ReferenceType.TypeReference) {
+      if (r.referenceType === ReferenceType.TypeReference && r.resolved) {
         this.workarea.removeIfExists(r.resolved);
       }
     }

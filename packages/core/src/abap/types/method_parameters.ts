@@ -9,11 +9,18 @@ import {MethodDefReturning} from "../5_syntax/expressions/method_def_returning";
 import {MethodParam} from "../5_syntax/expressions/method_param";
 import {IMethodParameters} from "./_method_parameters";
 import {ObjectOriented} from "../5_syntax/_object_oriented";
+import {ReferenceType} from "../5_syntax/_reference";
+
+// todo:
+// this.exceptions = [];
+// also consider RAISING vs EXCEPTIONS
 
 export class MethodParameters implements IMethodParameters{
   private readonly importing: TypedIdentifier[];
+  private readonly optional: string[];
   private readonly exporting: TypedIdentifier[];
   private readonly changing: TypedIdentifier[];
+  private preferred: string | undefined;
   private returning: TypedIdentifier | undefined;
   private readonly exceptions: string[]; // todo, not filled
   private readonly filename: string;
@@ -26,11 +33,13 @@ export class MethodParameters implements IMethodParameters{
     this.importing = [];
     this.exporting = [];
     this.changing = [];
+    this.optional = [];
     this.returning = undefined;
+    this.preferred = undefined;
     this.exceptions = [];
     this.filename = filename;
 
-    this.parse(node, scope);
+    this.parse(node, scope, filename);
   }
 
   public getAll(): TypedIdentifier[] {
@@ -43,6 +52,24 @@ export class MethodParameters implements IMethodParameters{
     ret = ret.concat(this.getExporting());
     ret = ret.concat(this.getChanging());
     return ret;
+  }
+
+  public getDefaultImporting(): string | undefined {
+    if (this.importing.length === 0) {
+      return undefined;
+    } else if (this.importing.length === 1) {
+      return this.importing[0].getName().toUpperCase();
+    } else if (this.preferred) {
+      return this.preferred;
+    }
+
+    const candidates = this.importing.map(i => i.getName().toUpperCase());
+    candidates.filter(c => this.optional.includes(c) );
+    if (candidates.length === 1) {
+      return candidates[0];
+    }
+
+    return undefined;
   }
 
   public getImporting() {
@@ -67,13 +94,17 @@ export class MethodParameters implements IMethodParameters{
 
 ///////////////////
 
-  private parse(node: StatementNode, scope: CurrentScope): void {
+  private parse(node: StatementNode, scope: CurrentScope, filename: string): void {
 
     const handler = node.findFirstExpression(Expressions.EventHandler);
     if (handler) {
-      const className = node.findFirstExpression(Expressions.ClassName)?.getFirstToken().getStr();
-      const def = scope.findObjectDefinition(className);
-      const doVoid = def ? false : !scope.getDDIC().inErrorNamespace(className);
+      const nameToken = node.findFirstExpression(Expressions.ClassName)?.getFirstToken();
+      const ooName = nameToken?.getStr();
+      const def = scope.findObjectDefinition(ooName);
+      if (def) {
+        scope.addReference(nameToken, def, ReferenceType.ObjectOrientedReference, filename);
+      }
+      const doVoid = def ? false : !scope.getDDIC().inErrorNamespace(ooName);
 
       const eventName = node.findFirstExpression(Expressions.Field)?.getFirstToken().getStr();
       const event = new ObjectOriented(scope).searchEvent(def, eventName);
@@ -84,17 +115,21 @@ export class MethodParameters implements IMethodParameters{
         if (found) {
           this.importing.push(new TypedIdentifier(token, this.filename, found.getType(), [IdentifierMeta.EventParameter]));
         } else if (doVoid) {
-          this.importing.push(new TypedIdentifier(token, this.filename, new VoidType(className), [IdentifierMeta.EventParameter]));
+          this.importing.push(new TypedIdentifier(token, this.filename, new VoidType(ooName), [IdentifierMeta.EventParameter]));
         } else {
           const type = new UnknownType(`handler parameter not found "${search}"`);
           this.importing.push(new TypedIdentifier(token, this.filename, type, [IdentifierMeta.EventParameter]));
         }
       }
+      return;
     }
 
     const importing = node.findFirstExpression(Expressions.MethodDefImporting);
     if (importing) {
       this.add(this.importing, importing, scope, IdentifierMeta.MethodImporting);
+      if (importing.concatTokens().toUpperCase().includes(" PREFERRED PARAMETER")) {
+        this.preferred = importing.getLastToken().getStr().toUpperCase();
+      }
     }
 
     const exporting = node.findFirstExpression(Expressions.MethodDefExporting);
@@ -111,13 +146,24 @@ export class MethodParameters implements IMethodParameters{
     if (returning) {
       this.returning = new MethodDefReturning().runSyntax(returning, scope, this.filename, [IdentifierMeta.MethodReturning]);
     }
-
-// todo:
-// this.exceptions = [];
-// also consider RAISING vs EXCEPTIONS
   }
 
   private add(target: TypedIdentifier[], source: ExpressionNode, scope: CurrentScope, meta: IdentifierMeta): void {
+    for (const opt of source.findAllExpressions(Expressions.MethodParamOptional)) {
+      const p = opt.findDirectExpression(Expressions.MethodParam);
+      if (p === undefined) {
+        continue;
+      }
+      target.push(new MethodParam().runSyntax(p, scope, this.filename, [meta]));
+      if (opt.getLastToken().getStr().toUpperCase() === "OPTIONAL") {
+        const name = target[target.length - 1].getName().toUpperCase();
+        this.optional.push(name);
+      }
+    }
+    if (target.length > 0) {
+      return;
+    }
+
     const params = source.findAllExpressions(Expressions.MethodParam);
     for (const param of params) {
       target.push(new MethodParam().runSyntax(param, scope, this.filename, [meta]));

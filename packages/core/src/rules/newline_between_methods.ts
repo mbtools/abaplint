@@ -1,10 +1,10 @@
 import {Issue} from "../issue";
 import {BasicRuleConfig} from "./_basic_rule_config";
 import {ABAPRule} from "./_abap_rule";
-import {ABAPFile} from "../files";
 import {SequentialBlank} from "./sequential_blank";
 import * as Statements from "../abap/2_statements/statements";
 import {IRuleMetadata, RuleTag} from "./_irule";
+import {ABAPFile} from "../abap/abap_file";
 
 export enum NewlineLogic {
   Exact = "exact",
@@ -30,7 +30,7 @@ export class NewlineBetweenMethods extends ABAPRule {
       key: "newline_between_methods",
       title: "New line between methods",
       shortDescription: `Checks for newlines between method implementations.`,
-      tags: [RuleTag.Whitespace],
+      tags: [RuleTag.Whitespace, RuleTag.SingleFile],
     };
   }
 
@@ -58,7 +58,7 @@ export class NewlineBetweenMethods extends ABAPRule {
     }
     for (const statement of file.getStatements()) {
       let nextRow = statement.getStart().getRow();
-      if (!(statement.get() instanceof Statements.EndMethod) || (rows[nextRow].toUpperCase().includes("ENDCLASS."))) {
+      if (!(statement.get() instanceof Statements.EndMethod) || (rows[nextRow]?.toUpperCase().includes("ENDCLASS."))) {
         continue;
       }
       let counter = 0;
@@ -73,7 +73,8 @@ export class NewlineBetweenMethods extends ABAPRule {
           file,
           statement,
           this.getMessage(),
-          this.getMetadata().key));
+          this.getMetadata().key,
+          this.conf.severity));
       }
     }
     return issues;

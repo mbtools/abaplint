@@ -1,9 +1,9 @@
 import {expect} from "chai";
 import {Registry} from "../../../src/registry";
 import {IRegistry} from "../../../src/_iregistry";
-import {MemoryFile} from "../../../src/files";
 import {getABAPObjects} from "../../get_abap";
 import {SyntaxLogic} from "../../../src/abap/5_syntax/syntax";
+import {MemoryFile} from "../../../src/files/memory_file";
 
 let reg: IRegistry = new Registry();
 
@@ -29,7 +29,6 @@ describe("Types, FormDefinition", () => {
     const abap = "FORM moo.\nENDFORM.\n";
     const defs = runProgram(abap);
     expect(defs.length).to.equal(1);
-    expect(defs[0].getParameters().length).to.equal(0);
   });
 
   it("two FORMs", () => {
@@ -42,7 +41,7 @@ describe("Types, FormDefinition", () => {
     const abap = "FORM moo USING blah.\nENDFORM.\n";
     const defs = runProgram(abap);
     expect(defs.length).to.equal(1);
-    const params = defs[0].getParameters();
+    const params = defs[0].getUsingParameters();
     expect(params.length).to.equal(1);
     expect(params[0].getName()).to.equal("blah");
 

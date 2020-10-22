@@ -1,11 +1,12 @@
+import {TypedIdentifier} from "../_typed_identifier";
 import {AbstractType} from "./_abstract_type";
 
 export class TableType implements AbstractType {
-  private readonly rowType: AbstractType;
+  private readonly rowType: TypedIdentifier | AbstractType;
   private readonly withHeader: boolean;
 
 // todo: add keys
-  public constructor(rowType: AbstractType, withHeader: boolean) {
+  public constructor(rowType: TypedIdentifier | AbstractType, withHeader: boolean) {
     this.rowType = rowType;
     this.withHeader = withHeader;
   }
@@ -15,14 +16,29 @@ export class TableType implements AbstractType {
   }
 
   public getRowType(): AbstractType {
-    return this.rowType;
+    if (this.rowType instanceof TypedIdentifier) {
+      return this.rowType.getType();
+    } else {
+      return this.rowType;
+    }
+  }
+
+  public toABAP(): string {
+    throw new Error("TableType, toABAP, todo");
   }
 
   public toText(level: number) {
+    let extra = "";
+    let type = this.rowType;
+    if (type instanceof TypedIdentifier) {
+      extra = "\n\nType name: \"" + type.getName() + "\"";
+      type = type.getType();
+    }
+
     if (this.withHeader === true) {
-      return "Table with header of " + this.rowType.toText(level + 1);
+      return "Table with header of " + type.toText(level + 1) + extra;
     } else {
-      return "Table of " + this.rowType.toText(level + 1);
+      return "Table of " + type.toText(level + 1) + extra;
     }
   }
 
@@ -31,6 +47,10 @@ export class TableType implements AbstractType {
   }
 
   public containsVoid() {
-    return this.rowType.containsVoid();
+    if (this.rowType instanceof TypedIdentifier) {
+      return this.rowType.getType().containsVoid();
+    } else {
+      return this.rowType.containsVoid();
+    }
   }
 }

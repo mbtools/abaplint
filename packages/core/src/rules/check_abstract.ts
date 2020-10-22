@@ -1,7 +1,8 @@
+import {ABAPFile} from "../abap/abap_file";
 import {Issue} from "../issue";
 import {ABAPRule} from "./_abap_rule";
-import {ABAPFile} from "../files";
 import {BasicRuleConfig} from "./_basic_rule_config";
+import {IRuleMetadata, RuleTag} from "./_irule";
 
 export class CheckAbstractConf extends BasicRuleConfig {
 }
@@ -16,13 +17,14 @@ export class CheckAbstract extends ABAPRule {
 
   private conf = new CheckAbstractConf();
 
-  public getMetadata() {
+  public getMetadata(): IRuleMetadata {
     return {
       key: "check_abstract",
       title: "Check abstract methods and classes",
       shortDescription: `Checks abstract methods and classes:
 - class defined as abstract and final,
 - non-abstract class contains abstract methods`,
+      tags: [RuleTag.SingleFile],
     };
   }
 
@@ -47,16 +49,22 @@ export class CheckAbstract extends ABAPRule {
 
     for (const classDef of file.getInfo().listClassDefinitions()) {
       if (classDef.isAbstract === true) {
-        if (classDef.isFinal === true) {
+        if (classDef.isFinal === true && classDef.isForTesting === false) {
           issues.push(Issue.atIdentifier(
-            classDef.identifier, this.getDescription(IssueType.AbstractAndFinal, classDef.name), this.getMetadata().key));
+            classDef.identifier,
+            this.getDescription(IssueType.AbstractAndFinal, classDef.name),
+            this.getMetadata().key,
+            this.conf.severity));
         }
         continue;
       }
       for (const methodDef of classDef.methods) {
         if (methodDef.isAbstract === true) {
           issues.push(Issue.atIdentifier(
-            methodDef.identifier, this.getDescription(IssueType.NotAbstractClass, methodDef.name), this.getMetadata().key));
+            methodDef.identifier,
+            this.getDescription(IssueType.NotAbstractClass, methodDef.name),
+            this.getMetadata().key,
+            this.conf.severity));
         }
       }
     }

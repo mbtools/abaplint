@@ -1,6 +1,5 @@
 import {Issue} from "../issue";
 import {ABAPRule} from "./_abap_rule";
-import {ABAPFile} from "../files";
 import {StatementNode, ExpressionNode, TokenNode, TokenNodeRegex} from "../abap/nodes";
 import {Unknown, Comment, MacroContent, MacroCall, IStatement} from "../abap/2_statements/statements/_statement";
 import {Identifier} from "../abap/1_lexer/tokens";
@@ -13,6 +12,7 @@ import {Token} from "../abap/1_lexer/tokens/_token";
 import {IRuleMetadata, RuleTag} from "./_irule";
 import {DDIC} from "../ddic";
 import {VirtualPosition} from "../position";
+import {ABAPFile} from "../abap/abap_file";
 
 export enum KeywordCaseStyle {
   Upper = "upper",
@@ -43,7 +43,7 @@ export class KeywordCase extends ABAPRule {
       title: "Keyword case",
       shortDescription: `Checks that keywords have the same case. Non-keywords must be lower case.`,
       extendedInformation: `https://github.com/SAP/styleguides/blob/master/clean-abap/CleanABAP.md#use-your-pretty-printer-team-settings`,
-      tags: [RuleTag.Styleguide],
+      tags: [RuleTag.Styleguide, RuleTag.SingleFile],
     };
   }
 
@@ -76,6 +76,7 @@ export class KeywordCase extends ABAPRule {
     const issues: Issue[] = [];
     let skip = false;
     let isGlobalClass = false;
+    let isGlobalIf = false;
 
     const ddic = new DDIC(this.reg);
 
@@ -97,6 +98,12 @@ export class KeywordCase extends ABAPRule {
 
       if (this.conf.ignoreGlobalClassBoundaries) {
         const node = statement.get();
+        if (node instanceof Statements.Interface && statement.findFirstExpression(Expressions.ClassGlobal)) {
+          isGlobalIf = true;
+          continue;
+        } else if (isGlobalIf === true && node instanceof Statements.EndInterface) {
+          continue;
+        }
         if (node instanceof Statements.ClassDefinition && statement.findFirstExpression(Expressions.ClassGlobal)) {
           isGlobalClass = true;
           continue;
@@ -134,7 +141,11 @@ export class KeywordCase extends ABAPRule {
 
       const result = this.traverse(statement, statement.get());
       if (result.token) {
-        const issue = Issue.atToken(file, result.token, this.getDescription(result.token.getStr(), result.keyword), this.getMetadata().key);
+        const issue = Issue.atToken(
+          file, result.token,
+          this.getDescription(result.token.getStr(), result.keyword),
+          this.getMetadata().key,
+          this.conf.severity);
         issues.push(issue);
         break; // one issue per file
       }
@@ -193,7 +204,7 @@ export class KeywordCase extends ABAPRule {
   }
 
   public violatesRule(keyword: string): boolean {
-    if (this.conf.ignoreKeywords && this.conf.ignoreKeywords.map(k => {return k.toUpperCase();}).includes(keyword.toUpperCase())){
+    if (this.conf.ignoreKeywords && this.conf.ignoreKeywords.map(k => {return k.toUpperCase();}).includes(keyword.toUpperCase())) {
       return false;
     }
     if (this.conf.style === KeywordCaseStyle.Lower) {

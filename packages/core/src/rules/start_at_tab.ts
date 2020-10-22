@@ -3,9 +3,9 @@ import {Position} from "../position";
 import {Comment} from "../abap/2_statements/statements/_statement";
 import {TypeBegin, TypeEnd} from "../abap/2_statements/statements";
 import {ABAPRule} from "./_abap_rule";
-import {ABAPFile} from "../files";
 import {BasicRuleConfig} from "./_basic_rule_config";
 import {IRuleMetadata, RuleTag} from "./_irule";
+import {ABAPFile} from "../abap/abap_file";
 
 export class StartAtTabConf extends BasicRuleConfig {
 }
@@ -19,8 +19,9 @@ export class StartAtTab extends ABAPRule {
       key: "start_at_tab",
       title: "Start at tab",
       shortDescription: `Checks that statements start at tabstops.`,
-      extendedInformation: `https://github.com/SAP/styleguides/blob/master/clean-abap/CleanABAP.md#indent-and-snap-to-tab`,
-      tags: [RuleTag.Whitespace, RuleTag.Styleguide],
+      extendedInformation: `Reports max 100 issues per file
+https://github.com/SAP/styleguides/blob/master/clean-abap/CleanABAP.md#indent-and-snap-to-tab`,
+      tags: [RuleTag.Whitespace, RuleTag.Styleguide, RuleTag.SingleFile],
       badExample: ` WRITE a.`,
       goodExample: `  WRITE a.`,
     };
@@ -62,8 +63,11 @@ export class StartAtTab extends ABAPRule {
       }
 // just skip rows that contains tabs, this will be reported by the contains_tab rule
       if ((pos.getCol() - 1) % 2 !== 0 && raw[pos.getRow() - 1].includes("\t") === false) {
-        const issue = Issue.atPosition(file, pos, this.getMessage(), this.getMetadata().key);
+        const issue = Issue.atPosition(file, pos, this.getMessage(), this.getMetadata().key, this.conf.severity);
         issues.push(issue);
+        if (issues.length >= 100) {
+          return issues; // only max 100 issues perfile
+        }
       }
       previous = pos;
     }

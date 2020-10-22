@@ -2,8 +2,9 @@ import {Issue} from "../issue";
 import {Comment, Unknown} from "../abap/2_statements/statements/_statement";
 import * as Statements from "../abap/2_statements/statements";
 import {ABAPRule} from "./_abap_rule";
-import {ABAPFile} from "../files";
 import {BasicRuleConfig} from "./_basic_rule_config";
+import {IRuleMetadata, RuleTag} from "./_irule";
+import {ABAPFile} from "../abap/abap_file";
 
 export class DefinitionsTopConf extends BasicRuleConfig {
 }
@@ -18,12 +19,13 @@ export class DefinitionsTop extends ABAPRule {
 
   private conf = new DefinitionsTopConf();
 
-  public getMetadata() {
+  public getMetadata(): IRuleMetadata {
     return {
       key: "definitions_top",
       title: "Place definitions in top of routine",
       shortDescription: `Checks that definitions are placed at the beginning of methods.`,
       extendedInformation: `https://docs.abapopenchecks.org/checks/17/`,
+      tags: [RuleTag.SingleFile],
     };
   }
 
@@ -76,7 +78,7 @@ export class DefinitionsTop extends ABAPRule {
           || statement.get() instanceof Statements.StaticEnd
           || statement.get() instanceof Statements.FieldSymbol) {
         if (mode === AFTER) {
-          issue = Issue.atStatement(file, statement, this.getMessage(), this.getMetadata().key);
+          issue = Issue.atStatement(file, statement, this.getMessage(), this.getMetadata().key, this.conf.severity);
           mode = ANY;
         }
       } else if (statement.get() instanceof Statements.Define

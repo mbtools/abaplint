@@ -1,4 +1,3 @@
-import {MemoryFile, ABAPFile} from "./files";
 import {Issue} from "./issue";
 import {Config} from "./config";
 import {Version} from "./version";
@@ -26,7 +25,7 @@ import * as Nodes from "./abap/nodes";
 import * as BasicTypes from "./abap/types/basic";
 import * as Types from "./abap/types";
 import * as Tokens from "./abap/1_lexer/tokens";
-import {IConfig, IDependency} from "./_config";
+import {IConfig, IDependency, IRenameSettings} from "./_config";
 import {IRegistry} from "./_iregistry";
 import {IFile} from "./files/_ifile";
 import {Position, VirtualPosition} from "./position";
@@ -36,17 +35,25 @@ import {ISpaghettiScope, ISpaghettiScopeNode} from "./abap/5_syntax/_spaghetti_s
 import {Empty, Unknown, Comment} from "./abap/2_statements/statements/_statement";
 import {applyEditSingle, applyEditList, IEdit} from "./edit_helper";
 import {IClassDefinition} from "./abap/types/_class_definition";
+import {ReferenceType} from "./abap/5_syntax/_reference";
+import {IObject} from "./objects/_iobject";
+import {BuiltIn} from "./abap/5_syntax/_builtin";
+import {ABAPFile} from "./abap/abap_file";
+import {MemoryFile} from "./files/memory_file";
+import {Renamer} from "./objects/rename/renamer";
 
 // do not include this file from anywhere within abaplint
+// https://github.com/abaplint/abaplint/issues/873
 
 // file used to build typings, index.d.ts
-export {MemoryFile, Issue, Config, Version,
-  Registry, LanguageServer, MethodLengthStats, IProgress,
+export {MemoryFile, Issue, Config, Version, ReferenceType,
+  Registry, LanguageServer, MethodLengthStats, IProgress, BuiltIn,
   Artifacts, ArtifactsObjects, ArtifactsRules, Objects, IFile,
   Structures, Statements, Expressions, Types, Nodes, IConfig,
   ISpaghettiScope, ISpaghettiScopeNode, Empty, Unknown, Comment,
-  IClassDefinition, IMethodLengthResult, VirtualPosition,
+  IClassDefinition, IMethodLengthResult, VirtualPosition, IObject,
   AbstractType, TypedIdentifier, BasicTypes, ScopeType, INode, Token, IEdit,
   IDependency, AbstractFile, SpaghettiScopeNode, applyEditSingle, applyEditList,
   Tokens, ABAPObject, SyntaxLogic, SpaghettiScope, IdentifierMeta,
-  ABAPFile, CurrentScope, IRegistry, Position, PrettyPrinter};
+  ABAPFile, CurrentScope, IRegistry, Position, PrettyPrinter, Renamer as Rename,
+  IRenameSettings};
