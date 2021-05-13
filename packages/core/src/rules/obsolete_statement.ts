@@ -37,6 +37,18 @@ export class ObsoleteStatementConf extends BasicRuleConfig {
   public typePools: boolean = true;
   /** Checks for addition LOAD */
   public load: boolean = true;
+  /** Checks for PARAMETER */
+  public parameter: boolean = true;
+  /** Checks for RANGES */
+  public ranges: boolean = true;
+  /** Checks for COMMUNICATION */
+  public communication: boolean = true;
+  /** Checks for PACK */
+  public pack: boolean = true;
+  /** Checks for SELECT without INTO */
+  public selectWithoutInto: boolean = true;
+  /** FREE MEMORY, without ID */
+  public freeMemory: boolean = true;
 }
 
 export class ObsoleteStatement extends ABAPRule {
@@ -48,9 +60,11 @@ export class ObsoleteStatement extends ABAPRule {
       key: "obsolete_statement",
       title: "Obsolete statements",
       shortDescription: `Checks for usages of certain obsolete statements`,
-      tags: [RuleTag.SingleFile],
+      tags: [RuleTag.SingleFile, RuleTag.Styleguide],
       extendedInformation: `
-https://github.com/SAP/styleguides/blob/master/clean-abap/CleanABAP.md#prefer-functional-to-procedural-language-constructs
+https://github.com/SAP/styleguides/blob/main/clean-abap/CleanABAP.md#prefer-functional-to-procedural-language-constructs
+
+https://github.com/SAP/styleguides/blob/main/clean-abap/CleanABAP.md#avoid-obsolete-language-elements
 
 SET EXTENDED CHECK: https://help.sap.com/doc/abapdocu_751_index_htm/7.51/en-us/abapset_extended_check.htm
 
@@ -62,7 +76,22 @@ FIELD-SYMBOLS STRUCTURE: https://help.sap.com/doc/abapdocu_751_index_htm/7.51/en
 
 TYPE-POOLS: from 702, https://help.sap.com/doc/abapdocu_752_index_htm/7.52/en-US/abennews-71-program_load.htm
 
-LOAD addition: from 702, https://help.sap.com/doc/abapdocu_752_index_htm/7.52/en-US/abennews-71-program_load.htm`,
+LOAD addition: from 702, https://help.sap.com/doc/abapdocu_752_index_htm/7.52/en-US/abennews-71-program_load.htm
+
+COMMUICATION: https://help.sap.com/doc/abapdocu_751_index_htm/7.51/en-us/abapcommunication.htm
+
+OCCURS: https://help.sap.com/doc/abapdocu_751_index_htm/7.51/en-us/abapdata_occurs.htm
+
+PARAMETER: https://help.sap.com/doc/abapdocu_751_index_htm/7.51/en-US/abapparameter.htm
+
+RANGES: https://help.sap.com/doc/abapdocu_752_index_htm/7.52/en-US/abapranges.htm
+
+PACK: https://help.sap.com/doc/abapdocu_751_index_htm/7.51/en-us/abappack.htm
+
+SELECT without INTO: https://help.sap.com/doc/abapdocu_731_index_htm/7.31/en-US/abapselect_obsolete.htm
+SELECT COUNT(*) is considered okay
+
+FREE MEMORY: https://help.sap.com/doc/abapdocu_752_index_htm/7.52/en-us/abapfree_mem_id_obsolete.htm`,
     };
   }
 
@@ -108,6 +137,37 @@ LOAD addition: from 702, https://help.sap.com/doc/abapdocu_752_index_htm/7.52/en
         issues.push(issue);
       }
 
+      if (this.conf.communication && sta instanceof Statements.Communication) {
+        const issue = Issue.atStatement(file, staNode, "COMMUNICATION is obsolete", this.getMetadata().key, this.conf.severity);
+        issues.push(issue);
+      }
+
+      if (this.conf.pack && sta instanceof Statements.Pack) {
+        const issue = Issue.atStatement(file, staNode, "PACK is obsolete", this.getMetadata().key, this.conf.severity);
+        issues.push(issue);
+      }
+
+      if (this.conf.parameter && sta instanceof Statements.Parameter && staNode.getFirstToken().getStr().toUpperCase() === "PARAMETER") {
+        const issue = Issue.atStatement(file, staNode, "Use PARAMETERS instead of PARAMETER", this.getMetadata().key, this.conf.severity);
+        issues.push(issue);
+      }
+
+      if (this.conf.ranges && sta instanceof Statements.Ranges) {
+        const issue = Issue.atStatement(file, staNode, "Use TYPE RANGE OF instead of RANGES", this.getMetadata().key, this.conf.severity);
+        issues.push(issue);
+      }
+
+      if (this.conf.selectWithoutInto
+          && (sta instanceof Statements.Select || sta instanceof Statements.SelectLoop)
+          && staNode.findFirstExpression(Expressions.SQLIntoStructure) === undefined
+          && staNode.findFirstExpression(Expressions.SQLIntoTable) === undefined) {
+        const concat = staNode.findFirstExpression(Expressions.SQLFieldList)?.concatTokens().toUpperCase();
+        if (concat !== "COUNT(*)" && concat !== "COUNT( * )") {
+          const issue = Issue.atStatement(file, staNode, "SELECT without INTO", this.getMetadata().key, this.conf.severity);
+          issues.push(issue);
+        }
+      }
+
       if (this.conf.requested && sta instanceof Statements.If) {
         for (const compare of staNode.findAllExpressions(Expressions.Compare)) {
           const token = compare.findDirectTokenByText("REQUESTED");
@@ -120,7 +180,9 @@ LOAD addition: from 702, https://help.sap.com/doc/abapdocu_752_index_htm/7.52/en
 
       if (this.conf.occurs) {
         if ((sta instanceof Statements.Describe)
-          || (sta instanceof Statements.Ranges)) {
+          || (sta instanceof Statements.Ranges)
+          || (sta instanceof Statements.DataBegin)
+          || (sta instanceof Statements.TypeBegin)) {
           const token = staNode.findDirectTokenByText("OCCURS");
           if (token) {
             const issue = Issue.atToken(file, token, "OCCURS is obsolete", this.getMetadata().key, this.conf.severity);
@@ -158,6 +220,14 @@ LOAD addition: from 702, https://help.sap.com/doc/abapdocu_752_index_htm/7.52/en
       if (this.conf.typePools && sta instanceof Statements.TypePools && configVersion >= Version.v702){
         const issue = Issue.atStatement(file, staNode, "Statement \"TYPE-POOLS\" is obsolete", this.getMetadata().key, this.conf.severity);
         issues.push(issue);
+      }
+
+      if (this.conf.freeMemory && sta instanceof Statements.FreeMemory) {
+        const concat = staNode.concatTokens().toUpperCase();
+        if (concat === "FREE MEMORY.") {
+          const issue = Issue.atStatement(file, staNode, "Statement \"FREE MEMORY\" without ID is obsolete", this.getMetadata().key, this.conf.severity);
+          issues.push(issue);
+        }
       }
     }
     return issues;

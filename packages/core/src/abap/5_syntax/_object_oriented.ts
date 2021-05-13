@@ -9,6 +9,7 @@ import {ClassAttribute} from "../types/class_attribute";
 import {ClassConstant} from "../types/class_constant";
 import {IEventDefinition} from "../types/_event_definition";
 import {TypedIdentifier} from "../types/_typed_identifier";
+import {Visibility} from "../4_file_information/visibility";
 
 // todo, think some of the public methods can be made private
 
@@ -21,15 +22,27 @@ export class ObjectOriented {
 
   public fromInterfaces(classDefinition: IClassDefinition): void {
     for (const i of classDefinition.getImplementing()) {
-      const idef = this.scope.findInterfaceDefinition(i.name);
-      if (idef === undefined) {
-        continue;
-      }
+      this.fromInterfaceByName(i.name);
+    }
+  }
 
-      for (const t of idef.getTypeDefinitions().getAll()) {
-        const name = i.name + "~" + t.getName();
-        this.scope.addTypeNamed(name, t);
-      }
+  private fromInterfaceByName(name: string) {
+    const idef = this.scope.findInterfaceDefinition(name);
+    if (idef === undefined) {
+      return;
+    }
+
+    for (const t of idef.getTypeDefinitions().getAll()) {
+      const n = name + "~" + t.getName();
+      this.scope.addTypeNamed(n, t);
+    }
+
+    this.scope.addListPrefix(idef.getAttributes().getConstants(), name + "~");
+    this.scope.addListPrefix(idef.getAttributes().getStatic(), name + "~");
+    this.scope.addListPrefix(idef.getAttributes().getInstance(), name + "~");
+
+    for (const i of idef.getImplementing()) {
+      this.fromInterfaceByName(i.name);
     }
   }
 
@@ -46,13 +59,15 @@ export class ObjectOriented {
     }
   }
 
-  public findMethodInInterface(interfaceName: string, methodName: string): IMethodDefinition | undefined {
+  private findMethodInInterface(interfaceName: string, methodName: string):
+  {method: IMethodDefinition, def: IInterfaceDefinition} | undefined {
+
     const idef = this.scope.findInterfaceDefinition(interfaceName);
     if (idef) {
       const methods = idef.getMethodDefinitions().getAll();
       for (const method of methods) {
         if (method.getName().toUpperCase() === methodName.toUpperCase()) {
-          return method;
+          return {method, def: idef};
         }
       }
       return this.findMethodViaAlias(methodName, idef);
@@ -60,7 +75,9 @@ export class ObjectOriented {
     return undefined;
   }
 
-  public findMethodViaAlias(methodName: string, def: IClassDefinition | IInterfaceDefinition): IMethodDefinition | undefined {
+  private findMethodViaAlias(methodName: string, def: IClassDefinition | IInterfaceDefinition):
+  {method: IMethodDefinition, def: IInterfaceDefinition} | undefined {
+
     for (const a of def.getAliases().getAll()) {
       if (a.getName().toUpperCase() === methodName.toUpperCase()) {
         const comp = a.getComponent();
@@ -86,12 +103,12 @@ export class ObjectOriented {
   }
 
   public findInterfaces(cd: IClassDefinition): readonly {name: string, partial: boolean}[] {
-    let ret = cd.getImplementing();
+    const ret = [...cd.getImplementing()];
 
     const sup = cd.getSuperClass();
     if (sup) {
       try {
-        ret = ret.concat(this.findInterfaces(this.findSuperDefinition(sup)));
+        ret.push(...this.findInterfaces(this.findSuperDefinition(sup)));
       } catch {
 // ignore errors, they will show up as variable not found anyhow
       }
@@ -113,7 +130,7 @@ export class ObjectOriented {
       return found;
     }
 
-    for (const a of def.getAliases().getAll()) {
+    for (const a of def.getAliases()?.getAll() || []) {
       if (a.getName().toUpperCase() === name.toUpperCase()) {
         const comp = a.getComponent();
         const res = this.searchEvent(this.scope.findObjectDefinition(comp.split("~")[0]), comp.split("~")[1]);
@@ -140,15 +157,26 @@ export class ObjectOriented {
       return undefined;
     }
 
+    const upper = name.toUpperCase();
     for (const a of def.getAttributes().getAll()) {
-      if (a.getName().toUpperCase() === name.toUpperCase()) {
+      if (a.getName().toUpperCase() === upper) {
         return a;
       }
     }
 
+    for (const a of def.getAliases()?.getAll() || []) {
+      if (a.getName().toUpperCase() === upper) {
+        const comp = a.getComponent();
+        const res = this.searchAttributeName(this.scope.findObjectDefinition(comp.split("~")[0]), comp.split("~")[1]);
+        if (res) {
+          return res;
+        }
+      }
+    }
+
     if (name.includes("~")) {
-      const interfaceName = name.split("~")[0];
-      if (def.getImplementing().some((a) => a.name.toUpperCase() === interfaceName.toUpperCase())) {
+      const interfaceName = upper.split("~")[0];
+      if (def.getImplementing().some((a) => a.name.toUpperCase() === interfaceName)) {
         return this.searchAttributeName(this.scope.findInterfaceDefinition(interfaceName), name.split("~")[1]);
       }
     }
@@ -226,13 +254,16 @@ export class ObjectOriented {
   // search in via super class, interfaces and aliases
   public searchMethodName(
     def: IClassDefinition | IInterfaceDefinition | undefined,
-    name: string | undefined): IMethodDefinition | undefined {
+    name: string | undefined): {method: IMethodDefinition | undefined, def: IClassDefinition | IInterfaceDefinition | undefined} {
 
     if (def === undefined || name === undefined) {
-      return undefined;
+      return {method: undefined, def: undefined};
     }
 
-    let methodDefinition = this.findMethod(def, name);
+    const methodDefinition = this.findMethod(def, name);
+    if (methodDefinition) {
+      return {method: methodDefinition, def};
+    }
 
     let interfaceName: string | undefined = undefined;
     if (name.includes("~")) {
@@ -242,21 +273,27 @@ export class ObjectOriented {
 // todo, this is not completely correct? hmm, why? visibility?
     if (methodDefinition === undefined && interfaceName) {
       name = name.split("~")[1];
-      methodDefinition = this.findMethodInInterface(interfaceName, name);
+      const found = this.findMethodInInterface(interfaceName, name);
+      if (found) {
+        return found;
+      }
     } else if (methodDefinition === undefined) {
-      methodDefinition = this.findMethodViaAlias(name, def);
+      const found = this.findMethodViaAlias(name, def);
+      if (found) {
+        return found;
+      }
     }
 
     const sup = def.getSuperClass();
     if (methodDefinition === undefined && sup) {
-      methodDefinition = this.searchMethodName(this.findSuperDefinition(sup), name);
+      return this.searchMethodName(this.findSuperDefinition(sup), name);
     }
 
-    return methodDefinition;
+    return {method: undefined, def: undefined};
   }
 
   public findMethod(def: IClassDefinition | IInterfaceDefinition, methodName: string): IMethodDefinition | undefined {
-    for (const method of def.getMethodDefinitions()!.getAll()) {
+    for (const method of def.getMethodDefinitions().getAll()) {
       if (method.getName().toUpperCase() === methodName.toUpperCase()) {
         if (method.isRedefinition()) {
           return this.findMethodInSuper(def, methodName);
@@ -293,9 +330,19 @@ export class ObjectOriented {
     let sup = child.getSuperClass();
     while (sup !== undefined) {
       const cdef = this.findSuperDefinition(sup);
-      this.scope.addList(cdef.getAttributes().getAll()); // todo, handle scope and instance vs static
-      this.scope.addList(cdef.getAttributes().getConstants());
+      for (const a of cdef.getAttributes().getAll()) {
+        if (a.getVisibility() !== Visibility.Private) {
+          this.scope.addIdentifier(a);
+// todo, handle scope and instance vs static
+        }
+      }
+      for (const c of cdef.getAttributes().getConstants()) {
+        if (c.getVisibility() !== Visibility.Private) {
+          this.scope.addIdentifier(c);
+        }
+      }
       for (const t of cdef.getTypeDefinitions().getAll()) {
+        // todo, dont add private types from superclass to scope
         this.scope.addType(t);
       }
       this.fromInterfaces(cdef);

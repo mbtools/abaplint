@@ -97,7 +97,6 @@ export class MethodParameters {
         throw new Error("Could not determine target type");
       } else if (item.targetType) {
 // todo, check that targetType and parameterType are compatible
-        new Target().runSyntax(item.target, scope, filename);
       }
     }
   }
@@ -117,7 +116,6 @@ export class MethodParameters {
 
       if (item.targetType) {
 // todo, check that targetType and parameterType are compatible
-        new Target().runSyntax(item.target, scope, filename);
         if (0) {
           console.log(parameterType); // todo
         }
@@ -126,7 +124,7 @@ export class MethodParameters {
   }
 
   public checkExporting(node: INode | undefined, scope: CurrentScope, method: IMethodDefinition | VoidType, filename: string) {
-    for (const item of this.parameterListS(node, scope, filename)) {
+    for (const item of this.parameterListS(node, scope, filename, method)) {
       let parameterType: AbstractType | undefined = undefined;
       if (method instanceof VoidType) {
         parameterType = method;
@@ -148,7 +146,8 @@ export class MethodParameters {
   private parameterListS(
     node: INode | undefined,
     scope: CurrentScope,
-    filename: string): IListItemS[] {
+    filename: string,
+    method: IMethodDefinition | VoidType): IListItemS[] {
 
     if (node === undefined) {
       return [];
@@ -173,10 +172,22 @@ export class MethodParameters {
         throw new Error("parameterListS, no source found");
       }
 
-      const sourceType = new Source().runSyntax(source, scope, filename);
+      let targetType: AbstractType | undefined = undefined;
+      if (!(method instanceof VoidType)) {
+        for (const i of method.getParameters().getImporting()) {
+          if (i.getName().toUpperCase() === name) {
+            targetType = i.getType();
+          }
+        }
+      }
+      let sourceType = new Source().runSyntax(source, scope, filename, targetType);
 
       if (sourceType === undefined) {
-        throw new Error("No source type determined for parameter " + name + " input");
+        if (method instanceof VoidType) {
+          sourceType = method;
+        } else {
+          throw new Error("No source type determined for parameter " + name + " input");
+        }
       }
 
       ret.push({name, source, sourceType});

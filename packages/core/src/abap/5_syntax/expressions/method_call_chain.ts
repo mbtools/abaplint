@@ -10,9 +10,10 @@ import {NewObject} from "./new_object";
 import {Cast} from "./cast";
 import {BuiltIn} from "../_builtin";
 import {MethodCallParam} from "./method_call_param";
-import {ReferenceType} from "../_reference";
+import {IReferenceExtras, ReferenceType} from "../_reference";
 import {ComponentName} from "./component_name";
 import {AttributeName} from "./attribute_name";
+import {ClassDefinition} from "../../types/class_definition";
 
 export class MethodCallChain {
   public runSyntax(
@@ -42,17 +43,22 @@ export class MethodCallChain {
 
       if (current instanceof ExpressionNode && current.get() instanceof Expressions.MethodCall) {
         // for built-in methods set className to undefined
-        const className = context instanceof ObjectReferenceType ? context.getName() : undefined;
+        const className = context instanceof ObjectReferenceType ? context.getIdentifierName() : undefined;
         const methodToken = current.findDirectExpression(Expressions.MethodName)?.getFirstToken();
         const methodName = methodToken?.getStr();
-        let method = helper.searchMethodName(scope.findObjectDefinition(className), methodName);
+        const def = scope.findObjectDefinition(className);
+        // eslint-disable-next-line prefer-const
+        let {method, def: foundDef} = helper.searchMethodName(def, methodName);
         if (method === undefined) {
           method = new BuiltIn().searchBuiltin(methodName?.toUpperCase());
           if (method) {
             scope.addReference(methodToken, method, ReferenceType.BuiltinMethodReference, filename);
           }
         } else {
-          scope.addReference(methodToken, method, ReferenceType.MethodReference, filename, {className: className});
+          const extra: IReferenceExtras = {
+            ooName: foundDef?.getName(),
+            ooType: foundDef instanceof ClassDefinition ? "CLAS" : "INTF"};
+          scope.addReference(methodToken, method, ReferenceType.MethodReference, filename, extra);
         }
         if (methodName?.includes("~")) {
           const name = methodName.split("~")[0];
@@ -95,7 +101,8 @@ export class MethodCallChain {
       const className = token.getStr();
       const classDefinition = scope.findObjectDefinition(className);
       if (classDefinition === undefined && scope.getDDIC().inErrorNamespace(className) === false) {
-        scope.addReference(token, undefined, ReferenceType.ObjectOrientedVoidReference, filename, {className: className});
+        const extra: IReferenceExtras = {ooName: className, ooType: "Void"};
+        scope.addReference(token, undefined, ReferenceType.ObjectOrientedVoidReference, filename, extra);
         return new VoidType(className);
       } else if (classDefinition === undefined) {
         throw new Error("Class " + className + " not found");
@@ -107,7 +114,7 @@ export class MethodCallChain {
     } else if (first instanceof ExpressionNode && first.get() instanceof Expressions.NewObject) {
       return new NewObject().runSyntax(first, scope, targetType, filename);
     } else if (first instanceof ExpressionNode && first.get() instanceof Expressions.Cast) {
-      return new Cast().runSyntax(first, scope, targetType);
+      return new Cast().runSyntax(first, scope, targetType, filename);
     } else {
       const meType = scope.findVariable("me")?.getType();
       if (meType) {

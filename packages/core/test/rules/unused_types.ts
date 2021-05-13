@@ -3,6 +3,13 @@ import {UnusedTypes} from "../../src/rules";
 import {Registry} from "../../src/registry";
 import {MemoryFile} from "../../src/files/memory_file";
 import {Issue} from "../../src/issue";
+import {IFile} from "../../src/files/_ifile";
+
+async function runMulti(files: IFile[]): Promise<Issue[]> {
+  const reg = new Registry().addFiles(files);
+  await reg.parseAsync();
+  return new UnusedTypes().initialize(reg).run(reg.getFirstObject()!);
+}
 
 async function runSingle(abap: string): Promise<Issue[]> {
   const reg = new Registry().addFile(new MemoryFile("zfoo.prog.abap", abap));
@@ -34,6 +41,12 @@ describe("Rule: unused_types, single file", () => {
     const abap = "TYPES bar TYPE c LENGTH 1.";
     const issues = await runSingle(abap);
     expect(issues.length).to.equal(1);
+  });
+
+  it("pragma'ed", async () => {
+    const abap = "TYPES bar TYPE c LENGTH 1 ##NEEDED.";
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
   });
 
   it("two unused", async () => {
@@ -147,6 +160,98 @@ CLASS lcl_bar IMPLEMENTATION.
     DATA foo TYPE ty_bar.
   ENDMETHOD.
 ENDCLASS.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("referenced via class prefix", async () => {
+    const abap = `
+CLASS lcl_class DEFINITION.
+  PUBLIC SECTION.
+    TYPES ty_bar TYPE string.
+    METHODS m RETURNING VALUE(asdf) TYPE lcl_class=>ty_bar.
+ENDCLASS.
+CLASS lcl_class IMPLEMENTATION.
+  METHOD m.
+  ENDMETHOD.
+ENDCLASS.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("two classes", async () => {
+    const abap1 = `
+CLASS zcl_wast_parser DEFINITION PUBLIC FINAL CREATE PUBLIC.
+  PRIVATE SECTION.
+    METHODS instructions
+      RETURNING
+        VALUE(rt_instructions) TYPE zcl_wasm_instructions=>ty_instructions .
+ENDCLASS.
+CLASS zcl_wast_parser IMPLEMENTATION.
+  METHOD instructions.
+  ENDMETHOD.
+ENDCLASS.`;
+    const abap2 = `
+CLASS zcl_wasm_instructions DEFINITION PUBLIC CREATE PUBLIC.
+  PUBLIC SECTION.
+    TYPES ty_instruction TYPE x LENGTH 1.
+    TYPES ty_instructions TYPE STANDARD TABLE OF ty_instruction WITH EMPTY KEY.
+ENDCLASS.
+
+CLASS ZCL_WASM_INSTRUCTIONS IMPLEMENTATION.
+ENDCLASS.`;
+    const files = [
+      new MemoryFile("zcl_wasm_instructions.clas.abap", abap2),
+      new MemoryFile("zcl_wast_parser.clas.abap", abap1),
+    ];
+    // note that only the issues for the first file is returned
+    const issues = await runMulti(files);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("BEGIN END, should not have quick fix", async () => {
+    const abap = `
+    TYPES: BEGIN OF ty_includes,
+             programm TYPE programm,
+           END OF ty_includes.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(1);
+    expect(issues[0].getFix()).to.equal(undefined);
+  });
+
+  it("INCLUDE TYPE 1", async () => {
+    const abap = `
+    TYPES ty_test TYPE i.
+    TYPES: BEGIN OF ty_msg.
+    TYPES: test TYPE ty_test.
+        INCLUDE TYPE symsg.
+    TYPES END OF ty_msg.
+    DATA foo TYPE ty_msg.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("INCLUDE TYPE 2, after", async () => {
+    const abap = `
+    TYPES ty_test TYPE i.
+    TYPES: BEGIN OF ty_msg.
+    INCLUDE TYPE symsg.
+    TYPES: test TYPE ty_test.
+    TYPES END OF ty_msg.
+    DATA foo TYPE ty_msg.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("ENUM BASE TYPE", async () => {
+    const abap = `
+  TYPES:
+  category_base TYPE n LENGTH 2,
+  BEGIN OF ENUM category BASE TYPE category_base,
+    sdfsd VALUE IS INITIAL,
+    fdsfd VALUE '01',
+  END OF ENUM category.
+DATA foo TYPE category.`;
     const issues = await runSingle(abap);
     expect(issues.length).to.equal(0);
   });

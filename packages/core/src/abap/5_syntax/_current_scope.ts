@@ -15,10 +15,12 @@ import {Interface} from "../../objects/interface";
 import {IScopeIdentifier} from "./_spaghetti_scope";
 import {ReferenceType, IReferenceExtras} from "./_reference";
 import {IObject} from "../../objects/_iobject";
+import {EnhancementSpot} from "../../objects";
 
 export class CurrentScope {
   protected readonly reg: IRegistry;
   protected current: SpaghettiScopeNode | undefined;
+  protected allowHeaderUse: string | undefined;
 
   public static buildDefault(reg: IRegistry, obj?: IObject): CurrentScope {
     const s = new CurrentScope(reg);
@@ -56,14 +58,21 @@ export class CurrentScope {
     if (type === undefined) {
       return;
     }
-    this.current?.getData().types.push({name: type.getName(), identifier: type});
+    this.addTypeNamed(type.getName(), type);
   }
 
   public addTypeNamed(name: string, type: TypedIdentifier | undefined) {
     if (type === undefined) {
       return;
     }
-    this.current?.getData().types.push({name, identifier: type});
+    if (this.current === undefined) {
+      return;
+    }
+    const upper = name.toUpperCase();
+    if (this.current.getData().types[upper] !== undefined) {
+      throw new Error(`Type name "${name}" already defined`);
+    }
+    this.current.getData().types[upper] = type;
   }
 
   public addClassDefinition(c: IClassDefinition) {
@@ -74,7 +83,7 @@ export class CurrentScope {
     if (this.current === undefined) {
       return;
     }
-    this.current.getData().forms = this.current.getData().forms.concat(f);
+    this.current.getData().forms.push(...f);
   }
 
   public addInterfaceDefinition(i: IInterfaceDefinition) {
@@ -82,14 +91,21 @@ export class CurrentScope {
   }
 
   public addNamedIdentifier(name: string, identifier: TypedIdentifier) {
-    this.current?.getData().vars.push({name, identifier});
+    if (this.current === undefined) {
+      return;
+    }
+    const upper = name.toUpperCase();
+    if (this.current.getData().vars[upper] !== undefined) {
+      throw new Error(`Variable name "${name}" already defined`);
+    }
+    this.current.getData().vars[upper] = identifier;
   }
 
   public addIdentifier(identifier: TypedIdentifier | undefined) {
     if (identifier === undefined) {
       return;
     }
-    this.current?.getData().vars.push({name: identifier.getName(), identifier});
+    this.addNamedIdentifier(identifier.getName(), identifier);
   }
 
   public addDeferred(token: Token | undefined) {
@@ -115,7 +131,8 @@ export class CurrentScope {
     usage: Token | undefined,
     referencing: Identifier | undefined,
     type: ReferenceType | undefined,
-    filename: string, extra?: IReferenceExtras) {
+    filename: string,
+    extra?: IReferenceExtras) {
 
     if (usage === undefined || type === undefined) {
       return;
@@ -142,8 +159,21 @@ export class CurrentScope {
     return undefined;
   }
 
+  public isBadiDef(name: string): boolean {
+    const upper = name.toUpperCase();
+    for (const enhs of this.reg.getObjectsByType("ENHS")) {
+      for (const def of (enhs as EnhancementSpot).listBadiDefinitions()) {
+        if (def.name.toUpperCase() === upper) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   // todo, found + type can be removed from method output?
-  public existsObject(name: string | undefined): {found: boolean, id?: Identifier, type?: ReferenceType} {
+  public existsObject(name: string | undefined): {found: boolean, id?: Identifier, type?: ReferenceType,
+    ooType?: IReferenceExtras["ooType"]} {
     if (name === undefined) {
       return {found: false};
     }
@@ -155,22 +185,22 @@ export class CurrentScope {
 
     const findLocalClass = this.current?.findClassDefinition(name);
     if (findLocalClass) {
-      return {found: true, id: findLocalClass, type: ReferenceType.ObjectOrientedReference};
+      return {found: true, id: findLocalClass, type: ReferenceType.ObjectOrientedReference, ooType: "CLAS"};
     }
 
     const globalClas = this.reg.getObject("CLAS", name);
     if (globalClas) {
-      return {found: true, id: globalClas.getIdentifier(), type: ReferenceType.ObjectOrientedReference};
+      return {found: true, id: globalClas.getIdentifier(), type: ReferenceType.ObjectOrientedReference, ooType: "CLAS"};
     }
 
     const findLocalInterface = this.current?.findInterfaceDefinition(name);
     if (findLocalInterface) {
-      return {found: true, id: findLocalInterface, type: ReferenceType.ObjectOrientedReference};
+      return {found: true, id: findLocalInterface, type: ReferenceType.ObjectOrientedReference, ooType: "INTF"};
     }
 
     const globalIntf = this.reg.getObject("INTF", name);
     if (globalIntf) {
-      return {found: true, id: globalIntf.getIdentifier(), type: ReferenceType.ObjectOrientedReference};
+      return {found: true, id: globalIntf.getIdentifier(), type: ReferenceType.ObjectOrientedReference, ooType: "INTF"};
     }
 
     return {found: false};
@@ -213,20 +243,7 @@ export class CurrentScope {
   public findFormDefinition(name: string): IFormDefinition | undefined {
     return this.current?.findFormDefinition(name);
   }
-/*
-  public listFormDefinitions(): IFormDefinition[] {
-    const ret = this.current?.listFormDefinitions();
-    if (ret === undefined) {
-      return [];
-    }
-    return ret;
-  }
 
-  public listTypes() {
-    const ret = this.current?.getData().types;
-    return ret;
-  }
-*/
   public findType(name: string | undefined): TypedIdentifier | undefined {
     if (name === undefined) {
       return undefined;
@@ -262,9 +279,10 @@ export class CurrentScope {
   }
 
   public push(stype: ScopeType, sname: string, start: Position, filename: string): void {
-    const identifier: IScopeIdentifier = {stype, sname, start, filename};
+    const identifier: IScopeIdentifier = {stype, sname, start, filename, end: undefined};
 
     if (this.current === undefined) {
+      // the top node
       this.current = new SpaghettiScopeNode(identifier, undefined);
     } else {
       const parent = this.current;
@@ -273,10 +291,35 @@ export class CurrentScope {
     }
   }
 
-  public pop(): SpaghettiScope {
+  public isOO(): boolean {
+    let curr = this.current;
+    while (curr !== undefined) {
+      const stype = curr.getIdentifier().stype;
+      if (stype === ScopeType.ClassDefinition
+          || stype === ScopeType.ClassImplementation
+          || stype === ScopeType.Interface) {
+        return true;
+      }
+      curr = curr.getParent();
+    }
+    return false;
+  }
+
+  public setAllowHeaderUse(name: string) {
+// workaround for SELECT FOR ALL ENTRIES
+    this.allowHeaderUse = name;
+  }
+
+  public isAllowHeaderUse(name: string) {
+    return name.toUpperCase() === this.allowHeaderUse?.toUpperCase();
+  }
+
+  public pop(end: Position): SpaghettiScope {
+    this.allowHeaderUse = undefined;
     if (this.current === undefined) {
       throw new Error("something wrong, top scope popped");
     }
+    this.current.setEnd(end);
 
     const current = this.current;
     this.current = this.current.getParent();

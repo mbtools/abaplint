@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as abaplint from "../../../packages/core/build/src";
-import {renderIcons, preamble, postamble, experimentalIcon, upportIcon, whitespaceIcon, namingIcon, syntaxIcon, styleguideIcon, downportIcon, quickfixIcon} from "./common";
+import {renderIcons, preamble, postamble, experimentalIcon, upportIcon, whitespaceIcon, namingIcon, syntaxIcon, styleguideIcon, downportIcon, quickfixIcon, securityIcon} from "./common";
 import {buildRule} from "./rule_page";
 import {RuleTag} from "../../../packages/core/build/src/rules/_irule";
 
@@ -23,6 +23,9 @@ function buildChips(json: any) {
         break;
       case RuleTag.Whitespace:
         icon = whitespaceIcon;
+        break;
+      case RuleTag.Security:
+        icon = securityIcon;
         break;
       case RuleTag.Naming:
         icon = namingIcon;
@@ -62,8 +65,8 @@ function buildChips(json: any) {
 
 function buildIndex(json: any) {
 
-  let html = `<h1>abaplint rules documentation</h1>
-abaplint can be configured by placing a <tt>abaplint.json</tt> file in the root of the git repository.
+  let html = `<h1>abaplint rules documentation, ${abaplint.Registry.abaplintVersion()}</h1>
+<a href="https://abaplint.org">abaplint</a> can be configured by placing a <tt>abaplint.json</tt> file in the root of the git repository.
 If no configuration file is found, the default configuration will be used, which contains have all rules enabled.
 <br><br>
 Get default configuration by running <tt>abaplint -d > abaplint.json</tt>
@@ -71,6 +74,13 @@ Get default configuration by running <tt>abaplint -d > abaplint.json</tt>
 <a href="https://github.com/FreHu/abaplint-clean-code">abaplint-clean-code</a> contains rule
 documentation as well as abaplint.json definitions which attempt to align abaplint with the official
 <a href="https://github.com/SAP/styleguides/blob/master/clean-abap/CleanABAP.md">Clean ABAP styleguide</a>.
+
+<br><br>
+<div id="searchBox">
+<form role="search">
+  <input type="search" placeholder="Search..." id="input" />
+</form>
+</div>
 
 <h2>${json.length} Rules</h2>
 ${buildChips(json)}
@@ -87,7 +97,18 @@ ${buildChips(json)}
   }
   html += `</div>\n<script src="/index.js"></script>`;
 
-  fs.writeFileSync("build/index.html", preamble() + html + postamble);
+  const search = `<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/docsearch.js@2/dist/cdn/docsearch.min.js"></script>
+<script type="text/javascript"> docsearch({
+apiKey: 'ceddaf16317926533c691e2ccb17bbe1',
+indexName: 'abaplint',
+inputSelector: '#input',
+debug: false
+});
+</script>`;
+
+  fs.writeFileSync("build/index.html", preamble() + html + search + postamble);
+
+  fs.writeFileSync("build/count.txt", "" + json.length);
 }
 
 const rawSchema = fs.readFileSync("../../packages/core/scripts/schema.json");

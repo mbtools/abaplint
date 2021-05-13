@@ -3,18 +3,18 @@ name: Regression
 on:
   push:
     branches-ignore:
-    - master
+      - 'main'
 
 jobs:
   regression:
     # Check if the event is not triggered by a fork, this is stupid but its github
-    if: github.ref != 'refs/heads/master'
+    if: github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
       with:
         fetch-depth: 0
-    - uses: actions/setup-node@v1
+    - uses: actions/setup-node@v2
       with:
         node-version: '12.x'
 
@@ -23,14 +23,14 @@ jobs:
         cp .github/regression/run.js ../../run.js
         npm install && npm run link-local && npm test && cp packages/cli/build/bundle.js ../../abaplint_after
         rm -rf packages/cli/build/ && rm -rf packages/core/build/
-        git checkout -f master
+        git checkout -f main
         git reset --hard
         git status
         npm install && npm run link-local && npm test && cp packages/cli/build/bundle.js ../../abaplint_before
 
     - name: run
       env:
-        REPOS: '["larshp/abapGit", "larshp/abapOpenChecks", "abaplint/deps", "larshp/abapGitServer", "larshp/abapPGP", "Sumu-Ning/AES", "abaplint/abaplint-sci-client", "Microsoft/ABAP-SDK-for-Azure", "jrodriguez-rc/abap-tasks-tracker", "sapmentors/abap2xlsx", "sbcgua/abap-string-map", "sbcgua/ajson"]'
+        REPOS: '["abapGit/abapGit", "abapGit/abapgit-review-example", "larshp/abapOpenChecks", "SAP/abap-file-formats", "abapGit/CI", "abapGit/ci_tools", "abap-observability-tools/abap-metrics-provider", "abapGit/background_modes", "abapGit/ADT_Backend", "sbcgua/text2tab", "open-abap/open-abap", "FreHu/abap-turtle-graphics", "sbcgua/mockup_loader", "SAP/code-pal-for-abap", "abaplint/deps", "larshp/abapGitServer", "larshp/abapPGP", "Sumu-Ning/AES", "abaplint/abaplint-sci-client", "jrodriguez-rc/abap-tasks-tracker", "sapmentors/abap2xlsx", "sbcgua/abap-string-map", "sbcgua/ajson", "larshp/abap-wasm"]'
       run: |
         cd .. && cd ..
         ls -salh

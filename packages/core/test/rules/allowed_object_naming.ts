@@ -23,6 +23,11 @@ describe("Rule: allowed_object_naming", () => {
     expect(issues.length).to.equal(0);
   });
 
+  it("VIEW, okay", async () => {
+    const issues = await findIssues("name.view.xml");
+    expect(issues.length).to.equal(0);
+  });
+
   it("DTEL, bad characters", async () => {
     const issues = await findIssues("@foo£!.dtel.xml");
     expect(issues.length).to.equal(1);
@@ -65,6 +70,11 @@ describe("Rule: allowed_object_naming", () => {
 
   it("MSAG, okay", async () => {
     const issues = await findIssues("%3e6.msag.xml");
+    expect(issues.length).to.equal(0);
+  });
+
+  it("NSPC, okay", async () => {
+    const issues = await findIssues("#foobar#.nspc.xml");
     expect(issues.length).to.equal(0);
   });
 

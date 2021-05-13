@@ -24,14 +24,18 @@ export class UseBoolExpression extends ABAPRule {
       title: "Use boolean expression",
       shortDescription: `Use boolean expression, xsdbool from 740sp08 and up, boolc from 702 and up`,
       extendedInformation:
-        `https://github.com/SAP/styleguides/blob/master/clean-abap/CleanABAP.md#use-xsdbool-to-set-boolean-variables`,
+        `https://github.com/SAP/styleguides/blob/main/clean-abap/CleanABAP.md#use-xsdbool-to-set-boolean-variables`,
       tags: [RuleTag.Upport, RuleTag.Styleguide, RuleTag.Quickfix, RuleTag.SingleFile],
       badExample: `IF line IS INITIAL.
   has_entries = abap_false.
 ELSE.
   has_entries = abap_true.
-ENDIF.`,
-      goodExample: `DATA(has_entries) = xsdbool( line IS NOT INITIAL ).`,
+ENDIF.
+
+DATA(fsdf) = COND #( WHEN foo <> bar THEN abap_true ELSE abap_false ).`,
+      goodExample: `DATA(has_entries) = xsdbool( line IS NOT INITIAL ).
+
+DATA(fsdf) = xsdbool( foo <> bar ).`,
     };
   }
 
@@ -47,7 +51,8 @@ ENDIF.`,
     const issues: Issue[] = [];
     const stru = file.getStructure();
 
-    if (stru === undefined || this.reg.getConfig().getVersion() < Version.v702) {
+    const version = this.reg.getConfig().getVersion();
+    if (stru === undefined || (version < Version.v702 && version !== Version.Cloud)) {
       return [];
     }
 
@@ -84,7 +89,8 @@ ENDIF.`,
       const elseSource = elseStatement.findFirstExpression(Expressions.Source)?.concatTokens().toUpperCase();
       if ((bodySource === "ABAP_TRUE" && elseSource === "ABAP_FALSE")
           || (bodySource === "ABAP_FALSE" && elseSource === "ABAP_TRUE")) {
-        const func = this.reg.getConfig().getVersion() >= Version.v740sp08 ? "xsdbool" : "boolc";
+        const func = ( this.reg.getConfig().getVersion() >= Version.v740sp08
+          || this.reg.getConfig().getVersion() === Version.Cloud ) ? "xsdbool" : "boolc";
         const negate = bodySource === "ABAP_FALSE";
         const message = `Use ${func} instead of IF` + (negate ? ", negate expression" : "");
         const start = i.getFirstToken().getStart();
@@ -97,6 +103,20 @@ ENDIF.`,
           " ).";
         const fix = EditHelper.replaceRange(file, start, end, statement);
         issues.push(Issue.atRange(file, start, end, message, this.getMetadata().key, this.conf.severity, fix));
+      }
+    }
+
+
+    if (version >= Version.v740sp08 || version === Version.Cloud) {
+      for (const b of stru.findAllExpressions(Expressions.CondBody)) {
+        const concat = b.concatTokens().toUpperCase();
+        if (concat.endsWith(" THEN ABAP_TRUE ELSE ABAP_FALSE")
+            || concat.endsWith(" THEN ABAP_TRUE")
+            || concat.endsWith(" THEN ABAP_FALSE ELSE ABAP_TRUE")) {
+          const message = "Use xsdbool";
+          // eslint-disable-next-line max-len
+          issues.push(Issue.atRange(file, b.getFirstToken().getStart(), b.getLastToken().getEnd(), message, this.getMetadata().key, this.conf.severity));
+        }
       }
     }
 

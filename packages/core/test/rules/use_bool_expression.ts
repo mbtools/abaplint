@@ -43,6 +43,10 @@ ENDIF.`, cnt: 0},
 ELSE.
   rv_send = abap_false.
 ENDIF.`, cnt: 1},
+
+  {abap: `DATA(fsdf) = COND #( WHEN foo <> bar THEN abap_true ELSE abap_false ).`, cnt: 1},
+  {abap: `DATA(fsdf) = COND #( WHEN foo <> bar THEN abap_false ELSE abap_true ).`, cnt: 1},
+  {abap: `DATA(fsdf) = COND #( WHEN foo <> bar THEN abap_true ).`, cnt: 1},
 ];
 
 testRule(tests, UseBoolExpression);

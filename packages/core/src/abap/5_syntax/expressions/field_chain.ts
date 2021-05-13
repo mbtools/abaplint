@@ -20,9 +20,10 @@ export class FieldChain {
     filename: string,
     refType?: ReferenceType | undefined): AbstractType | undefined {
 
-    if (node.concatTokens().includes("-")) {
+    const concat = node.concatTokens();
+    if (concat.includes("-")) {
       // workaround for names with dashes
-      const found = scope.findVariable(node.concatTokens());
+      const found = scope.findVariable(concat);
       if (found) {
         if (refType) {
           scope.addReference(node.getFirstToken(), found, refType, filename);
@@ -32,9 +33,11 @@ export class FieldChain {
     }
 
     const children = node.getChildren().slice();
+    let contextName = children[0].concatTokens();
     let context = this.findTop(children.shift(), scope, filename, refType);
 
     while (children.length > 0) {
+      contextName += children[0].concatTokens();
       const current = children.shift();
       if (current === undefined) {
         break;
@@ -46,27 +49,37 @@ export class FieldChain {
         } else if (!(context instanceof StructureType)
             && !(context instanceof TableType && context.isWithHeader())
             && !(context instanceof VoidType)) {
-          throw new Error("Not a structure, FieldChain");
+          if (context instanceof TableType && context.isWithHeader() === false) {
+            if (scope.isAllowHeaderUse(contextName.substring(0, contextName.length - 1))) {
+              // FOR ALL ENTRIES workaround
+              context = context.getRowType();
+              if (!(context instanceof StructureType) && !(context instanceof VoidType)) {
+                context = new StructureType([{name: "TABLE_LINE", type: context}]);
+              }
+            } else {
+              throw new Error("Table without header, cannot access fields, " + contextName);
+            }
+          } else {
+            throw new Error("Not a structure, FieldChain");
+          }
         }
       } else if (current.get() instanceof InstanceArrow) {
         if (!(context instanceof ObjectReferenceType)
             && !(context instanceof DataReference)
             && !(context instanceof VoidType)) {
-          throw new Error("Not a object reference");
+          throw new Error("Not a object reference, field chain");
         }
       } else if (current.get() instanceof Expressions.ComponentName) {
         context = new ComponentName().runSyntax(context, current);
       } else if (current instanceof ExpressionNode
           && current.get() instanceof Expressions.TableExpression) {
-        if (context instanceof VoidType) {
-          continue;
-        }
-        if (!(context instanceof TableType)) {
+        if (!(context instanceof TableType) && !(context instanceof VoidType)) {
           throw new Error("Table expression, expected table");
         }
         new TableExpression().runSyntax(current, scope, filename);
-        // todo, additional validations
-        context = context.getRowType();
+        if (!(context instanceof VoidType)) {
+          context = context.getRowType();
+        }
       } else if (current.get() instanceof Expressions.AttributeName) {
         context = new AttributeName().runSyntax(context, current, scope, filename, refType);
       } else if (current.get() instanceof Expressions.FieldOffset && current instanceof ExpressionNode) {

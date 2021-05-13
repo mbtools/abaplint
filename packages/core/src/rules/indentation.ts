@@ -16,6 +16,7 @@ import {ABAPFile} from "../abap/abap_file";
 export class IndentationConf extends BasicRuleConfig {
   /** Ignore global exception classes */
   public ignoreExceptions: boolean = true;
+  /** Align TRY CATCH, TRY and CATCH should have the same indentation */
   public alignTryCatch: boolean = false;
   public globalClassSkipFirst: boolean = false;
   public ignoreGlobalClassDefinition: boolean = false;
@@ -43,17 +44,16 @@ export class Indentation extends ABAPRule {
   }
 
   public runParsed(file: ABAPFile, obj: IObject) {
-
+    const MAX_ISSUES = 100;
     let skip = false;
 
     if (file.getStructure() === undefined) {
       return []; // syntax error in file
     }
 
-    const ddic = new DDIC(this.reg);
-
     if (obj instanceof Class) {
       const definition = obj.getClassDefinition();
+      const ddic = new DDIC(this.reg);
       if (definition === undefined) {
         return [];
       } else if (this.conf.ignoreExceptions && ddic.isException(definition, obj)) {
@@ -62,11 +62,12 @@ export class Indentation extends ABAPRule {
     }
 
     const indentOpts: IIndentationOptions = {
-      alignTryCatch: this.conf.alignTryCatch,
+      alignTryCatch: this.conf?.alignTryCatch,
       globalClassSkipFirst: this.conf.globalClassSkipFirst,
     };
 
     const expected = new Indent(indentOpts).getExpectedIndents(file);
+    const ret: Issue[] = [];
 
     for (const statement of file.getStatements()) {
       const position = statement.getFirstToken().getStart();
@@ -107,10 +108,13 @@ export class Indentation extends ABAPRule {
         const fix = EditHelper.replaceRange(file, new Position(position.getRow(), 1), position, " ".repeat(expected));
         const message = "Indentation problem, expected " + expected + " spaces";
         const issue = Issue.atPosition(file, position, message, this.getMetadata().key, this.conf.severity, fix);
-        return [issue]; // only one finding per include
+        ret.push(issue);
+        if (ret.length >= MAX_ISSUES) {
+          break;
+        }
       }
     }
 
-    return [];
+    return ret;
   }
 }

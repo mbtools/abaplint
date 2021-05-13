@@ -13,7 +13,8 @@ export interface IScopeIdentifier {
   stype: ScopeType;
   sname: string;
   filename: string;
-  start: Position; // stop position is implicit in the Spaghetti structure, ie start of the next child
+  start: Position;
+  end: Position | undefined;
 }
 
 export interface IScopeVariable {
@@ -22,8 +23,8 @@ export interface IScopeVariable {
 }
 
 export interface IScopeData {
-  vars: IScopeVariable[];
-  types: IScopeVariable[];
+  vars: {[name: string]: TypedIdentifier};
+  types: {[name: string]: TypedIdentifier};
 
   deferred: Token[];
 
@@ -41,7 +42,6 @@ export interface ISpaghettiScopeNode {
   getFirstChild(): ISpaghettiScopeNode | undefined;
   getIdentifier(): IScopeIdentifier;
   getData(): IScopeData;
-  getNextSibling(): ISpaghettiScopeNode | undefined;
   calcCoverage(): {start: Position, end: Position};
   findClassDefinition(name: string): IClassDefinition | undefined;
   findFormDefinition(name: string): IFormDefinition | undefined;

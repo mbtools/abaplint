@@ -8,9 +8,11 @@ import {ABAPObject} from "../objects/_abap_object";
 import {ScopeType} from "../abap/5_syntax/_scope_type";
 import {TypedIdentifier, IdentifierMeta} from "../abap/types/_typed_identifier";
 import {Interface} from "../objects";
-import {ISpaghettiScopeNode, IScopeVariable} from "../abap/5_syntax/_spaghetti_scope";
+import {ISpaghettiScopeNode} from "../abap/5_syntax/_spaghetti_scope";
 import {References} from "../lsp/references";
 import {EditHelper, IEdit} from "../edit_helper";
+import {StatementNode} from "../abap/nodes/statement_node";
+import {Comment} from "../abap/2_statements/statements/_statement";
 
 export class UnusedVariablesConf extends BasicRuleConfig {
   /** skip specific names, case insensitive */
@@ -30,8 +32,12 @@ export class UnusedVariables implements IRule {
 
       Experimental, might give false positives. Skips event parameters.
 
-      Note that this currently does not work if the source code uses macros.`,
-      tags: [RuleTag.Experimental, RuleTag.Quickfix],
+      Note that this currently does not work if the source code uses macros.
+
+      Unused variables are not reported if the object contains syntax errors.`,
+      tags: [RuleTag.Quickfix],
+      pragma: "##NEEDED",
+      pseudoComment: "EC NEEDED",
     };
   }
 
@@ -86,14 +92,18 @@ export class UnusedVariables implements IRule {
   }
 
   private traverse(node: ISpaghettiScopeNode, obj: ABAPObject): Issue[] {
-    let ret: Issue[] = [];
+    const ret: Issue[] = [];
+
+    if (node.getIdentifier().stype === ScopeType.OpenSQL) {
+      return [];
+    }
 
     if (node.getIdentifier().stype !== ScopeType.BuiltIn) {
-      ret = ret.concat(this.checkNode(node, obj));
+      ret.push(...this.checkNode(node, obj));
     }
 
     for (const c of node.getChildren()) {
-      ret = ret.concat(this.traverse(c, obj));
+      ret.push(...this.traverse(c, obj));
     }
 
     return ret;
@@ -102,41 +112,88 @@ export class UnusedVariables implements IRule {
   private checkNode(node: ISpaghettiScopeNode, obj: ABAPObject): Issue[] {
     const ret: Issue[] = [];
 
-    for (const v of node.getData().vars) {
+    const vars = node.getData().vars;
+    for (const name in vars) {
       if (this.conf.skipNames?.length > 0
-          && this.conf.skipNames.some((a) => a.toUpperCase() === v.name.toUpperCase())) {
+          && this.conf.skipNames.some((a) => a.toUpperCase() === name)) {
         continue;
       }
-      if (v.name === "me"
-          || v.name === "super"
-          || v.identifier.getMeta().includes(IdentifierMeta.EventParameter)) {
+      if (name === "ME"
+          || name === "SUPER"
+          || vars[name].getMeta().includes(IdentifierMeta.EventParameter)) {
         // todo, workaround for "me" and "super", these should somehow be typed to built-in
         continue;
-      } else if ((obj.containsFile(v.identifier.getFilename())
+      } else if ((obj.containsFile(vars[name].getFilename())
             || node.getIdentifier().stype === ScopeType.Program
             || node.getIdentifier().stype === ScopeType.Form)
-          && this.isUsed(v.identifier, node) === false) {
-        const message = "Variable \"" + v.identifier.getName() + "\" not used";
-        const fix = this.buildFix(v, obj);
-        ret.push(Issue.atIdentifier(v.identifier, message, this.getMetadata().key, this.conf.severity, fix));
+          && this.isUsed(vars[name], node) === false) {
+        const message = "Variable \"" + vars[name].getName() + "\" not used";
+
+        const statement = this.findStatement(vars[name], obj);
+        if (statement?.getPragmas().map(t => t.getStr()).includes(this.getMetadata().pragma + "")) {
+          continue;
+        } else if (this.suppressedbyPseudo(statement, vars[name], obj)) {
+          continue;
+        }
+
+        const fix = this.buildFix(vars[name], obj);
+        ret.push(Issue.atIdentifier(vars[name], message, this.getMetadata().key, this.conf.severity, fix));
       }
     }
 
     return ret;
   }
 
-  private isUsed(id: TypedIdentifier, node: ISpaghettiScopeNode): boolean {
-    const found = new References(this.reg).search(id, node);
-    return found.length > 1;
+  private suppressedbyPseudo(statement: StatementNode | undefined, v: TypedIdentifier, obj: ABAPObject): boolean {
+    if (statement === undefined) {
+      return false;
+    }
+
+    const file = obj.getABAPFileByName(v.getFilename());
+    if (file === undefined) {
+      return false;
+    }
+
+    let next = false;
+    for (const s of file.getStatements()) {
+      if (next === true && s.get() instanceof Comment) {
+        return s.concatTokens().includes(this.getMetadata().pseudoComment + "");
+      }
+      if (s === statement) {
+        next = true;
+      }
+    }
+
+    return false;
   }
 
-  private buildFix(v: IScopeVariable, obj: ABAPObject): IEdit | undefined {
-    const file = obj.getABAPFileByName(v.identifier.getFilename());
+  private isUsed(id: TypedIdentifier, node: ISpaghettiScopeNode): boolean {
+    const isInline = id.getMeta().includes(IdentifierMeta.InlineDefinition);
+    const found = new References(this.reg).search(id, node, true, isInline === false);
+    if (isInline === true) {
+      return found.length > 2; // inline definitions are always written to
+    } else {
+      return found.length > 1;
+    }
+  }
+
+  private findStatement(v: TypedIdentifier, obj: ABAPObject): StatementNode | undefined {
+    const file = obj.getABAPFileByName(v.getFilename());
     if (file === undefined) {
       return undefined;
     }
 
-    const statement = EditHelper.findStatement(v.identifier.getToken(), file);
+    const statement = EditHelper.findStatement(v.getToken(), file);
+    return statement;
+  }
+
+  private buildFix(v: TypedIdentifier, obj: ABAPObject): IEdit | undefined {
+    const file = obj.getABAPFileByName(v.getFilename());
+    if (file === undefined) {
+      return undefined;
+    }
+
+    const statement = EditHelper.findStatement(v.getToken(), file);
     if (statement) {
       return EditHelper.deleteStatement(file, statement);
     }

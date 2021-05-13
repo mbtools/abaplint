@@ -5,6 +5,7 @@ import {ExpressionNode, StatementNode} from "../abap/nodes";
 import * as Expressions from "../abap/2_statements/expressions";
 import {IRuleMetadata, RuleTag} from "./_irule";
 import {ABAPFile} from "../abap/abap_file";
+import {ABAPObject} from "../objects/_abap_object";
 
 export class KeepSingleParameterCallsOnOneLineConf extends BasicRuleConfig {
   /** Max line length, in characters */
@@ -19,7 +20,7 @@ export class KeepSingleParameterCallsOnOneLine extends ABAPRule {
       key: "keep_single_parameter_on_one_line",
       title: "Keep single parameters on one line",
       shortDescription: `Keep single parameter calls on one line`,
-      extendedInformation: `https://github.com/SAP/styleguides/blob/master/clean-abap/CleanABAP.md#keep-single-parameter-calls-on-one-line`,
+      extendedInformation: `https://github.com/SAP/styleguides/blob/main/clean-abap/CleanABAP.md#keep-single-parameter-calls-on-one-line`,
       tags: [RuleTag.Whitespace, RuleTag.Styleguide, RuleTag.SingleFile],
       badExample: `call_method(\n  2 ).`,
       goodExample: `call_method( 2 ).`,
@@ -34,8 +35,12 @@ export class KeepSingleParameterCallsOnOneLine extends ABAPRule {
     this.conf = conf;
   }
 
-  public runParsed(file: ABAPFile): Issue[] {
+  public runParsed(file: ABAPFile, obj: ABAPObject): Issue[] {
     let issues: Issue[] = [];
+
+    if (obj.getType() === "INTF") {
+      return [];
+    }
 
     const stru = file.getStructure();
     if (stru === undefined) {
@@ -48,7 +53,8 @@ export class KeepSingleParameterCallsOnOneLine extends ABAPRule {
           || this.calcStatementLength(s) > this.getConfig().length
           || this.containsNewLineValue(s)
           || this.containsNewLineTableExpression(s)
-          || this.containsNewlineTemplate(s)) {
+          || this.containsFieldAssigments(s)
+          || this.containsNewLineTemplate(s)) {
         continue;
       }
       for (const c of s.findAllExpressions(Expressions.MethodCallParam)) {
@@ -60,6 +66,11 @@ export class KeepSingleParameterCallsOnOneLine extends ABAPRule {
   }
 
 ///////////////////////////////////////
+
+  private containsFieldAssigments(s: StatementNode): boolean {
+    const fs = s.findAllExpressions(Expressions.FieldAssignment);
+    return fs.length > 1;
+  }
 
   private containsNewLineTableExpression(s: StatementNode): boolean {
     for (const st of s.findAllExpressions(Expressions.TableExpression)) {
@@ -80,7 +91,7 @@ export class KeepSingleParameterCallsOnOneLine extends ABAPRule {
     return false;
   }
 
-  private containsNewlineTemplate(s: StatementNode): boolean {
+  private containsNewLineTemplate(s: StatementNode): boolean {
     for (const st of s.findAllExpressions(Expressions.StringTemplate)) {
       for (const t of st.getAllTokens()) {
         if (t.getStr().includes("\\n")) {

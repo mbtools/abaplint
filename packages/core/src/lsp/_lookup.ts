@@ -4,7 +4,6 @@ import * as Expressions from "../abap/2_statements/expressions";
 import {IRegistry} from "../_iregistry";
 import {ABAPObject} from "../objects/_abap_object";
 import {SyntaxLogic} from "../abap/5_syntax/syntax";
-import {IFormDefinition} from "../abap/types/_form_definition";
 import {ISpaghettiScopeNode} from "../abap/5_syntax/_spaghetti_scope";
 import {ICursorData, LSPUtils} from "./_lsp_utils";
 import {TypedIdentifier, IdentifierMeta} from "../abap/types/_typed_identifier";
@@ -70,12 +69,6 @@ export class LSPLookup {
         scope: bottomScope};
     }
 
-    const form = this.findPerform(cursor, bottomScope);
-    if (form) {
-      const found = LSPUtils.identiferToLocation(form);
-      return {hover: "Call FORM", definition: found, implementation: found, scope: bottomScope};
-    }
-
     const type = bottomScope.findType(cursor.token.getStr());
     if (type !== undefined && type.getStart().equals(cursor.token.getStart())) {
       const found = LSPUtils.identiferToLocation(type);
@@ -127,9 +120,7 @@ export class LSPLookup {
 ////////////////////////////////////////////
 
   private static dumpType(variable: TypedIdentifier): string {
-    let value = variable.toText() +
-      (variable.getTypeName() ? "\n\nTypename: \"" + variable.getTypeName() + "\"" : "") +
-      "\n\nType: " + variable.getType().toText(0);
+    let value = variable.toText() + "\n\nType: " + variable.getType().toText(0);
     if (variable.getValue()) {
       value = value + "\n\nValue: ```" + variable.getValue() + "```";
     }
@@ -138,6 +129,9 @@ export class LSPLookup {
     }
     if (variable.getType().containsVoid() === true) {
       value = value + "\n\nContains void types";
+    }
+    if (variable.getType().getQualifiedName()) {
+      value = value + "\n\nQualified type name: ```" + variable.getType().getQualifiedName() + "```";
     }
     if (variable.getType().isGeneric() === true) {
       value = value + "\n\nIs generic type";
@@ -153,16 +147,16 @@ export class LSPLookup {
     }
     let ret = "Resolved Reference: " + ref.referenceType + " " + name;
 
-    if (ref.referenceType === ReferenceType.MethodReference && ref.extra?.className) {
-      let cdef: IClassDefinition | IInterfaceDefinition | undefined = scope.findClassDefinition(ref.extra.className);
+    if (ref.referenceType === ReferenceType.MethodReference && ref.extra?.ooName) {
+      let cdef: IClassDefinition | IInterfaceDefinition | undefined = scope.findClassDefinition(ref.extra.ooName);
       if (cdef === undefined) {
-        cdef = scope.findInterfaceDefinition(ref.extra.className);
+        cdef = scope.findInterfaceDefinition(ref.extra.ooName);
       }
       if (cdef === undefined) {
-        cdef = (reg.getObject("CLAS", ref.extra.className) as Class | undefined)?.getDefinition();
+        cdef = (reg.getObject("CLAS", ref.extra.ooName) as Class | undefined)?.getDefinition();
       }
       if (cdef === undefined) {
-        cdef = (reg.getObject("INTF", ref.extra.className) as Interface | undefined)?.getDefinition();
+        cdef = (reg.getObject("INTF", ref.extra.ooName) as Interface | undefined)?.getDefinition();
       }
 
       ret += "\n\n" + this.hoverMethod(ref.position.getName(), cdef);
@@ -217,7 +211,7 @@ export class LSPLookup {
     if (mdef.getRaising().length > 0) {
       ret += "RAISING\n";
       for (const p of mdef.getRaising()) {
-        ret += "* " + p;
+        ret += "* " + p + "\n";
       }
     }
 
@@ -233,7 +227,7 @@ export class LSPLookup {
   }
 
   private static searchReferences(scope: ISpaghettiScopeNode, token: Token): IReference[] {
-    let ret: IReference[] = [];
+    const ret: IReference[] = [];
 
     for (const r of scope.getData().references) {
       if (r.position.getStart().equals(token.getStart())) {
@@ -243,7 +237,7 @@ export class LSPLookup {
 
     const parent = scope.getParent();
     if (parent) {
-      ret = ret.concat(this.searchReferences(parent, token));
+      ret.push(...this.searchReferences(parent, token));
     }
 
     return ret;
@@ -279,31 +273,6 @@ export class LSPLookup {
 
     const def = scope.getParent()?.findClassDefinition(scope.getIdentifier().sname)?.getMethodDefinitions()?.getByName(nameToken.getStr());
     return def;
-  }
-
-  private static findPerform(found: ICursorData, scope: ISpaghettiScopeNode): IFormDefinition | undefined {
-    if (!(found.snode.get() instanceof Statements.Perform)) {
-      return undefined;
-    }
-
-    const name = found.snode.findFirstExpression(Expressions.FormName);
-    if (name === undefined) {
-      return undefined;
-    }
-
-// check the cursor is at the right token
-    const token = name.getFirstToken();
-    if (token.getStart().getCol() !== found.token.getStart().getCol()
-        || token.getStart().getRow() !== found.token.getStart().getRow()) {
-      return undefined;
-    }
-
-    const resolved = scope.findFormDefinition(found.token.getStr());
-    if (resolved) {
-      return resolved;
-    }
-
-    return undefined;
   }
 
   private static findFunctionModule(found: ICursorData): string | undefined {

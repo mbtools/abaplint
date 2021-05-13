@@ -3,7 +3,8 @@ import {AbstractObject} from "./_abstract_object";
 import {xmlToArray} from "../xml_utils";
 import {IRegistry} from "../_iregistry";
 import {DDIC} from "../ddic";
-import {IdentifierMeta, TypedIdentifier} from "../abap/types/_typed_identifier";
+import {TypedIdentifier} from "../abap/types/_typed_identifier";
+import {AbstractType} from "../abap/types/basic/_abstract_type";
 
 export enum EnhancementCategory {
   NotClassified = "0",
@@ -34,10 +35,17 @@ export class Table extends AbstractObject {
       LENG?: string,
       INTLEN?: string,
       DATATYPE?: string,
-      DECIMALS?: string}[]} | undefined;
+      DECIMALS?: string,
+      KEYFLAG?: string
+    }[]} | undefined;
 
   public getType(): string {
     return "TABL";
+  }
+
+  public getDescription(): string | undefined {
+    // todo
+    return undefined;
   }
 
   public getAllowedNaming() {
@@ -52,12 +60,29 @@ export class Table extends AbstractObject {
     super.setDirty();
   }
 
-  public parseType(reg: IRegistry): TypedIdentifier {
+  public listKeys(): string[] {
     if (this.parsedData === undefined) {
       this.parseXML();
     }
     if (this.parsedData === undefined) {
-      return TypedIdentifier.from(this.getIdentifier()!, new Types.UnknownType("Table, parser error"));
+      return [];
+    }
+
+    const ret: string[] = [];
+    for (const p of this.parsedData.fields) {
+      if (p.KEYFLAG === "X") {
+        ret.push(p.FIELDNAME);
+      }
+    }
+    return ret;
+  }
+
+  public parseType(reg: IRegistry): AbstractType {
+    if (this.parsedData === undefined) {
+      this.parseXML();
+    }
+    if (this.parsedData === undefined) {
+      return new Types.UnknownType("Table, parser error");
     }
 
     const components: Types.IStructureComponent[] = [];
@@ -83,10 +108,10 @@ export class Table extends AbstractObject {
             && found instanceof Types.UnknownType) {
           continue;
         } else if (found instanceof Types.UnknownType) {
-          return TypedIdentifier.from(this.getIdentifier()!, found);
+          return found;
         } else if (found instanceof Types.VoidType) {
           // set the full structure to void
-          return TypedIdentifier.from(this.getIdentifier()!, found);
+          return found;
         } else {
           components.push({
             name: field.FIELDNAME,
@@ -129,7 +154,7 @@ export class Table extends AbstractObject {
       throw new Error("Table/Structure " + this.getName() + " does not contain any components");
     }
 
-    return TypedIdentifier.from(this.getIdentifier()!, new Types.StructureType(components), [IdentifierMeta.DDIC]);
+    return new Types.StructureType(components, this.getName());
   }
 
   public getTableCategory(): TableCategory | undefined {
@@ -153,7 +178,7 @@ export class Table extends AbstractObject {
 ///////////////
 
   private parseXML() {
-    const parsed = super.parseRaw();
+    const parsed = super.parseRaw2();
     if (parsed === undefined) {
       return;
     }
@@ -164,24 +189,25 @@ export class Table extends AbstractObject {
     if (parsed.abapGit["asx:abap"]["asx:values"]?.DD02V?.EXCLASS === undefined) {
       this.parsedData.enhancementCategory = EnhancementCategory.NotClassified;
     } else {
-      this.parsedData.enhancementCategory = parsed.abapGit["asx:abap"]["asx:values"]?.DD02V?.EXCLASS?._text;
+      this.parsedData.enhancementCategory = parsed.abapGit["asx:abap"]["asx:values"]?.DD02V?.EXCLASS;
     }
 
 // table category
-    this.parsedData.tableCategory = parsed.abapGit["asx:abap"]["asx:values"]?.DD02V?.TABCLASS?._text;
+    this.parsedData.tableCategory = parsed.abapGit["asx:abap"]["asx:values"]?.DD02V?.TABCLASS;
 
 // fields
     const fields = parsed.abapGit["asx:abap"]["asx:values"]?.DD03P_TABLE;
     for (const field of xmlToArray(fields?.DD03P)) {
       this.parsedData.fields.push({
-        FIELDNAME: field.FIELDNAME._text,
-        ROLLNAME: field.ROLLNAME?._text,
-        COMPTYPE: field.COMPTYPE?._text,
-        PRECFIELD: field.PRECFIELD?._text,
-        LENG: field.LENG?._text,
-        INTLEN: field.INTLEN?._text,
-        DATATYPE: field.DATATYPE?._text,
-        DECIMALS: field.DECIMALS?._text,
+        FIELDNAME: field.FIELDNAME,
+        ROLLNAME: field.ROLLNAME,
+        COMPTYPE: field.COMPTYPE,
+        PRECFIELD: field.PRECFIELD,
+        LENG: field.LENG,
+        INTLEN: field.INTLEN,
+        DATATYPE: field.DATATYPE,
+        DECIMALS: field.DECIMALS,
+        KEYFLAG: field.KEYFLAG,
       });
     }
   }

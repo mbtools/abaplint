@@ -1,3 +1,14 @@
+// @ts-ignore
+global.MonacoEnvironment = {
+  globalAPI: true,
+  getWorkerUrl: function (_moduleId: any, label: any) {
+    if (label === "json") {
+      return "./json.worker.bundle.js";
+    }
+    return "./editor.worker.bundle.js";
+  },
+};
+
 import "../node_modules/@phosphor/default-theme/style/index.css";
 import "./index.less";
 import "../public/img/favicon-16x16.png";
@@ -5,7 +16,7 @@ import "../public/img/favicon-32x32.png";
 import schema from "../../../packages/core/scripts/schema.json";
 import * as monaco from "monaco-editor";
 import {BoxPanel, DockPanel, Widget} from "@phosphor/widgets";
-import {WelcomeWidget, ProblemsWidget} from "./widgets/";
+import {WelcomeWidget, ProblemsWidget} from "./widgets";
 import {FileSystem} from "./filesystem";
 import {IRegistry} from "@abaplint/core";
 import * as monacoABAP from "@abaplint/monaco";

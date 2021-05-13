@@ -32,8 +32,9 @@ export class ABAPFileInformation implements IABAPFileInformation {
   }
 
   public getInterfaceDefinitionByName(name: string): InfoInterfaceDefinition | undefined {
+    const upper = name.toUpperCase();
     for (const i of this.listInterfaceDefinitions()) {
-      if (i.identifier.getName().toUpperCase() === name.toUpperCase()) {
+      if (i.identifier.getName().toUpperCase() === upper) {
         return i;
       }
     }
@@ -45,8 +46,9 @@ export class ABAPFileInformation implements IABAPFileInformation {
   }
 
   public getClassDefinitionByName(name: string): InfoClassDefinition | undefined {
+    const upper = name.toUpperCase();
     for (const d of this.listClassDefinitions()) {
-      if (d.identifier.getName().toUpperCase() === name.toUpperCase()) {
+      if (d.identifier.getName().toUpperCase() === upper) {
         return d;
       }
     }
@@ -54,8 +56,9 @@ export class ABAPFileInformation implements IABAPFileInformation {
   }
 
   public getClassImplementationByName(name: string): InfoClassImplementation | undefined {
+    const upper = name.toUpperCase();
     for (const impl of this.listClassImplementations()) {
-      if (impl.identifier.getName().toUpperCase() === name.toUpperCase()) {
+      if (impl.identifier.getName().toUpperCase() === upper) {
         return impl;
       }
     }
@@ -105,17 +108,25 @@ export class ABAPFileInformation implements IABAPFileInformation {
   }
 
   private parseInterfaces(structure: StructureNode) {
-    for (const found of structure.findAllStructures(Structures.Interface)) {
-      const interfaceName = found.findFirstStatement(Statements.Interface)!.findFirstExpression(Expressions.InterfaceName)!.getFirstToken();
+    for (const found of structure.findDirectStructures(Structures.Interface)) {
+      const i = found.findFirstStatement(Statements.Interface);
+      if (i === undefined) {
+        throw new Error("Interface expected, parseInterfaces");
+      }
+      const interfaceName = i.findDirectExpression(Expressions.InterfaceName)!.getFirstToken();
       const methods = this.parseMethodDefinition(found, Visibility.Public);
       const attributes = this.parseAttributes(found, Visibility.Public);
+      const aliases = this.parseAliases(found, Visibility.Public);
+
+      const g = i.findDirectExpression(Expressions.ClassGlobal);
 
       this.interfaces.push({
         name: interfaceName.getStr(),
         identifier: new Identifier(interfaceName, this.filename),
-        isLocal: found.findFirstExpression(Expressions.ClassGlobal) === undefined,
-        isGlobal: found.findFirstExpression(Expressions.ClassGlobal) !== undefined,
+        isLocal: g === undefined,
+        isGlobal: g !== undefined,
         interfaces: this.getImplementing(found),
+        aliases,
         methods,
         attributes,
       });
@@ -126,30 +137,32 @@ export class ABAPFileInformation implements IABAPFileInformation {
     for (const found of structure.findAllStructures(Structures.ClassDefinition)) {
       const className = found.findFirstStatement(Statements.ClassDefinition)!.findFirstExpression(Expressions.ClassName)!.getFirstToken();
 
-      let methods = this.parseMethodDefinition(found.findFirstStructure(Structures.PublicSection), Visibility.Public);
-      methods = methods.concat(this.parseMethodDefinition(found.findFirstStructure(Structures.ProtectedSection), Visibility.Protected));
-      methods = methods.concat(this.parseMethodDefinition(found.findFirstStructure(Structures.PrivateSection), Visibility.Private));
+      const methods = this.parseMethodDefinition(found.findFirstStructure(Structures.PublicSection), Visibility.Public);
+      methods.push(...this.parseMethodDefinition(found.findFirstStructure(Structures.ProtectedSection), Visibility.Protected));
+      methods.push(...this.parseMethodDefinition(found.findFirstStructure(Structures.PrivateSection), Visibility.Private));
 
-      let attributes = this.parseAttributes(found.findFirstStructure(Structures.PublicSection), Visibility.Public);
-      attributes = attributes.concat(this.parseAttributes(found.findFirstStructure(Structures.ProtectedSection), Visibility.Protected));
-      attributes = attributes.concat(this.parseAttributes(found.findFirstStructure(Structures.PrivateSection), Visibility.Private));
+      const attributes = this.parseAttributes(found.findFirstStructure(Structures.PublicSection), Visibility.Public);
+      attributes.push(...this.parseAttributes(found.findFirstStructure(Structures.ProtectedSection), Visibility.Protected));
+      attributes.push(...this.parseAttributes(found.findFirstStructure(Structures.PrivateSection), Visibility.Private));
 
-      let aliases = this.parseAliases(found.findFirstStructure(Structures.PublicSection), Visibility.Public);
-      aliases = aliases.concat(this.parseAliases(found.findFirstStructure(Structures.ProtectedSection), Visibility.Protected));
-      aliases = aliases.concat(this.parseAliases(found.findFirstStructure(Structures.PrivateSection), Visibility.Private));
+      const aliases = this.parseAliases(found.findFirstStructure(Structures.PublicSection), Visibility.Public);
+      aliases.push(...this.parseAliases(found.findFirstStructure(Structures.ProtectedSection), Visibility.Protected));
+      aliases.push(...this.parseAliases(found.findFirstStructure(Structures.PrivateSection), Visibility.Private));
 
       const superClassName = found.findFirstExpression(Expressions.SuperClassName)?.getFirstToken().getStr();
+      const containsGlobal = found.findFirstExpression(Expressions.ClassGlobal);
+      const concat = found.findFirstStatement(Statements.ClassDefinition)!.concatTokens().toUpperCase();
 
       this.classes.push({
         name: className.getStr(),
         identifier: new Identifier(className, this.filename),
-        isLocal: found.findFirstExpression(Expressions.ClassGlobal) === undefined,
-        isGlobal: found.findFirstExpression(Expressions.ClassGlobal) !== undefined,
+        isLocal: containsGlobal === undefined,
+        isGlobal: containsGlobal !== undefined,
         methods,
         superClassName,
         interfaces: this.getImplementing(found),
-        isForTesting: found.findFirstStatement(Statements.ClassDefinition)!.concatTokens().toUpperCase().includes(" FOR TESTING"),
-        isAbstract: found.findFirstStatement(Statements.ClassDefinition)!.concatTokens().toUpperCase().includes(" ABSTRACT"),
+        isForTesting: concat.includes(" FOR TESTING"),
+        isAbstract: concat.includes(" ABSTRACT"),
         isFinal: found.findFirstExpression(Expressions.ClassFinal) !== undefined,
         aliases,
         attributes,
@@ -178,9 +191,9 @@ export class ABAPFileInformation implements IABAPFileInformation {
         }
       }
 
-      const allAbstract = node.concatTokens().toUpperCase().includes(" ALL METHODS ABSTRACT");
-
-      const partial = node.concatTokens().toUpperCase().includes(" PARTIALLY IMPLEMENTED");
+      const concat = node.concatTokens().toUpperCase();
+      const allAbstract = concat.includes(" ALL METHODS ABSTRACT");
+      const partial = concat.includes(" PARTIALLY IMPLEMENTED");
       const name = node.findFirstExpression(Expressions.InterfaceName)!.getFirstToken().getStr().toUpperCase();
       ret.push({
         name,
@@ -266,7 +279,7 @@ export class ABAPFileInformation implements IABAPFileInformation {
 
     const methods: InfoMethodDefinition[] = [];
     for (const def of node.findAllStatements(Statements.MethodDef)) {
-      const methodName = def.findFirstExpression(Expressions.MethodName)?.getFirstToken();
+      const methodName = def.findDirectExpression(Expressions.MethodName)?.getFirstToken();
       if (methodName === undefined) {
         continue;
       }
@@ -276,10 +289,10 @@ export class ABAPFileInformation implements IABAPFileInformation {
       methods.push({
         name: methodName.getStr(),
         identifier: new Identifier(methodName, this.filename),
-        isRedefinition: def.findFirstExpression(Expressions.Redefinition) !== undefined,
-        isForTesting: def.concatTokens().includes(" FOR TESTING"),
-        isAbstract: def.findFirstExpression(Expressions.Abstract) !== undefined,
-        isEventHandler: node.findFirstExpression(Expressions.EventHandler) !== undefined,
+        isRedefinition: def.findDirectExpression(Expressions.Redefinition) !== undefined,
+        isForTesting: def.concatTokens().toUpperCase().includes(" FOR TESTING"),
+        isAbstract: def.findDirectExpression(Expressions.Abstract) !== undefined,
+        isEventHandler: def.findDirectExpression(Expressions.EventHandler) !== undefined,
         visibility,
         parameters,
         exceptions: [], // todo

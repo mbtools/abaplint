@@ -15,7 +15,7 @@ import {References} from "./references";
 import {Implementation} from "./implementation";
 
 // note Ranges are zero based in LSP,
-// https://github.com/microsoft/language-server-protocol/blob/master/versions/protocol-2-x.md#range
+// https://github.com/microsoft/language-server-protocol/blob/main/versions/protocol-2-x.md#range
 // but 1 based in abaplint
 
 // the types in this file are not completely correct
@@ -59,9 +59,10 @@ export class LanguageServer {
     }
 
     const text = new PrettyPrinter(file, this.reg.getConfig()).run();
+    const rows = file.getRawRows();
 
     return [{
-      range: LServer.Range.create(0, 0, Number.MAX_VALUE, 0),
+      range: LServer.Range.create(0, 0, rows.length, rows[rows.length - 1].length + 1),
       newText: text,
     }];
   }

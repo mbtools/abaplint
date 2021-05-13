@@ -1,5 +1,4 @@
 import * as Statements from "../abap/2_statements/statements";
-import * as Structures from "../abap/3_structures/structures";
 import {Issue} from "../issue";
 import {ABAPRule} from "./_abap_rule";
 import {BasicRuleConfig} from "./_basic_rule_config";
@@ -7,27 +6,19 @@ import {TypeTable} from "../abap/2_statements/expressions";
 import {IRuleMetadata, RuleTag} from "./_irule";
 import {ABAPFile} from "../abap/abap_file";
 import {Version} from "../version";
+import {StatementNode} from "../abap/nodes/statement_node";
+import {EditHelper, IEdit} from "../edit_helper";
 
 export class AvoidUseConf extends BasicRuleConfig {
   /** Detects DEFINE (macro definitions) */
   public define: boolean = true;
-  /** Detects ENDSELECT */
-  public endselect: boolean = true;
-  /** Detects execSQL (dynamic SQL) */
-  public execSQL: boolean = true;
-  /** Detects kernel calls */
-  public kernelCall: boolean = true;
-  /** Detects communication */
-  public communication: boolean = true;
   /** Detects statics */
   public statics: boolean = true;
-  /** Detects SYSTEM-CALL */
-  public systemCall: boolean = true;
   /** Detects DEFAULT KEY definitions, from version v740sp02 and up */
   public defaultKey: boolean = true;
   /** Detects BREAK and BREAK-POINTS */
   public break: boolean = true;
-  /** Detects DESRIBE TABLE LINES, use lines() instead */
+  /** Detects DESCRIBE TABLE LINES, use lines() instead */
   public describeLines: boolean = true;
 }
 
@@ -41,13 +32,11 @@ export class AvoidUse extends ABAPRule {
       title: "Avoid use of certain statements",
       shortDescription: `Detects usage of certain statements.`,
       extendedInformation: `
-DEFAULT KEY: https://github.com/SAP/styleguides/blob/master/clean-abap/CleanABAP.md#avoid-default-key
+DEFAULT KEY: https://github.com/SAP/styleguides/blob/main/clean-abap/CleanABAP.md#avoid-default-key
 
 Macros: https://help.sap.com/doc/abapdocu_752_index_htm/7.52/en-US/abenmacros_guidl.htm
 
-ENDSELECT: not reported when the corresponding SELECT has PACKAGE SIZE
-
-DESRIBE TABLE LINES: use lines() instead`,
+DESCRIBE TABLE LINES: use lines() instead (quickfix exists)`,
       tags: [RuleTag.Styleguide, RuleTag.SingleFile],
     };
   }
@@ -71,21 +60,15 @@ DESRIBE TABLE LINES: use lines() instead`,
     for (const statementNode of file.getStatements()) {
       const statement = statementNode.get();
       let message: string | undefined = undefined;
+      let fix: IEdit | undefined = undefined;
       if (this.conf.define && statement instanceof Statements.Define) {
         message = "DEFINE";
-      } else if (this.conf.execSQL && statement instanceof Statements.ExecSQL) {
-        message = "EXEC SQL";
-      } else if (this.conf.kernelCall && statement instanceof Statements.CallKernel) {
-        message = "KERNEL CALL";
       } else if (this.conf.describeLines && statement instanceof Statements.Describe) {
         const children = statementNode.getChildren();
         if (children.length === 6 && children[3].getFirstToken().getStr().toUpperCase() === "LINES") {
           message = "DESCRIBE LINES, use lines() instead";
+          fix = this.getDescribeLinesFix(file, statementNode);
         }
-      } else if (this.conf.systemCall && statement instanceof Statements.SystemCall) {
-        message = "SYSTEM-CALL";
-      } else if (this.conf.communication && statement instanceof Statements.Communication) {
-        message = "COMMUNICATION";
       } else if (this.conf.statics && statement instanceof Statements.StaticBegin) {
         isStaticsBlock = true;
         message = "STATICS";
@@ -96,36 +79,41 @@ DESRIBE TABLE LINES: use lines() instead`,
       } else if (this.conf.break && statement instanceof Statements.Break) {
         message = "BREAK/BREAK-POINT";
       }
+
       if (message) {
-        const issue = Issue.atStatement(file, statementNode, this.getDescription(message), this.getMetadata().key, this.conf.severity);
-        issues.push(issue);
+        issues.push(Issue.atStatement(file, statementNode, this.getDescription(message), this.getMetadata().key, this.conf.severity, fix));
       }
 
       if (this.conf.defaultKey
-          && this.reg.getConfig().getVersion() >= Version.v740sp02
+          && (this.reg.getConfig().getVersion() >= Version.v740sp02
+          || this.reg.getConfig().getVersion() === Version.Cloud)
           && (statement instanceof Statements.Data || statement instanceof Statements.Type)) {
         const tt = statementNode.findFirstExpression(TypeTable);
         const token = tt?.findDirectTokenByText("DEFAULT");
         if (tt && token) {
           tt.concatTokensWithoutStringsAndComments().toUpperCase().endsWith("DEFAULT KEY");
           message = "DEFAULT KEY";
-          const issue = Issue.atToken(file, token, this.getDescription(message), this.getMetadata().key, this.conf.severity);
-          issues.push(issue);
+          issues.push(Issue.atToken(file, token, this.getDescription(message), this.getMetadata().key, this.conf.severity));
         }
-      }
-    }
-
-    if (this.conf.endselect) {
-      for (const s of file.getStructure()?.findAllStructures(Structures.Select) || []) {
-        const select = s.findDirectStatement(Statements.SelectLoop);
-        if (select === undefined || select.concatTokens().includes("PACKAGE SIZE")) {
-          continue;
-        }
-        const issue = Issue.atStatement(file, select, this.getDescription("ENDSELECT"), this.getMetadata().key, this.conf.severity);
-        issues.push(issue);
       }
     }
 
     return issues;
+  }
+
+  private getDescribeLinesFix(file: ABAPFile, statementNode: StatementNode): IEdit|undefined {
+    const children = statementNode.getChildren();
+    const target = children[4].concatTokens();
+    const source = children[2].concatTokens();
+
+    const startPosition = children[0].getFirstToken().getStart();
+    const insertText = target + " = lines( " + source + " ).";
+
+    const deleteFix = EditHelper.deleteStatement(file, statementNode);
+    const insertFix = EditHelper.insertAt(file, startPosition, insertText);
+
+    const finalFix = EditHelper.merge(deleteFix, insertFix);
+
+    return finalFix;
   }
 }

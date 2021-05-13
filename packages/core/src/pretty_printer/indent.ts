@@ -74,6 +74,7 @@ export class Indent {
         indent = indent - 2;
       } else if (type instanceof Statements.StartOfSelection
         || type instanceof Statements.AtSelectionScreen
+        || type instanceof Statements.AtLineSelection
         || type instanceof Statements.Initialization
         || type instanceof Statements.AtUserCommand
         || type instanceof Statements.TopOfPage
@@ -141,11 +142,12 @@ export class Indent {
         || type instanceof Statements.Form
         || type instanceof Statements.Else
         || type instanceof Statements.ElseIf
-        || type instanceof Statements.Method
+        || type instanceof Statements.MethodImplementation
         || type instanceof Statements.TestInjection
         || type instanceof Statements.TestSeam
         || type instanceof Statements.StartOfSelection
         || type instanceof Statements.AtSelectionScreen
+        || type instanceof Statements.AtLineSelection
         || type instanceof Statements.LoadOfProgram
         || type instanceof Statements.Initialization
         || type instanceof Statements.AtUserCommand

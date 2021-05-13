@@ -1,10 +1,11 @@
-import {ver, seq, opt, tok, str, altPrio, optPrio, regex, Expression} from "../combi";
-import {InstanceArrow, WParenLeftW, WParenRightW, WDashW, ParenLeftW, WPlus, WPlusW} from "../../1_lexer/tokens";
-import {CondBody, SwitchBody, ComponentChain, FieldChain, ReduceBody, TableBody, TypeNameOrInfer, ArrowOrDash,
-  MethodCallChain, ArithOperator, Cond, Constant, StringTemplate, ConvBody, CorrespondingBody, ValueBody, FilterBody} from ".";
+import {ver, seq, tok, altPrio, optPrio, regex, Expression} from "../combi";
+import {WParenLeftW, WParenRightW, WDashW, ParenLeftW, WPlus, WPlusW, Dash, InstanceArrow} from "../../1_lexer/tokens";
+import {CondBody, SwitchBody, ComponentChain, FieldChain, ReduceBody, TypeNameOrInfer,
+  MethodCallChain, ArithOperator, Cond, Constant, StringTemplate, ConvBody, CorrespondingBody, ValueBody, FilterBody, Arrow} from ".";
 import {Version} from "../../../version";
 import {IStatementRunnable} from "../statement_runnable";
 import {TextElement} from "./text_element";
+import {AttributeChain} from "./attribute_chain";
 
 // todo, COND and SWITCH are quite similar?
 
@@ -12,94 +13,103 @@ import {TextElement} from "./text_element";
 
 export class Source extends Expression {
   public getRunnable(): IStatementRunnable {
-    const ref = seq(tok(InstanceArrow), str("*"));
+    const ref = seq(tok(InstanceArrow), "*");
 
-    const method = seq(new MethodCallChain(), optPrio(seq(new ArrowOrDash(), new ComponentChain())));
+    const comp = seq(tok(Dash), ComponentChain);
+    const attr = seq(Arrow, AttributeChain);
+    const method = seq(MethodCallChain, optPrio(altPrio(attr, comp)), optPrio(ref));
 
     const rparen = tok(WParenRightW);
 
 // paren used for eg. "( 2 + 1 ) * 4"
     const paren = seq(tok(WParenLeftW),
-                      new Source(),
+                      Source,
                       rparen);
 
-    const after = seq(altPrio(str("&"), str("&&"), new ArithOperator()), new Source());
+    const after = seq(altPrio("&", "&&", ArithOperator), Source);
 
     const bool = seq(altPrio(ver(Version.v702, regex(/^BOOLC$/i)),
                              ver(Version.v740sp08, regex(/^XSDBOOL$/i))),
                      tok(ParenLeftW),
-                     new Cond(),
-                     str(")"));
+                     Cond,
+                     ")");
 
-    const prefix = altPrio(tok(WDashW), tok(WPlus), tok(WPlusW), str("BIT-NOT"));
+    const prefix = altPrio(tok(WDashW), tok(WPlus), tok(WPlusW), "BIT-NOT");
 
-    const old = seq(optPrio(prefix), altPrio(new Constant(),
-                                             new StringTemplate(),
-                                             new TextElement(),
+    const old = seq(optPrio(prefix), altPrio(Constant,
+                                             StringTemplate,
+                                             TextElement,
                                              bool,
-                                             altPrio(method, new FieldChain(), paren)),
-                    optPrio(altPrio(ref, after, new TableBody())));
+                                             method,
+                                             seq(FieldChain, optPrio(ref)),
+                                             paren),
+                    optPrio(after));
 
-    const corr = ver(Version.v740sp05, seq(str("CORRESPONDING"),
-                                           new TypeNameOrInfer(),
+    const corr = ver(Version.v740sp05, seq("CORRESPONDING",
+                                           TypeNameOrInfer,
                                            tok(ParenLeftW),
-                                           new CorrespondingBody(),
-                                           rparen));
-
-    const conv = ver(Version.v740sp02, seq(str("CONV"),
-                                           new TypeNameOrInfer(),
-                                           tok(ParenLeftW),
-                                           new ConvBody(),
-                                           rparen, opt(after)));
-
-    const swit = ver(Version.v740sp02, seq(str("SWITCH"),
-                                           new TypeNameOrInfer(),
-                                           tok(ParenLeftW),
-                                           new SwitchBody(),
-                                           rparen));
-
-    const value = ver(Version.v740sp02, seq(str("VALUE"),
-                                            new TypeNameOrInfer(),
-                                            tok(ParenLeftW),
-                                            new ValueBody(),
-                                            rparen));
-
-    const cond = ver(Version.v740sp02, seq(str("COND"),
-                                           new TypeNameOrInfer(),
-                                           tok(ParenLeftW),
-                                           new CondBody(),
+                                           CorrespondingBody,
                                            rparen,
-                                           opt(after)));
+                                           optPrio(after)));
 
-    const reff = ver(Version.v740sp02, seq(str("REF"),
-                                           new TypeNameOrInfer(),
+    const conv = ver(Version.v740sp02, seq("CONV",
+                                           TypeNameOrInfer,
                                            tok(ParenLeftW),
-                                           new Source(),
-                                           opt(str("OPTIONAL")),
+                                           ConvBody,
+                                           rparen,
+                                           optPrio(after)));
+
+    const swit = ver(Version.v740sp02, seq("SWITCH",
+                                           TypeNameOrInfer,
+                                           tok(ParenLeftW),
+                                           SwitchBody,
+                                           rparen,
+                                           optPrio(after)));
+
+    const value = ver(Version.v740sp02, seq("VALUE",
+                                            TypeNameOrInfer,
+                                            tok(ParenLeftW),
+                                            ValueBody,
+                                            rparen,
+                                            optPrio(after)));
+
+    const cond = ver(Version.v740sp02, seq("COND",
+                                           TypeNameOrInfer,
+                                           tok(ParenLeftW),
+                                           CondBody,
+                                           rparen,
+                                           optPrio(after)));
+
+    const reff = ver(Version.v740sp02, seq("REF",
+                                           TypeNameOrInfer,
+                                           tok(ParenLeftW),
+                                           Source,
+                                           optPrio("OPTIONAL"),
                                            rparen));
 
-    const exact = ver(Version.v740sp02, seq(str("EXACT"),
-                                            new TypeNameOrInfer(),
+    const exact = ver(Version.v740sp02, seq("EXACT",
+                                            TypeNameOrInfer,
                                             tok(ParenLeftW),
-                                            new Source(),
-                                            rparen));
+                                            Source,
+                                            rparen,
+                                            optPrio(after)));
 
     const filter = ver(Version.v740sp08,
-                       seq(str("FILTER"),
-                           new TypeNameOrInfer(),
+                       seq("FILTER",
+                           TypeNameOrInfer,
                            tok(ParenLeftW),
-                           new FilterBody(),
+                           FilterBody,
                            rparen));
 
     const reduce = ver(Version.v740sp08,
-                       seq(str("REDUCE"),
-                           new TypeNameOrInfer(),
+                       seq("REDUCE",
+                           TypeNameOrInfer,
                            tok(ParenLeftW),
-                           new ReduceBody(),
+                           ReduceBody,
                            rparen,
-                           opt(after)));
+                           optPrio(after)));
 
-    const ret = altPrio(corr, conv, value, cond, reff, exact, swit, filter, reduce, old);
+    const ret = altPrio(filter, reff, corr, conv, value, cond, exact, swit, reduce, old);
 
     return ret;
   }

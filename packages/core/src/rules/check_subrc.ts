@@ -12,6 +12,7 @@ export class CheckSubrcConf extends BasicRuleConfig {
   public openDataset: boolean = true;
   public authorityCheck: boolean = true;
   public selectSingle: boolean = true;
+  public selectTable: boolean = true;
   public updateDatabase: boolean = true;
   public insertDatabase: boolean = true;
   public modifyDatabase: boolean = true;
@@ -30,8 +31,22 @@ export class CheckSubrc extends ABAPRule {
       shortDescription: `Check sy-subrc`,
       extendedInformation: `Pseudo comment "#EC CI_SUBRC can be added to suppress findings
 
-If sy-dbcnt is checked after database statements, it is considered okay.`,
+If sy-dbcnt is checked after database statements, it is considered okay.
+
+"SELECT SINGLE @abap_true FROM " is considered as an existence check
+
+If IS ASSIGNED is checked after assigning, it is considered okay.
+
+Following FIND statements are considered okay if subrc is not checked,
+FIND with MATCH COUNT
+FIND with MATCH LENGTH
+FIND with RESULTS
+FIND with SUBMATCHES
+FIND with MATCH OFFSET
+FIND with MATCH LINE`,
       tags: [RuleTag.SingleFile],
+      pseudoComment: "EC CI_SUBRC",
+      pragma: "##SUBRC_OK",
     };
   }
 
@@ -54,6 +69,10 @@ If sy-dbcnt is checked after database statements, it is considered okay.`,
 
 // todo: CALL FUNCTION
 
+      if (statement.getPragmas().some(t => t.getStr() === this.getMetadata().pragma)) {
+        continue;
+      }
+
       if (config.openDataset === true
           && statement.get() instanceof Statements.OpenDataset
           && this.isChecked(i, statements) === false) {
@@ -65,6 +84,16 @@ If sy-dbcnt is checked after database statements, it is considered okay.`,
       } else if (config.selectSingle === true
           && statement.get() instanceof Statements.Select
           && statement.concatTokens().toUpperCase().startsWith("SELECT SINGLE ")
+          && this.isChecked(i, statements) === false
+          && this.checksDbcnt(i, statements) === false) {
+        const concat = statement.concatTokens().toUpperCase();
+        if (concat.startsWith("SELECT SINGLE @ABAP_TRUE FROM ")) {
+          continue;
+        }
+        issues.push(Issue.atStatement(file, statement, message, this.getMetadata().key, this.conf.severity));
+      } else if (config.selectTable === true
+          && statement.get() instanceof Statements.Select
+          && statement.concatTokens().toUpperCase().startsWith("SELECT SINGLE ") === false
           && this.isChecked(i, statements) === false
           && this.checksDbcnt(i, statements) === false) {
         issues.push(Issue.atStatement(file, statement, message, this.getMetadata().key, this.conf.severity));
@@ -93,6 +122,7 @@ If sy-dbcnt is checked after database statements, it is considered okay.`,
         issues.push(Issue.atStatement(file, statement, message, this.getMetadata().key, this.conf.severity));
       } else if (config.find === true
           && statement.get() instanceof Statements.Find
+          && this.isExemptedFind(statement) === false
           && this.isChecked(i, statements) === false) {
         issues.push(Issue.atStatement(file, statement, message, this.getMetadata().key, this.conf.severity));
       }
@@ -102,6 +132,10 @@ If sy-dbcnt is checked after database statements, it is considered okay.`,
   }
 
 ////////////////
+
+  private isExemptedFind(s: StatementNode): boolean {
+    return s.findDirectExpression(Expressions.Target) !== undefined;
+  }
 
   private checksDbcnt(index: number, statements: readonly StatementNode[]): boolean {
     for (let i = index + 1; i < statements.length; i++) {
@@ -120,28 +154,33 @@ If sy-dbcnt is checked after database statements, it is considered okay.`,
 
   private isChecked(index: number, statements: readonly StatementNode[]): boolean {
     let assigned: string | undefined = undefined;
-    if (statements[index].get() instanceof Statements.Assign) {
-      const fs = statements[index].findDirectExpression(Expressions.FSTarget
+    let assignedn: string | undefined = undefined;
+
+    if (statements[index].get() instanceof Statements.Assign
+        || statements[index].get() instanceof Statements.ReadTable) {
+      const fs = statements[index].findFirstExpression(Expressions.FSTarget
       )?.findFirstExpression(Expressions.FieldSymbol)?.getFirstToken().getStr();
       assigned = fs?.toUpperCase() + " IS ASSIGNED";
+      assignedn = fs?.toUpperCase() + " IS NOT ASSIGNED";
     }
 
     for (let i = index + 1; i < statements.length; i++) {
       const statement = statements[i];
       const concat = statement.concatTokens().toUpperCase();
       if (statement.get() instanceof Comment) {
-        if (concat.includes("EC CI_SUBRC")) {
+        if (concat.includes("" + this.getMetadata().pseudoComment)) {
           return true;
         }
       } else if (statement.get() instanceof Statements.EndIf) {
         continue;
       } else {
-        let a = false;
-        if (assigned) {
-          a = concat.includes(assigned);
+        if (assigned && concat.includes(assigned)) {
+          return true;
         }
-        return concat.includes("SY-SUBRC")
-          || a
+        if (assignedn && concat.includes(assignedn)) {
+          return true;
+        }
+        return concat.includes(" SY-SUBRC")
           || concat.includes("CL_ABAP_UNIT_ASSERT=>ASSERT_SUBRC");
       }
     }

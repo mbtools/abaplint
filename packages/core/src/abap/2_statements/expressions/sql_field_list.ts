@@ -1,19 +1,28 @@
-import {alt, str, plus, seq, opt, ver, tok, Expression, optPrio} from "../combi";
-import {Constant, SQLFieldName, Dynamic, Field, SQLAggregation} from ".";
+import {plusPrio, seq, ver, tok, Expression, optPrio, altPrio} from "../combi";
+import {Constant, SQLFieldName, Dynamic, Field, SQLAggregation, SQLCase} from ".";
 import {Version} from "../../../version";
 import {WAt} from "../../1_lexer/tokens";
 import {IStatementRunnable} from "../statement_runnable";
+import {SQLFunction} from "./sql_function";
+import {SimpleFieldChain} from "./simple_field_chain";
+import {SQLPath} from "./sql_path";
 
 export class SQLFieldList extends Expression {
   public getRunnable(): IStatementRunnable {
-    const comma = opt(ver(Version.v740sp05, str(",")));
+    const comma = optPrio(ver(Version.v740sp05, ","));
 
-    const abap = ver(Version.v740sp05, seq(tok(WAt), new Field()));
+    const abap = ver(Version.v740sp05, seq(tok(WAt), SimpleFieldChain));
 
-    const as = seq(str("AS"), new Field());
+    const as = seq("AS", Field);
 
-    return alt(str("*"),
-               new Dynamic(),
-               plus(seq(alt(new SQLAggregation(), new SQLFieldName(), abap, new Constant()), optPrio(as), comma)));
+    return altPrio("*",
+                   Dynamic,
+                   plusPrio(seq(altPrio(SQLAggregation,
+                                        SQLCase,
+                                        SQLFunction,
+                                        SQLPath,
+                                        SQLFieldName,
+                                        abap,
+                                        Constant), optPrio(as), comma)));
   }
 }

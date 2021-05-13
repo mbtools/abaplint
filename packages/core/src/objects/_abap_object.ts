@@ -1,22 +1,20 @@
 import {AbstractObject} from "./_abstract_object";
-import {xmlToArray} from "../xml_utils";
+import {xmlToArray, unescape} from "../xml_utils";
 import {ABAPParser} from "../abap/abap_parser";
 import {Version} from "../version";
 import {ISyntaxResult} from "../abap/5_syntax/_spaghetti_scope";
 import {IParseResult} from "./_iobject";
 import {ABAPFile} from "../abap/abap_file";
 
-export interface ITextElement {
-  key: string;
-  text: string;
-}
+export interface ITextElements {[key: string]: string}
 
 export abstract class ABAPObject extends AbstractObject {
   private parsed: readonly ABAPFile[];
-  protected texts: ITextElement[] | undefined;
+  protected texts: ITextElements | undefined;
   public syntaxResult: ISyntaxResult | undefined; // do not use this outside of SyntaxLogic class, todo: refactor
 
   abstract getSequencedFiles(): readonly ABAPFile[];
+  abstract getDescription(): string | undefined;
 
   public constructor(name: string) {
     super(name);
@@ -79,29 +77,30 @@ export abstract class ABAPObject extends AbstractObject {
     return undefined;
   }
 
-  public getTexts(): readonly ITextElement[] {
+  public getTexts(): ITextElements {
     if (this.texts === undefined) {
-      this.findTexts(this.parseRaw());
+      this.findTexts(this.parseRaw2());
     }
     return this.texts!;
   }
 
   protected findTexts(parsed: any) {
-    this.texts = [];
+    this.texts = {};
 
     if (parsed?.abapGit["asx:abap"]["asx:values"]?.TPOOL?.item === undefined) {
       return;
     }
 
     for (const t of xmlToArray(parsed.abapGit["asx:abap"]["asx:values"].TPOOL.item)) {
-      if (t?.ID?._text === "I") {
+      if (t?.ID === "I") {
         if (t.KEY === undefined) {
           throw new Error("findTexts, undefined");
         }
-        this.texts.push({
-          key: t.KEY._text,
-          text: t.ENTRY ? t.ENTRY._text : "",
-        });
+        const key = t.KEY;
+        if (key === undefined) {
+          continue;
+        }
+        this.texts[key.toUpperCase()] = t.ENTRY ? unescape(t.ENTRY) : "";
       }
     }
   }

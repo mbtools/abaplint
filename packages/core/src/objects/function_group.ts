@@ -1,7 +1,7 @@
-import {ABAPObject, ITextElement} from "./_abap_object";
+import {ABAPObject, ITextElements} from "./_abap_object";
 import {FunctionModuleDefinition} from "../abap/types";
 import {xmlToArray} from "../xml_utils";
-import * as xmljs from "xml-js";
+import * as fastxmlparser from "fast-xml-parser";
 import {ABAPFile} from "../abap/abap_file";
 
 export class FunctionGroup extends ABAPObject {
@@ -10,6 +10,11 @@ export class FunctionGroup extends ABAPObject {
 
   public getType(): string {
     return "FUGR";
+  }
+
+  public getDescription(): string | undefined {
+    // todo
+    return undefined;
   }
 
   public setDirty() {
@@ -85,9 +90,10 @@ export class FunctionGroup extends ABAPObject {
   }
 
   public getInclude(name: string): ABAPFile | undefined {
+    const upper = name.toUpperCase();
     const includes = this.getIncludeFiles();
     for (const i of includes) {
-      if (i.name.toUpperCase() === name.toUpperCase()) {
+      if (i.name.toUpperCase() === upper) {
         return i.file;
       }
     }
@@ -124,14 +130,14 @@ export class FunctionGroup extends ABAPObject {
     return undefined;
   }
 
-  public getTexts(): readonly ITextElement[] {
+  public getTexts(): ITextElements {
     if (this.texts === undefined) {
       const found = this.findTextFile();
       if (found === undefined) {
-        return [];
+        return {};
       }
 
-      const parsed = xmljs.xml2js(found.getRaw(), {compact: true});
+      const parsed = fastxmlparser.parse(found.getRaw(), {parseNodeValue: false, ignoreAttributes: true, trimValues: false});
       this.findTexts(parsed);
     }
 
@@ -144,7 +150,7 @@ export class FunctionGroup extends ABAPObject {
     this.includes = [];
     this.modules = [];
 
-    const parsed = this.parseRaw();
+    const parsed = this.parseRaw2();
     if (parsed === undefined) {
       return;
     }
@@ -153,7 +159,7 @@ export class FunctionGroup extends ABAPObject {
     const includes = parsed.abapGit["asx:abap"]["asx:values"]?.INCLUDES;
     if (includes !== undefined) {
       for (const i of xmlToArray(includes.SOBJ_NAME)) {
-        this.includes.push(i?._text);
+        this.includes.push(i);
       }
     }
 

@@ -1,38 +1,30 @@
-import {seq, per, opt, alt, tok, str, star, Expression, altPrio, optPrio, ver} from "../combi";
-import {WParenLeftW, WParenLeft} from "../../1_lexer/tokens";
-import {SQLTarget, SQLFieldList, SQLFrom, SQLCond, SQLSource, DatabaseConnection, SQLTargetTable, SQLOrderBy, SQLHaving, SQLForAllEntries} from ".";
+import {seq, per, opt, alt, str, Expression, altPrio, optPrio, ver} from "../combi";
+import {SQLFieldList, SQLFrom, SQLCond, SQLSource, DatabaseConnection, SQLIntoTable, SQLOrderBy, SQLHaving, SQLForAllEntries} from ".";
 import {Version} from "../../../version";
 import {IStatementRunnable} from "../statement_runnable";
 import {SQLGroupBy} from "./sql_group_by";
+import {SQLIntoStructure} from "./sql_into_structure";
 
 export class Select extends Expression {
   public getRunnable(): IStatementRunnable {
+    const into = alt(SQLIntoStructure, SQLIntoTable);
 
-    const intoList = seq(alt(tok(WParenLeft), tok(WParenLeftW)),
-                         star(seq(new SQLTarget(), str(","))),
-                         new SQLTarget(),
-                         str(")"));
-    const intoSimple = seq(opt(str("CORRESPONDING FIELDS OF")),
-                           new SQLTarget());
+    const where = seq("WHERE", SQLCond);
 
-    const into = alt(seq(str("INTO"), alt(intoList, intoSimple)), new SQLTargetTable());
-
-    const where = seq(str("WHERE"), new SQLCond());
-
-    const up = seq(str("UP TO"), new SQLSource(), str("ROWS"));
-    const offset = ver(Version.v751, seq(str("OFFSET"), new SQLSource()));
+    const up = seq("UP TO", SQLSource, "ROWS");
+    const offset = ver(Version.v751, seq("OFFSET", SQLSource));
 
     const client = str("CLIENT SPECIFIED");
     const bypass = str("BYPASSING BUFFER");
 
-    const fields = seq(str("FIELDS"), new SQLFieldList());
+    const fields = seq("FIELDS", SQLFieldList);
 
-    const perm = per(new SQLFrom(), into, new SQLForAllEntries(), where,
-                     new SQLOrderBy(), up, offset, client, new SQLHaving(), bypass, new SQLGroupBy(), fields, new DatabaseConnection());
+    const perm = per(SQLFrom, into, SQLForAllEntries, where,
+                     SQLOrderBy, up, offset, client, SQLHaving, bypass, SQLGroupBy, fields, DatabaseConnection);
 
-    const ret = seq(str("SELECT"),
-                    altPrio(str("DISTINCT"), optPrio(seq(str("SINGLE"), optPrio(str("FOR UPDATE"))))),
-                    opt(new SQLFieldList()),
+    const ret = seq("SELECT",
+                    altPrio("DISTINCT", optPrio(seq("SINGLE", optPrio("FOR UPDATE")))),
+                    opt(SQLFieldList),
                     perm);
 
     return ret;

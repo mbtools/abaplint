@@ -1,44 +1,37 @@
-import {TypedIdentifier} from "../_typed_identifier";
 import {AbstractType} from "./_abstract_type";
 
 export interface IStructureComponent {
   name: string;
-  type: AbstractType | TypedIdentifier;
+  type: AbstractType;
 }
 
-export class StructureType implements AbstractType {
+export class StructureType extends AbstractType {
+  private readonly indexed: {[index: string]: AbstractType};
   private readonly components: IStructureComponent[];
 
-  public constructor(components: IStructureComponent[]) {
+  public constructor(components: IStructureComponent[], name?: string) {
+    super(name);
     if (components.length === 0) {
       throw new Error("Structure does not contain any components");
     }
-// todo, check for duplicate names
+
+    this.indexed = {};
+    for (const c of components) {
+      const upper = c.name.toUpperCase();
+      if (this.indexed[upper] !== undefined) {
+        throw new Error("Structure, duplicate field name " + upper);
+      }
+      this.indexed[upper] = c.type;
+    }
     this.components = components;
   }
 
-  public getComponents(): {name: string, type: AbstractType}[] {
-    const result: {name: string, type: AbstractType}[] = [];
-    for (const c of this.components) {
-      result.push({
-        name: c.name,
-        type: c.type instanceof TypedIdentifier ? c.type.getType() : c.type,
-      });
-    }
-    return result;
+  public getComponents(): IStructureComponent[] {
+    return this.components;
   }
 
   public getComponentByName(name: string): AbstractType | undefined {
-    for (const c of this.getComponents()) {
-      if (c.name.toUpperCase() === name.toUpperCase()) {
-        if (c.type instanceof TypedIdentifier) {
-          return c.type.getType();
-        } else {
-          return c.type;
-        }
-      }
-    }
-    return undefined;
+    return this.indexed[name.toUpperCase()];
   }
 
   public toText(level: number) {
@@ -55,16 +48,14 @@ export class StructureType implements AbstractType {
   }
 
   public toABAP(): string {
-    throw new Error("StructureType, toABAP, todo");
+    const ret = this.getQualifiedName();
+    if (ret) {
+      return ret;
+    }
+    return "StructureTypetoABAPtodo";
   }
 
   public containsVoid() {
-    return this.getComponents().some(c => {
-      if (c.type instanceof TypedIdentifier) {
-        c.type.getType().containsVoid();
-      } else {
-        c.type.containsVoid();
-      }
-    });
+    return this.getComponents().some(c => { c.type.containsVoid(); });
   }
 }

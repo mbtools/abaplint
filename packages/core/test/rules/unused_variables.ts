@@ -12,10 +12,11 @@ function testFix(input: string, expected: string) {
 async function runMulti(files: MemoryFile[]): Promise<Issue[]> {
   const reg = new Registry().addFiles(files);
   await reg.parseAsync();
+//  console.dir(reg.findIssues());
   const rule = new UnusedVariables().initialize(reg);
-  let issues: Issue[] = [];
+  const issues: Issue[] = [];
   for (const o of reg.getObjects()) {
-    issues = issues.concat(rule.run(o));
+    issues.push(...rule.run(o));
   }
   return issues;
 }
@@ -50,6 +51,18 @@ describe("Rule: unused_variables, single file", () => {
     const abap = "DATA foo.";
     const issues = await runSingle(abap);
     expect(issues.length).to.equal(1);
+  });
+
+  it("pragma should suppress issue", async () => {
+    const abap = "DATA foo ##NEEDED.";
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("pseudo comment should suppress issue", async () => {
+    const abap = "DATA foo. \"#EC NEEDED";
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
   });
 
   it("test5", async () => {
@@ -317,7 +330,7 @@ WRITE bar.`);
     DATA(language) = COND #( WHEN rb_langa = abap_true THEN '%' ELSE 'a' ).
     WRITE language.`;
     const issues = await runSingle(abap);
-    expect(issues.length).to.equal(0);
+    expect(issues[0]?.getMessage()).to.equal(undefined);
   });
 
   it("EXPORT", async () => {
@@ -495,6 +508,351 @@ ENDFORM.`;
   INSERT 2 INTO TABLE tab ASSIGNING <bar>.`;
     const issues = await runSingle(abap);
     expect(issues.length).to.equal(0);
+  });
+
+  it("NEW with inferred type, no unused variables", async () => {
+    const abap = `
+CLASS lcl_clas DEFINITION.
+  PUBLIC SECTION.
+    METHODS constructor IMPORTING imp TYPE string.
+ENDCLASS.
+CLASS lcl_clas IMPLEMENTATION.
+  METHOD constructor.
+    WRITE imp.
+  ENDMETHOD.
+ENDCLASS.
+FORM bar.
+  DATA foo TYPE REF TO lcl_clas.
+  DATA(lv_text) = |abc|.
+  foo = NEW #( lv_text ).
+ENDFORM.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("foo used in inline CAST", async () => {
+    const abap = `
+  CLASS lcl_clas DEFINITION.
+  ENDCLASS.
+  CLASS lcl_clas IMPLEMENTATION.
+  ENDCLASS.
+  FORM bar.
+    DATA foo TYPE REF TO lcl_clas.
+    CAST lcl_clas( foo ).
+  ENDFORM.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("GET BADI", async () => {
+    const abap = `
+  DATA lr_badi TYPE REF TO cl_blah.
+  GET BADI lr_badi.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("READ TABLE", async () => {
+    const abap = `
+  DATA lv_test TYPE string.
+  DATA lv_result TYPE string.
+  DATA lt_test TYPE STANDARD TABLE OF string.
+  READ TABLE lt_test INTO lv_result WITH KEY table_line = lv_test. "<<< used
+  IF sy-subrc = 0.
+    WRITE lv_result.
+  ENDIF.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("APPEND CORRESPONDING", async () => {
+    const abap = `
+TYPES:
+  BEGIN OF ty_result,
+    ci_has_errors TYPE abap_bool,
+  END OF ty_result.
+DATA ls_tadir TYPE ty_result.
+DATA rt_list TYPE STANDARD TABLE OF ty_result WITH EMPTY KEY.
+APPEND CORRESPONDING #( ls_tadir ) TO rt_list.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("RAISE EXCEPTION EXPORTING", async () => {
+    const abap = `
+    DATA bar TYPE string.
+    RAISE EXCEPTION TYPE cx_ags_error
+      EXPORTING
+        textid = bar.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("SYSTEM-CALL DID", async () => {
+    const abap = `
+    DATA c_last_error TYPE i.
+    DATA blah TYPE i VALUE 87.
+    DATA tmp_s TYPE string.
+    DATA lv_string TYPE string.
+
+    SYSTEM-CALL ict
+      DID
+        blah
+      PARAMETERS
+        tmp_s
+        lv_string
+        c_last_error.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("SELECT FROM dynamic", async () => {
+    const abap = `
+  CONSTANTS lc_tabname TYPE tabname VALUE 'ZTEST'.
+  DATA lv_test TYPE i.
+  SELECT SINGLE * INTO @lv_test FROM (lc_tabname).`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("constant used via LENGTH", async () => {
+    const abap = `
+    CONSTANTS lc_length TYPE i VALUE 10.
+    TYPES ty_name TYPE c LENGTH lc_length.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("basic COLLECT", async () => {
+    const abap = `
+  DATA tab TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+  DATA var TYPE i.
+  COLLECT var INTO tab.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("dynamic ASSIGN", async () => {
+    const abap = `
+  DATA(lv_sel_opt_name) = |sdfdsfds|.
+  ASSIGN (lv_sel_opt_name) TO FIELD-SYMBOL(<fs>).
+  WRITE <fs>.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("TRANSFER", async () => {
+    const abap = `
+  DATA foo TYPE c.
+  DATA bar TYPE c.
+  TRANSFER foo TO bar.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("constant in class", async () => {
+    const abap = `
+CLASS lcl_test DEFINITION FINAL.
+  PUBLIC SECTION.
+    CONSTANTS c_name_length TYPE i VALUE 90 ##NO_TEXT.
+    TYPES ty_name TYPE c LENGTH c_name_length.
+ENDCLASS.
+CLASS lcl_test IMPLEMENTATION.
+ENDCLASS.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("badi", async () => {
+    const abap = `
+    CONSTANTS c_badi_class TYPE seoclsname VALUE 'CL_TEST'.
+    CONSTANTS c_badi_method TYPE seocmpname VALUE 'GET_TEST'.
+    DATA lo_badi TYPE REF TO cl_badi_base.
+    GET BADI lo_badi TYPE (c_badi_class).
+    CALL BADI lo_badi->(c_badi_method).`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("UNPACK", async () => {
+    const abap = `
+  DATA foo TYPE i.
+  DATA bar TYPE c LENGTH 10.
+  UNPACK foo TO bar.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("FORMAT", async () => {
+    const abap = `
+  DATA lv_color TYPE i.
+  FORMAT COLOR = lv_color.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("Table expression", async () => {
+    const abap = `
+  DATA ref_scan_manager TYPE REF TO sdfsdfsd.
+  DATA(back_structure) = ref_scan_manager->structures[ 2 ].
+  DATA(sdfs) = ref_scan_manager->statements[ back_structure-stmnt_from ].
+  WRITE sdfs.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("Table expression, target", async () => {
+    const abap = `
+  DATA result TYPE STANDARD TABLE OF string.
+  DATA int TYPE i VALUE 1.
+  result[ int ] = 'hello'.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("ABSTRACT METHOD", async () => {
+    const base = `
+CLASS zcl_base DEFINITION PUBLIC ABSTRACT.
+  PROTECTED SECTION.
+    METHODS inspect_tokens ABSTRACT IMPORTING
+      index TYPE i
+      unused TYPE i.
+ENDCLASS.
+CLASS zcl_base IMPLEMENTATION.
+ENDCLASS.`;
+    const input = `
+CLASS zcl_input DEFINITION PUBLIC INHERITING FROM zcl_base.
+  PROTECTED SECTION.
+    METHODS inspect_tokens REDEFINITION.
+ENDCLASS.
+CLASS zcl_input IMPLEMENTATION.
+  METHOD inspect_tokens.
+    WRITE index.
+  ENDMETHOD.
+ENDCLASS.`;
+    const locals = `
+CLASS ltd_check_base DEFINITION INHERITING FROM zcl_base.
+  PROTECTED SECTION.
+    METHODS inspect_tokens REDEFINITION.
+ENDCLASS.
+CLASS ltd_check_base IMPLEMENTATION.
+  METHOD inspect_tokens.
+    RETURN.
+  ENDMETHOD.
+ENDCLASS.`;
+    const issues = await runMulti([
+      new MemoryFile("zcl_base.clas.abap", base),
+      new MemoryFile("zcl_base.clas.locals_imp.abap", locals),
+      new MemoryFile("zcl_input.clas.abap", input),
+    ]);
+    expect(issues.length).to.equal(1);
+  });
+
+  it("SET PF-STATUS", async () => {
+    const abap = `
+    DATA bar TYPE c LENGTH 1 VALUE 'A'.
+    SET PF-STATUS bar.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("SET TITLEBAR", async () => {
+    const abap = `
+    DATA bar TYPE c LENGTH 1 VALUE 'A'.
+    SET TITLEBAR bar.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("CALL TRANSACTION", async () => {
+    const abap = `
+  DATA lv_mode TYPE c LENGTH 1 VALUE 'N'.
+  DATA lt_batch TYPE STANDARD TABLE OF bdcdata WITH EMPTY KEY.
+  DATA lt_messages TYPE STANDARD TABLE OF bdcmsgcoll WITH EMPTY KEY.
+  CALL TRANSACTION 'FOOBAR'
+    WITH AUTHORITY-CHECK
+    USING lt_batch
+    MODE lv_mode
+    UPDATE 'S'
+    MESSAGES INTO lt_messages.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("Report inline, 1", async () => {
+    const abap = `
+    FORM moo.
+      DATA(lv_subrc) = sy-subrc.
+    ENDFORM.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(1);
+  });
+
+  it("Report inline, 2", async () => {
+    const abap = `
+    DATA(lv_subrc) = sy-subrc.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(1);
+  });
+
+  it("Report inline, 1 ok", async () => {
+    const abap = `
+    FORM moo.
+      DATA(lv_subrc1) = sy-subrc.
+      WRITE lv_subrc1.
+    ENDFORM.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("Report inline, ok 2", async () => {
+    const abap = `
+    DATA(lv_subrc2) = sy-subrc.
+    WRITE lv_subrc2.`;
+    const issues = await runSingle(abap);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("CATCH INTO is a write", async () => {
+    const abap = `
+FORM bar.
+  TRY.
+    CATCH cx_static_check INTO DATA(lo_exc).
+      WRITE lo_exc->get_text( ).
+  ENDTRY.
+ENDFORM.`;
+    const issues = await runSingle(abap);
+    expect(issues[0]?.getMessage()).to.equal(undefined);
+  });
+
+  it("REDUCE", async () => {
+    const abap = `
+  FORM bar.
+    TYPES: BEGIN OF ty_record,
+        value TYPE i,
+      END OF ty_record.
+    DATA records TYPE STANDARD TABLE OF ty_record WITH EMPTY KEY.
+    DATA(total) = REDUCE i( INIT sum = 0 FOR record IN records NEXT sum = sum + record-value ).
+    WRITE total.
+  ENDFORM.`;
+    const issues = await runSingle(abap);
+    expect(issues[0]?.getMessage()).to.equal(undefined);
+  });
+
+  it("SET HANDLER", async () => {
+    const abap = `
+  DATA lo_events TYPE REF TO cl_voided.
+  SET HANDLER lcl_event_handler=>on_link_click FOR lo_events.`;
+    const issues = await runSingle(abap);
+    expect(issues[0]?.getMessage()).to.equal(undefined);
+  });
+
+  it("MESSAGE TYPE var", async () => {
+    const abap = `
+    DATA lv_msgty TYPE sy-msgty.
+    MESSAGE ID 'ABC' TYPE lv_msgty NUMBER '123'.`;
+    const issues = await runSingle(abap);
+    expect(issues[0]?.getMessage()).to.equal(undefined);
   });
 
 });

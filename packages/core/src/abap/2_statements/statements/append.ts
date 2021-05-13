@@ -1,28 +1,28 @@
 import {IStatement} from "./_statement";
-import {str, opt, alt, seq, ver} from "../combi";
+import {opt, seq, alt, altPrio, optPrio, ver} from "../combi";
 import {Version} from "../../../version";
-import {FSTarget, Target, Field, Source, SimpleSource} from "../expressions";
+import {FSTarget, Target, Field, Source, SimpleSource4} from "../expressions";
 import {IStatementRunnable} from "../statement_runnable";
 
 export class Append implements IStatement {
 
   public getMatcher(): IStatementRunnable {
-    const assigning = seq(str("ASSIGNING"), new FSTarget());
-    const reference = seq(str("REFERENCE INTO"), new Target());
-    const sorted = seq(str("SORTED BY"), new Field());
+    const assigning = seq("ASSIGNING", FSTarget);
+    const reference = seq("REFERENCE INTO", Target);
+    const sorted = seq("SORTED BY", Field);
 
-    const range = seq(opt(seq(str("FROM"), new Source())),
-                      opt(seq(str("TO"), new Source())));
+    const range = seq(optPrio(seq("FROM", Source)),
+                      optPrio(seq("TO", Source)));
 
-    const src = alt(ver(Version.v740sp02, new Source()), new SimpleSource());
+    const src = alt(SimpleSource4, ver(Version.v740sp02, Source));
 
-    return seq(str("APPEND"),
-               alt(str("INITIAL LINE"), seq(opt(str("LINES OF")), src)),
+    return seq("APPEND",
+               altPrio("INITIAL LINE", seq(optPrio("LINES OF"), src)),
                opt(range),
-               opt(seq(str("TO"), new Target())),
-               opt(alt(assigning, reference)),
-               opt(str("CASTING")),
-               opt(sorted));
+               optPrio(seq("TO", Target)),
+               opt(altPrio(assigning, reference)),
+               optPrio("CASTING"),
+               optPrio(sorted));
   }
 
 }

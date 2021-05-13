@@ -1,33 +1,33 @@
 import {IStatement} from "./_statement";
-import {str, seq, opt, alt, per, altPrio, ver} from "../combi";
-import {Target, Source, ExceptionName, MessageSource, ConstantOrFieldSource} from "../expressions";
+import {seq, opt, alt, per, optPrio, altPrio, ver} from "../combi";
+import {Target, Source, ExceptionName, MessageSource, SimpleSource3} from "../expressions";
 import {IStatementRunnable} from "../statement_runnable";
 import {Version} from "../../../version";
 
 export class Message implements IStatement {
 
   public getMatcher(): IStatementRunnable {
-    const like = seq(str("DISPLAY LIKE"), new Source());
-    const into = seq(str("INTO"), new Target());
-    const raising = seq(str("RAISING"), new ExceptionName());
+    const s = alt(ver(Version.v740sp02, Source), SimpleSource3);
+    const like = seq("DISPLAY LIKE", Source);
+    const into = seq("INTO", Target);
+    const raising = seq("RAISING", ExceptionName);
 
     const options = per(like, into, raising);
 
-    const type = seq(str("TYPE"), new Source());
+    const type = seq("TYPE", Source);
 
-    const sou = altPrio(options, new Source());
+    const sou = altPrio(options, Source);
     const sourc = alt(sou,
-                      seq(new Source(), sou),
-                      seq(new Source(), new Source(), sou),
-                      seq(new Source(), new Source(), new Source(), options));
+                      seq(s, sou),
+                      seq(s, s, sou),
+                      seq(s, s, s, options));
 
-    const mwith = seq(str("WITH"), new Source(), opt(sourc));
+    const mwith = seq("WITH", s, opt(sourc));
 
-    const foo = seq(new MessageSource(), opt(options), opt(mwith));
-    const s = alt(ver(Version.v740sp02, new Source()), new ConstantOrFieldSource());
-    const text = seq(s, type, opt(like), opt(raising));
+    const foo = seq(MessageSource, opt(options), opt(mwith));
+    const text = seq(s, type, optPrio(like), optPrio(raising));
 
-    const ret = seq(str("MESSAGE"), alt(foo, text));
+    const ret = seq("MESSAGE", altPrio(foo, text));
 
     return ret;
   }

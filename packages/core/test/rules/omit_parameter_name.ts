@@ -3,12 +3,17 @@ import {Registry} from "../../src/registry";
 import {expect} from "chai";
 import {OmitParameterName} from "../../src/rules";
 import {Issue} from "../../src/issue";
+import {testRuleFixSingle} from "./_utils";
 
 async function findIssues(abap: string, filename: string): Promise<readonly Issue[]> {
   const reg = new Registry().addFile(new MemoryFile(filename, abap));
   await reg.parseAsync();
   const rule = new OmitParameterName();
   return rule.initialize(reg).run(reg.getFirstObject()!);
+}
+
+function testFix(input: string, expected: string) {
+  testRuleFixSingle(input, expected, new OmitParameterName());
 }
 
 describe("Rule: omit_parameter_name", () => {
@@ -91,6 +96,59 @@ FORM bar.
 ENDFORM.`;
     const issues = await findIssues(abap, "zreport.prog.abap");
     expect(issues.length).to.equal(0);
+  });
+
+  it("Two parameters supplied", async () => {
+    const abap = `
+INTERFACE zif_abaplint_code_inspector.
+  METHODS run
+    IMPORTING
+      iv_variant TYPE sci_chkv
+      iv_save    TYPE abap_bool DEFAULT abap_false.
+endinterface.
+
+FORM bar.
+  DATA li_code_inspector TYPE REF TO zif_abaplint_code_inspector.
+  li_code_inspector->run(
+    iv_variant = |{ p_chkv }|
+    iv_save    = abap_true ).
+ENDFORM.`;
+    const issues = await findIssues(abap, "zreport.prog.abap");
+    expect(issues.length).to.equal(0);
+  });
+
+});
+
+describe("Rule: omit_parameter_name, quick fixes", () => {
+
+  it("quick fix 1", async () => {
+    const abap = `
+CLASS lcl_bar DEFINITION.
+  PUBLIC SECTION.
+    CLASS-METHODS bar IMPORTING imp TYPE i.
+ENDCLASS.
+CLASS lcl_bar IMPLEMENTATION.
+  METHOD bar.
+  ENDMETHOD.
+ENDCLASS.
+
+FORM bar.
+  lcl_bar=>bar( imp = 2 ).
+ENDFORM.`;
+    const expected = `
+CLASS lcl_bar DEFINITION.
+  PUBLIC SECTION.
+    CLASS-METHODS bar IMPORTING imp TYPE i.
+ENDCLASS.
+CLASS lcl_bar IMPLEMENTATION.
+  METHOD bar.
+  ENDMETHOD.
+ENDCLASS.
+
+FORM bar.
+  lcl_bar=>bar( 2 ).
+ENDFORM.`;
+    testFix(abap, expected);
   });
 
 });

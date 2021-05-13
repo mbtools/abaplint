@@ -4,8 +4,9 @@ import * as Expressions from "../../2_statements/expressions";
 import {ObjectOriented} from "../_object_oriented";
 import {ScopeType} from "../_scope_type";
 import {ReferenceType} from "../_reference";
+import {StatementSyntax} from "../_statement_syntax";
 
-export class MethodImplementation {
+export class MethodImplementation implements StatementSyntax {
   public runSyntax(node: StatementNode, scope: CurrentScope, filename: string): void {
     const helper = new ObjectOriented(scope);
 
@@ -16,31 +17,29 @@ export class MethodImplementation {
 
     const classDefinition = scope.findClassDefinition(className);
     if (classDefinition === undefined) {
+      scope.pop(node.getLastToken().getEnd());
       throw new Error("Class definition for \"" + className + "\" not found");
     }
 
-    const methodDefinition = helper.searchMethodName(classDefinition, methodName);
+    const {method: methodDefinition} = helper.searchMethodName(classDefinition, methodName);
     if (methodDefinition === undefined) {
-      scope.pop();
+      scope.pop(node.getLastToken().getEnd());
       throw new Error("Method definition \"" + methodName + "\" not found");
     }
+
+    scope.addReference(methodToken, methodDefinition, ReferenceType.MethodImplementationReference, filename);
 
     scope.addList(methodDefinition.getParameters().getAll());
 
     for (const i of helper.findInterfaces(classDefinition)) {
+      if (methodName.toUpperCase().startsWith(i.name.toUpperCase() + "~") === false) {
+        continue;
+      }
       const idef = scope.findInterfaceDefinition(i.name);
       if (idef === undefined) {
         continue;
       }
-
-      scope.addListPrefix(idef.getAttributes()!.getConstants(), i.name + "~");
-      scope.addListPrefix(idef.getAttributes()!.getStatic(), i.name + "~");
-      // todo, only add instance variables if its an instance method
-      scope.addListPrefix(idef.getAttributes()!.getInstance(), i.name + "~");
-
-      if (methodName.toUpperCase().startsWith(idef.getName().toUpperCase() + "~")) {
-        scope.addReference(methodToken, idef, ReferenceType.ObjectOrientedReference, filename);
-      }
+      scope.addReference(methodToken, idef, ReferenceType.ObjectOrientedReference, filename);
     }
   }
 }

@@ -6,10 +6,10 @@ jobs:
   coverage:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
       with:
         fetch-depth: 1
-    - uses: actions/setup-node@v1
+    - uses: actions/setup-node@v2
       with:
         node-version: '12.x'
     - name: Run npm steps
@@ -18,8 +18,15 @@ jobs:
         cd packages
         cd core
         npm run coverage
-    - uses: codecov/codecov-action@v1
-      if: github.ref == 'refs/heads/master' && github.repository == 'abaplint/abaplint'
+    - name: Update coverage.abaplint.org
+      uses: peaceiris/actions-gh-pages@v3
+      if: github.ref == 'refs/heads/main' && github.repository == 'abaplint/abaplint'
       with:
-        token: ${{secrets.CODECOV_TOKEN}}
-        file: ./packages/core/coverage/coverage-final.json
+        deploy_key: ${{ secrets.COVERAGE_DEPLOY_KEY }}
+        external_repository: abaplint/coverage.abaplint.org
+        user_name: 'github-actions[bot]'
+        user_email: 'github-actions[bot]@users.noreply.github.com'        
+        publish_branch: main
+        cname: coverage.abaplint.org
+        force_orphan: true
+        publish_dir: ./packages/core/coverage

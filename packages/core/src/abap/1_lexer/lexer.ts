@@ -133,7 +133,7 @@ export class Lexer {
         pos = new VirtualPosition(this.virtual, pos.getRow(), pos.getCol());
       }
 
-      let tok: Token;
+      let tok: Token | undefined = undefined;
       if (this.m === Mode.Comment) {
         tok = new Tokens.Comment(pos, s);
       } else if (this.m === Mode.Ping || this.m === Mode.Str) {
@@ -152,101 +152,107 @@ export class Lexer {
         } else {
           tok = new Tokens.Identifier(pos, s);
         }
-      } else if (s.substr(0, 2) === "##" && s.length > 1) {
+      } else if (s.substr(0, 2) === "##") {
         tok = new Tokens.Pragma(pos, s);
-      } else if (s.length === 1 && (s === "." || s === ",")) {
-        tok = new Tokens.Punctuation(pos, s);
-      } else if (s.length === 1 && s === "[") {
-        if (whiteBefore && whiteAfter) {
-          tok = new Tokens.WBracketLeftW(pos, s);
-        } else if (whiteBefore) {
-          tok = new Tokens.WBracketLeft(pos, s);
-        } else if (whiteAfter) {
-          tok = new Tokens.BracketLeftW(pos, s);
-        } else {
-          tok = new Tokens.BracketLeft(pos, s);
+      } else if (s.length === 1) {
+        if (s === "." || s === ",") {
+          tok = new Tokens.Punctuation(pos, s);
+        } else if (s === "[") {
+          if (whiteBefore && whiteAfter) {
+            tok = new Tokens.WBracketLeftW(pos, s);
+          } else if (whiteBefore) {
+            tok = new Tokens.WBracketLeft(pos, s);
+          } else if (whiteAfter) {
+            tok = new Tokens.BracketLeftW(pos, s);
+          } else {
+            tok = new Tokens.BracketLeft(pos, s);
+          }
+        } else if (s === "(") {
+          if (whiteBefore && whiteAfter) {
+            tok = new Tokens.WParenLeftW(pos, s);
+          } else if (whiteBefore) {
+            tok = new Tokens.WParenLeft(pos, s);
+          } else if (whiteAfter) {
+            tok = new Tokens.ParenLeftW(pos, s);
+          } else {
+            tok = new Tokens.ParenLeft(pos, s);
+          }
+        } else if (s === "]") {
+          if (whiteBefore && whiteAfter) {
+            tok = new Tokens.WBracketRightW(pos, s);
+          } else if (whiteBefore) {
+            tok = new Tokens.WBracketRight(pos, s);
+          } else if (whiteAfter) {
+            tok = new Tokens.BracketRightW(pos, s);
+          } else {
+            tok = new Tokens.BracketRight(pos, s);
+          }
+        } else if (s === ")") {
+          if (whiteBefore && whiteAfter) {
+            tok = new Tokens.WParenRightW(pos, s);
+          } else if (whiteBefore) {
+            tok = new Tokens.WParenRight(pos, s);
+          } else if (whiteAfter) {
+            tok = new Tokens.ParenRightW(pos, s);
+          } else {
+            tok = new Tokens.ParenRight(pos, s);
+          }
+        } else if (s === "-") {
+          if (whiteBefore && whiteAfter) {
+            tok = new Tokens.WDashW(pos, s);
+          } else if (whiteBefore) {
+            tok = new Tokens.WDash(pos, s);
+          } else if (whiteAfter) {
+            tok = new Tokens.DashW(pos, s);
+          } else {
+            tok = new Tokens.Dash(pos, s);
+          }
+        } else if (s === "+") {
+          if (whiteBefore && whiteAfter) {
+            tok = new Tokens.WPlusW(pos, s);
+          } else if (whiteBefore) {
+            tok = new Tokens.WPlus(pos, s);
+          } else if (whiteAfter) {
+            tok = new Tokens.PlusW(pos, s);
+          } else {
+            tok = new Tokens.Plus(pos, s);
+          }
+        } else if (s === "@") {
+          if (whiteBefore && whiteAfter) {
+            tok = new Tokens.WAtW(pos, s);
+          } else if (whiteBefore) {
+            tok = new Tokens.WAt(pos, s);
+          } else if (whiteAfter) {
+            tok = new Tokens.AtW(pos, s);
+          } else {
+            tok = new Tokens.At(pos, s);
+          }
         }
-      } else if (s.length === 1 && s === "(") {
-        if (whiteBefore && whiteAfter) {
-          tok = new Tokens.WParenLeftW(pos, s);
-        } else if (whiteBefore) {
-          tok = new Tokens.WParenLeft(pos, s);
-        } else if (whiteAfter) {
-          tok = new Tokens.ParenLeftW(pos, s);
-        } else {
-          tok = new Tokens.ParenLeft(pos, s);
+      } else if (s.length === 2) {
+        if (s === "->") {
+          if (whiteBefore && whiteAfter) {
+            tok = new Tokens.WInstanceArrowW(pos, s);
+          } else if (whiteBefore) {
+            tok = new Tokens.WInstanceArrow(pos, s);
+          } else if (whiteAfter) {
+            tok = new Tokens.InstanceArrowW(pos, s);
+          } else {
+            tok = new Tokens.InstanceArrow(pos, s);
+          }
+        } else if (s === "=>") {
+          if (whiteBefore && whiteAfter) {
+            tok = new Tokens.WStaticArrowW(pos, s);
+          } else if (whiteBefore) {
+            tok = new Tokens.WStaticArrow(pos, s);
+          } else if (whiteAfter) {
+            tok = new Tokens.StaticArrowW(pos, s);
+          } else {
+            tok = new Tokens.StaticArrow(pos, s);
+          }
         }
-      } else if (s.length === 1 && s === "]") {
-        if (whiteBefore && whiteAfter) {
-          tok = new Tokens.WBracketRightW(pos, s);
-        } else if (whiteBefore) {
-          tok = new Tokens.WBracketRight(pos, s);
-        } else if (whiteAfter) {
-          tok = new Tokens.BracketRightW(pos, s);
-        } else {
-          tok = new Tokens.BracketRight(pos, s);
-        }
-      } else if (s.length === 1 && s === ")") {
-        if (whiteBefore && whiteAfter) {
-          tok = new Tokens.WParenRightW(pos, s);
-        } else if (whiteBefore) {
-          tok = new Tokens.WParenRight(pos, s);
-        } else if (whiteAfter) {
-          tok = new Tokens.ParenRightW(pos, s);
-        } else {
-          tok = new Tokens.ParenRight(pos, s);
-        }
-      } else if (s.length === 1 && s === "-") {
-        if (whiteBefore && whiteAfter) {
-          tok = new Tokens.WDashW(pos, s);
-        } else if (whiteBefore) {
-          tok = new Tokens.WDash(pos, s);
-        } else if (whiteAfter) {
-          tok = new Tokens.DashW(pos, s);
-        } else {
-          tok = new Tokens.Dash(pos, s);
-        }
-      } else if (s.length === 1 && s === "+") {
-        if (whiteBefore && whiteAfter) {
-          tok = new Tokens.WPlusW(pos, s);
-        } else if (whiteBefore) {
-          tok = new Tokens.WPlus(pos, s);
-        } else if (whiteAfter) {
-          tok = new Tokens.PlusW(pos, s);
-        } else {
-          tok = new Tokens.Plus(pos, s);
-        }
-      } else if (s.length === 1 && s === "@") {
-        if (whiteBefore && whiteAfter) {
-          tok = new Tokens.WAtW(pos, s);
-        } else if (whiteBefore) {
-          tok = new Tokens.WAt(pos, s);
-        } else if (whiteAfter) {
-          tok = new Tokens.AtW(pos, s);
-        } else {
-          tok = new Tokens.At(pos, s);
-        }
-      } else if (s.length === 2 && s === "->") {
-        if (whiteBefore && whiteAfter) {
-          tok = new Tokens.WInstanceArrowW(pos, s);
-        } else if (whiteBefore) {
-          tok = new Tokens.WInstanceArrow(pos, s);
-        } else if (whiteAfter) {
-          tok = new Tokens.InstanceArrowW(pos, s);
-        } else {
-          tok = new Tokens.InstanceArrow(pos, s);
-        }
-      } else if (s.length === 2 && s === "=>") {
-        if (whiteBefore && whiteAfter) {
-          tok = new Tokens.WStaticArrowW(pos, s);
-        } else if (whiteBefore) {
-          tok = new Tokens.WStaticArrow(pos, s);
-        } else if (whiteAfter) {
-          tok = new Tokens.StaticArrowW(pos, s);
-        } else {
-          tok = new Tokens.StaticArrow(pos, s);
-        }
-      } else {
+      }
+
+      if (tok === undefined) {
         tok = new Tokens.Identifier(pos, s);
       }
       this.tokens.push(tok);
@@ -292,27 +298,28 @@ export class Lexer {
 // end of pragma
         this.add();
         this.m = Mode.Normal;
-      } else if (buf.length > 1 && current === "`" && this.m === Mode.Ping
+      } else if (this.m === Mode.Ping
+          && buf.length > 1
           && current === "`"
           && aahead !== "``"
           && (buf.match(/`/g) || []).length % 2 === 0
-          && (buf.concat(ahead).match(/`/g) || []).length % 2 === 0) {
+          && ahead !== "`") {
 // end of ping
         this.add();
         this.m = Mode.Normal;
-      } else if (buf.length > 1
+      } else if (this.m === Mode.Template
+          && buf.length > 1
           && (current === "|" || current === "{")
-          && (prev !== "\\" || this.stream.prevPrevChar() === "\\\\")
-          && this.m === Mode.Template) {
+          && (prev !== "\\" || this.stream.prevPrevChar() === "\\\\")) {
 // end of template
         this.add();
         this.m = Mode.Normal;
       } else if (this.m === Mode.Str
-          && buf.length > 1
           && current === "'"
+          && buf.length > 1
           && aahead !== "''"
           && (buf.match(/'/g) || []).length % 2 === 0
-          && (buf.concat(ahead).match(/'/g) || []).length % 2 === 0) {
+          && ahead !== "'") {
 // end of string
         this.add();
         if (ahead === "\"") {
@@ -320,7 +327,8 @@ export class Lexer {
         } else {
           this.m = Mode.Normal;
         }
-      } else if ((ahead === " "
+      } else if (this.m === Mode.Normal
+          && (ahead === " "
           || ahead === ":"
           || ahead === "."
           || ahead === ","
@@ -334,22 +342,21 @@ export class Lexer {
           || aahead === "->"
           || aahead === "=>"
           || ahead === "\t"
-          || ahead === "\n")
-          && this.m === Mode.Normal) {
+          || ahead === "\n")) {
         this.add();
       } else if (ahead === "\n" && this.m !== Mode.Template) {
         this.add();
         this.m = Mode.Normal;
-      } else if (current === "\n" && this.m === Mode.Template) {
+      } else if (this.m === Mode.Template && current === "\n") {
         this.add();
-        this.m = Mode.Template;
       } else if (current === ">"
           && (prev === "-" || prev === "=")
           && ahead !== " "
           && this.m === Mode.Normal) {
 // arrows
         this.add();
-      } else if ((buf === "."
+      } else if (this.m === Mode.Normal
+          && (buf === "."
           || buf === ","
           || buf === ":"
           || buf === "("
@@ -358,8 +365,7 @@ export class Lexer {
           || buf === "]"
           || buf === "+"
           || buf === "@"
-          || (buf === "-" && ahead !== ">"))
-          && this.m === Mode.Normal) {
+          || (buf === "-" && ahead !== ">"))) {
         this.add();
       }
 

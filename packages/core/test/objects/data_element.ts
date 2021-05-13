@@ -17,6 +17,7 @@ describe("Data element, parse main xml", () => {
     <DATATYPE>CHAR</DATATYPE>
     <LENG>000002</LENG>
     <OUTPUTLEN>000002</OUTPUTLEN>
+    <DDTEXT>testing</DDTEXT>
    </DD04V>
   </asx:values>
  </asx:abap>
@@ -25,7 +26,8 @@ describe("Data element, parse main xml", () => {
     await reg.parseAsync();
     const dtel = reg.getFirstObject()! as DataElement;
     const type = dtel.parseType(reg);
-    expect(type.getType()).to.be.instanceof(CharacterType);
+    expect(type).to.be.instanceof(CharacterType);
+    expect(dtel.getDescription()).to.equal("testing");
   });
 
   it("HexType", async () => {
@@ -47,7 +49,7 @@ describe("Data element, parse main xml", () => {
     await reg.parseAsync();
     const dtel = reg.getFirstObject()! as DataElement;
     const type = dtel.parseType(reg);
-    expect(type.getType()).to.be.instanceof(HexType);
+    expect(type).to.be.instanceof(HexType);
   });
 
   it("parser error", async () => {
@@ -56,7 +58,7 @@ describe("Data element, parse main xml", () => {
     await reg.parseAsync();
     const dtel = reg.getFirstObject()! as DataElement;
     const type = dtel.parseType(reg);
-    expect(type.getType()).to.be.instanceof(UnknownType);
+    expect(type).to.be.instanceof(UnknownType);
   });
 
   it("parser error, valid xml", async () => {
@@ -65,7 +67,7 @@ describe("Data element, parse main xml", () => {
     await reg.parseAsync();
     const dtel = reg.getFirstObject()! as DataElement;
     const type = dtel.parseType(reg);
-    expect(type.getType()).to.be.instanceof(UnknownType);
+    expect(type).to.be.instanceof(UnknownType);
   });
 
   it("Reference to domain", async () => {
@@ -108,7 +110,7 @@ describe("Data element, parse main xml", () => {
     await reg.parseAsync();
     const dtel = reg.getFirstObject()! as DataElement;
     const type = dtel.parseType(reg);
-    expect(type.getType()).to.be.instanceof(CharacterType);
+    expect(type).to.be.instanceof(CharacterType);
   });
 
   it("Reference to domain, outside namespace, expect void", async () => {
@@ -133,7 +135,7 @@ describe("Data element, parse main xml", () => {
     await reg.parseAsync();
     const dtel = reg.getFirstObject()! as DataElement;
     const type = dtel.parseType(reg);
-    expect(type.getType()).to.be.instanceof(VoidType);
+    expect(type).to.be.instanceof(VoidType);
   });
 
   it("String", async () => {
@@ -157,7 +159,7 @@ describe("Data element, parse main xml", () => {
     await reg.parseAsync();
     const dtel = reg.getFirstObject()! as DataElement;
     const type = dtel.parseType(reg);
-    expect(type.getType()).to.be.instanceof(StringType);
+    expect(type).to.be.instanceof(StringType);
   });
 
   it("Packed", async () => {
@@ -182,7 +184,7 @@ describe("Data element, parse main xml", () => {
     await reg.parseAsync();
     const dtel = reg.getFirstObject()! as DataElement;
     const type = dtel.parseType(reg);
-    expect(type.getType()).to.be.instanceof(PackedType);
+    expect(type).to.be.instanceof(PackedType);
   });
 
 });

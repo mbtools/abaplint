@@ -1,8 +1,10 @@
 import {Range, RenameFile, TextDocumentEdit, TextEdit} from "vscode-languageserver-types";
+import {ReferenceType} from "../..";
 import {Identifier} from "../../abap/4_file_information/_identifier";
 import {SyntaxLogic} from "../../abap/5_syntax/syntax";
 import {ScopeType} from "../../abap/5_syntax/_scope_type";
 import {ISpaghettiScopeNode} from "../../abap/5_syntax/_spaghetti_scope";
+import {VirtualPosition} from "../../position";
 import {IRegistry} from "../../_iregistry";
 import {ABAPObject} from "../_abap_object";
 import {AbstractObject} from "../_abstract_object";
@@ -83,7 +85,7 @@ export class RenamerHelper {
         r.getStart().getRow() - 1,
         r.getStart().getCol() - 1 + oldName.length);
       changes.push(
-        TextDocumentEdit.create({uri: r.getFilename(), version: 1}, [TextEdit.replace(range, newName)]));
+        TextDocumentEdit.create({uri: r.getFilename(), version: 1}, [TextEdit.replace(range, newName.toLowerCase())]));
     }
     return changes;
   }
@@ -93,7 +95,9 @@ export class RenamerHelper {
 
     if (node.getIdentifier().stype !== ScopeType.BuiltIn) {
       for (const r of node.getData().references) {
-        if (r.resolved?.equals(identifier)) {
+        if (r.resolved?.equals(identifier)
+            && r.referenceType !== ReferenceType.InferredType
+            && !(r.position.getStart() instanceof VirtualPosition)) {
           ret.push(r.position);
         }
       }

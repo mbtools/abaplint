@@ -43,10 +43,36 @@ const tests = [
   WHERE (sdf)
   GROUP BY (sdf)
   HAVING (sdf)
-  ORDER BY (sdf).
-  `,
+  ORDER BY (sdf).`,
 
   `SELECT * from mara INTO TABLE @<lt_mara> PACKAGE SIZE @lv_pack.`,
+
+  `SELECT blah FROM (db_table_name) INTO @tree WHERE (t_where_clause_blah).`,
+  `SELECT DISTINCT * FROM (db_table_name) INTO @tree WHERE (t_where_clause_blah).`,
+  `SELECT DISTINCT blah FROM (db_table_name) INTO @tree WHERE (t_where_clause_blah).`,
+  `SELECT DISTINCT blah, blah_blah FROM (db_table_name) INTO @tree WHERE (t_where_clause_blah).`,
+  `SELECT key_property, \\_path-expression FROM cds_view INTO @DATA(result).`,
+  `SELECT key_property, \\_path-expression AS path FROM cds_view INTO @DATA(result).`,
+  `SELECT aaa, \\_association-shortText AS ShortText FROM cds_view INTO @DATA(var).`,
+
+  `SELECT vbeln, vbtyp,
+  CASE
+    WHEN auart = 'ZAMA' THEN @lc_name1
+    WHEN auart = 'ZACR' THEN @lc_name2
+   ELSE @lc_name3
+ END AS ernam
+ FROM vbak
+  INTO @DATA(ls_vbak2).`,
+
+  `SELECT field1 field2
+    INTO CORRESPONDING FIELDS OF TABLE lt_http
+    FROM ztab PACKAGE SIZE 2500
+    WHERE status not BETWEEN 200 and 299
+    and status <> 0
+    AND bar IN i_bar.`,
+
+  `SELECT * FROM t100 WHERE ( msgnr BETWEEN '001' AND '010' OR msgnr = '050' ).`,
+  `SELECT * FROM t100 WHERE ( msgnr BETWEEN '001' AND '010' OR msgnr = '050').`,
 ];
 
 statementType(tests, "SELECT loop", Statements.SelectLoop);

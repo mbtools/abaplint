@@ -72,9 +72,10 @@ class ParsingPerformance {
 }
 
 export class Registry implements IRegistry {
-  private readonly objects: { [index: string]: { [index: string]: IObject } } = {};
+  private readonly objects: { [name: string]: { [type: string]: IObject } } = {};
+  private readonly objectsByType: { [type: string]: { [name: string]: IObject } } = {};
   /** object containing filenames of dependencies */
-  private readonly dependencies: { [index: string]: boolean } = {};
+  private readonly dependencies: { [filename: string]: boolean } = {};
   private conf: IConfiguration;
   private issues: Issue[] = [];
 
@@ -92,6 +93,12 @@ export class Registry implements IRegistry {
       for (const type in this.objects[name]) {
         yield this.objects[name][type];
       }
+    }
+  }
+
+  public* getObjectsByType(type: string): Generator<IObject, void, undefined> {
+    for (const name in this.objectsByType[type] || []) {
+      yield this.objectsByType[type][name];
     }
   }
 
@@ -124,9 +131,10 @@ export class Registry implements IRegistry {
   }
 
   public getFileByName(filename: string): IFile | undefined {
+    const upper = filename.toUpperCase();
     for (const o of this.getObjects()) {
       for (const f of o.getFiles()) {
-        if (f.getFilename().toUpperCase() === filename.toUpperCase()) {
+        if (f.getFilename().toUpperCase() === upper) {
           return f;
         }
       }
@@ -219,11 +227,16 @@ export class Registry implements IRegistry {
     return this.dependencies[filename] === true;
   }
 
+  public isFileDependency(filename: string): boolean {
+    return this.dependencies[filename.toUpperCase()] === true;
+  }
+
   // assumption: the file is already in the registry
   public findObjectForFile(file: IFile): IObject | undefined {
+    const filename = file.getFilename();
     for (const obj of this.getObjects()) {
       for (const ofile of obj.getFiles()) {
-        if (ofile.getFilename() === file.getFilename()) {
+        if (ofile.getFilename() === filename) {
           return obj;
         }
       }
@@ -258,7 +271,7 @@ export class Registry implements IRegistry {
     this.issues = [];
     for (const o of this.getObjects()) {
       this.parsePrivate(o);
-      this.issues = this.issues.concat(o.getParsingIssues());
+      this.issues.push(...o.getParsingIssues());
     }
     new FindGlobalDefinitions(this).run();
 
@@ -277,7 +290,7 @@ export class Registry implements IRegistry {
     for (const o of this.getObjects()) {
       await input?.progress?.tick("Lexing and parsing(" + this.conf.getVersion() + ") - " + o.getType() + " " + o.getName());
       this.parsePrivate(o);
-      this.issues = this.issues.concat(o.getParsingIssues());
+      this.issues.push(...o.getParsingIssues());
     }
     if (input?.outputPerformance === true) {
       ParsingPerformance.output();
@@ -291,11 +304,9 @@ export class Registry implements IRegistry {
 
   // todo, refactor, this is a mess, see where-used, a lot of the code should be in this method instead
   private parsePrivate(input: IObject) {
-    if (input instanceof ABAPObject) {
-      const config = this.getConfig();
-      const result = input.parse(config.getVersion(), config.getSyntaxSetttings().globalMacros);
-      ParsingPerformance.push(input, result);
-    }
+    const config = this.getConfig();
+    const result = input.parse(config.getVersion(), config.getSyntaxSetttings().globalMacros);
+    ParsingPerformance.push(input, result);
   }
 
   private isDirty(): boolean {
@@ -310,7 +321,7 @@ export class Registry implements IRegistry {
 
   private runRules(input?: IRunInput, iobj?: IObject): readonly Issue[] {
     const rulePerformance: {[index: string]: number} = {};
-    let issues = this.issues.slice(0);
+    const issues = this.issues.slice(0);
 
     const objects = iobj ? [iobj] : this.getObjects();
     const rules = this.conf.getEnabledRules();
@@ -344,7 +355,7 @@ export class Registry implements IRegistry {
       input?.progress?.tick("Finding Issues - " + obj.getType() + " " + obj.getName());
       for (const rule of rules) {
         const before = Date.now();
-        issues = issues.concat(rule.run(obj));
+        issues.push(...rule.run(obj));
         const runtime = Date.now() - before;
         rulePerformance[rule.getMetadata().key] = rulePerformance[rule.getMetadata().key] + runtime;
       }
@@ -353,7 +364,7 @@ export class Registry implements IRegistry {
     if (input?.outputPerformance === true) {
       const perf: {name: string, time: number}[] = [];
       for (const p in rulePerformance) {
-        if (rulePerformance[p] > 10) { // ignore rules if it takes less than 10ms
+        if (rulePerformance[p] > 100) { // ignore rules if it takes less than 100ms
           perf.push({name: p, time: rulePerformance[p]});
         }
       }
@@ -406,6 +417,11 @@ export class Registry implements IRegistry {
       }
       this.objects[newName][newType] = add;
 
+      if (this.objectsByType[newType] === undefined) {
+        this.objectsByType[newType] = {};
+      }
+      this.objectsByType[newType][newName] = add;
+
       return add;
     }
   }
@@ -423,6 +439,12 @@ export class Registry implements IRegistry {
       delete this.objects[remove.getName()];
     } else {
       delete this.objects[remove.getName()][remove.getType()];
+    }
+
+    if (Object.keys(this.objectsByType[remove.getType()]).length === 1) {
+      delete this.objectsByType[remove.getType()];
+    } else {
+      delete this.objectsByType[remove.getType()][remove.getName()];
     }
 
   }

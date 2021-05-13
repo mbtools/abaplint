@@ -26,16 +26,32 @@ export class FunctionalWriting extends ABAPRule {
       key: "functional_writing",
       title: "Use functional writing",
       shortDescription: `Detects usage of call method when functional style calls can be used.`,
-      extendedInformation: `https://github.com/SAP/styleguides/blob/master/clean-abap/CleanABAP.md#prefer-functional-to-procedural-calls
+      extendedInformation: `https://github.com/SAP/styleguides/blob/main/clean-abap/CleanABAP.md#prefer-functional-to-procedural-calls
 https://docs.abapopenchecks.org/checks/07/`,
       tags: [RuleTag.Styleguide, RuleTag.Quickfix, RuleTag.SingleFile],
-      badExample: `CALL METHOD zcl_class=>method( ).`,
-      goodExample: `zcl_class=>method( ).`,
+      badExample: `CALL METHOD zcl_class=>method( ).
+CALL METHOD cl_abap_typedescr=>describe_by_name
+  EXPORTING
+    p_name         = 'NAME'
+  RECEIVING
+    p_descr_ref    = lr_typedescr
+  EXCEPTIONS
+    type_not_found = 1
+    OTHERS         = 2.`,
+      goodExample: `zcl_class=>method( ).
+cl_abap_typedescr=>describe_by_name(
+  EXPORTING
+    p_name         = 'NAME'
+  RECEIVING
+    p_descr_ref    = lr_typedescr
+  EXCEPTIONS
+    type_not_found = 1
+    OTHERS         = 2 ).`,
     };
   }
 
   private getMessage(): string {
-    return "Use functional writing style for method calls.";
+    return "Use functional writing style for method calls";
   }
 
   public getConfig() {
@@ -49,6 +65,10 @@ https://docs.abapopenchecks.org/checks/07/`,
   public runParsed(file: ABAPFile, obj: ABAPObject): readonly Issue[] {
     const issues: Issue[] = [];
     let exception = false;
+
+    if (obj.getType() === "INTF") {
+      return [];
+    }
 
     let definition: InfoClassDefinition | undefined = undefined;
     if (obj instanceof Class) {

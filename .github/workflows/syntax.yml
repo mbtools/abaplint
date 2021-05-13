@@ -1,0 +1,33 @@
+name: syntax.abaplint.org
+
+on: [push, pull_request]
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 1
+    - uses: actions/setup-node@v2
+      with:
+        node-version: '12.x'
+    - name: npm install
+      run: npm install
+    - name: npm test
+      run: npm test
+    - name: npm run web.syntax
+      run: npm run web.syntax
+    - name: deploy syntax.abaplint.org
+      uses: peaceiris/actions-gh-pages@v3
+      if: github.ref == 'refs/heads/main' && github.repository == 'abaplint/abaplint'
+      with:
+        deploy_key: ${{ secrets.SYNTAX_DEPLOY_KEY }}
+        external_repository: abaplint/syntax.abaplint.org
+        user_name: 'github-actions[bot]'
+        user_email: 'github-actions[bot]@users.noreply.github.com'
+        publish_branch: main
+        cname: syntax.abaplint.org
+        force_orphan: true
+        publish_dir: ./web/syntax/build
+

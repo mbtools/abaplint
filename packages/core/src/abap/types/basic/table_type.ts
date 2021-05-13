@@ -1,12 +1,13 @@
-import {TypedIdentifier} from "../_typed_identifier";
 import {AbstractType} from "./_abstract_type";
 
-export class TableType implements AbstractType {
-  private readonly rowType: TypedIdentifier | AbstractType;
+// todo: add keys and table type
+
+export class TableType extends AbstractType {
+  private readonly rowType: AbstractType;
   private readonly withHeader: boolean;
 
-// todo: add keys
-  public constructor(rowType: TypedIdentifier | AbstractType, withHeader: boolean) {
+  public constructor(rowType: AbstractType, withHeader: boolean, qualifiedName?: string) {
+    super(qualifiedName);
     this.rowType = rowType;
     this.withHeader = withHeader;
   }
@@ -16,29 +17,21 @@ export class TableType implements AbstractType {
   }
 
   public getRowType(): AbstractType {
-    if (this.rowType instanceof TypedIdentifier) {
-      return this.rowType.getType();
-    } else {
-      return this.rowType;
-    }
+    return this.rowType;
   }
 
   public toABAP(): string {
-    throw new Error("TableType, toABAP, todo");
+// this is used for downport, so use default key for now
+    return "STANDARD TABLE OF " + this.rowType.toABAP() + " WITH DEFAULT KEY";
   }
 
   public toText(level: number) {
-    let extra = "";
-    let type = this.rowType;
-    if (type instanceof TypedIdentifier) {
-      extra = "\n\nType name: \"" + type.getName() + "\"";
-      type = type.getType();
-    }
+    const type = this.rowType;
 
     if (this.withHeader === true) {
-      return "Table with header of " + type.toText(level + 1) + extra;
+      return "Table with header of " + type.toText(level + 1);
     } else {
-      return "Table of " + type.toText(level + 1) + extra;
+      return "Table of " + type.toText(level + 1);
     }
   }
 
@@ -47,10 +40,6 @@ export class TableType implements AbstractType {
   }
 
   public containsVoid() {
-    if (this.rowType instanceof TypedIdentifier) {
-      return this.rowType.getType().containsVoid();
-    } else {
-      return this.rowType.containsVoid();
-    }
+    return this.rowType.containsVoid();
   }
 }

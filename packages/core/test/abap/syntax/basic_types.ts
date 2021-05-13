@@ -78,7 +78,7 @@ describe("Syntax - Basic Types", () => {
     expect(components[0].type).to.be.instanceof(Basic.IntegerType);
   });
 
-  it("INCLUDE TYPE", () => {
+  it("INCLUDE TYPE, found", () => {
     const abap = `
       TYPES: BEGIN OF foo1,
                field TYPE i,
@@ -127,6 +127,13 @@ describe("Syntax - Basic Types", () => {
     expect(type).to.be.instanceof(Basic.TableType);
     const tab = type as Basic.TableType;
     expect(tab.getRowType()).to.be.instanceof(Basic.HexType);
+  });
+
+  it("TYPES with OCCURS", () => {
+    const abap = `TYPES tab TYPE i OCCURS 150.`;
+    const type = resolveType(abap, "tab");
+    const row = expectTable(type);
+    expect(row).to.be.instanceOf(Basic.IntegerType);
   });
 
 });

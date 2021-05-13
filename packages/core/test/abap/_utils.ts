@@ -75,7 +75,7 @@ export function structureType(cases: {abap: string, only?: boolean}[], expected:
   describe("Structure type", () => {
     cases.forEach(c => {
       const callback = () => {
-        const file = parse(c.abap);
+        const file = parse(c.abap); // note that parsing will also trigger the structure matches
         const statements = file.getStatements();
         const length = statements.length;
         const match = expected.getMatcher().run(statements.slice(), new StructureNode(expected));
@@ -101,6 +101,16 @@ export function statementType(tests: any, description: string, type: any) {
     this.timeout(200);
     tests.forEach((test: any) => {
       run(test, "\"" + test + "\" should be " + description, type);
+    });
+  });
+}
+
+export function statementExpectFail(tests: string[], description: string) {
+  describe(description + " statement version should fail,", function() {
+// note that timeout() only works inside function()
+    this.timeout(200);
+    tests.forEach(test => {
+      runExpectFail(test, "\"" + test + "\" should not be recognized");
     });
   });
 }

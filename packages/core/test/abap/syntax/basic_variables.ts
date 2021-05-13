@@ -410,10 +410,10 @@ DATA: lv_i TYPE i,
     expect(identifier?.getType()).to.be.instanceof(Basic.IntegerType);
   });
 
-  it("LIKE, error", () => {
-    const abap = `DATA: lv_foo LIKE lv_sdfsdsdfsdf.`;
+  it("LIKE, becomes void in a PROG", () => {
+    const abap = `DATA lv_foo LIKE sdfsdsdfsdf.`;
     const identifier = resolveVariable(abap, "lv_foo");
-    expect(identifier?.getType()).to.be.instanceof(Basic.UnknownType);
+    expect(identifier?.getType()).to.be.instanceof(Basic.VoidType);
   });
 
   it("basic field symbol", () => {
@@ -1180,6 +1180,13 @@ DATA(fsdf) = EXACT ty_bar( |sdfs| ).`;
     expect(identifier?.getType()).to.be.instanceof(Basic.StringType);
   });
 
+  it("COND 2", () => {
+    const abap = `DATA(cond) = COND #( WHEN 1 = 2 THEN |foo| WHEN 2 = 2 THEN |bar| ).`;
+    const identifier = resolveVariable(abap, "cond");
+    expect(identifier).to.not.equal(undefined);
+    expect(identifier?.getType()).to.be.instanceof(Basic.StringType);
+  });
+
   it("SWITCH", () => {
     const abap = `DATA(sdf) = SWITCH string( sy-index WHEN 1 THEN 'sdfsdf' ).`;
     const identifier = resolveVariable(abap, "sdf");
@@ -1626,6 +1633,34 @@ DATA(sdf) = ref->*-int.`;
         {filename: "zfoobar.prog.abap", contents: prog}],
       "foo");
     expect(type?.getType()).to.be.instanceof(Basic.VoidType);
+  });
+
+  it("FIND REGEX inline", () => {
+    const abap = `FIND REGEX 'sdf' IN 'sdf' MATCH OFFSET DATA(lv_offset) MATCH LENGTH DATA(lv_length) SUBMATCHES DATA(lv_bar).`;
+    {
+      const identifier = resolveVariable(abap, "lv_offset");
+      expect(identifier).to.not.equal(undefined);
+      expect(identifier?.getType()).to.be.instanceof(Basic.IntegerType);
+    }
+    {
+      const identifier = resolveVariable(abap, "lv_length");
+      expect(identifier).to.not.equal(undefined);
+      expect(identifier?.getType()).to.be.instanceof(Basic.IntegerType);
+    }
+    {
+      const identifier = resolveVariable(abap, "lv_bar");
+      expect(identifier).to.not.equal(undefined);
+      expect(identifier?.getType()).to.be.instanceof(Basic.StringType);
+    }
+  });
+
+  it("Infer REF type", () => {
+    const abap = `
+    DATA lv_xyz TYPE abap_bool.
+    DATA(lr_data) = REF #( lv_xyz ).`;
+    const identifier = resolveVariable(abap, "lr_data");
+    expect(identifier).to.not.equal(undefined);
+    expect(identifier!.getType()).to.be.instanceof(Basic.DataReference);
   });
 
 });

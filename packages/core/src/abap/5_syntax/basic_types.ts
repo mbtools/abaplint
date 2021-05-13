@@ -1,3 +1,4 @@
+/* eslint-disable default-case */
 import {TypedIdentifier} from "../types/_typed_identifier";
 import {StatementNode, ExpressionNode} from "../nodes";
 import * as Expressions from "../2_statements/expressions";
@@ -9,8 +10,9 @@ import {ObjectOriented} from "./_object_oriented";
 import {ClassConstant} from "../types/class_constant";
 import {Identifier} from "../1_lexer/tokens/identifier";
 import {ReferenceType} from "./_reference";
-import {TableType} from "../types/basic";
+import {TableType, VoidType} from "../types/basic";
 import {FieldChain} from "./expressions/field_chain";
+import {ClassDefinition} from "../types";
 
 export class BasicTypes {
   private readonly filename: string;
@@ -19,6 +21,34 @@ export class BasicTypes {
   public constructor(filename: string, scope: CurrentScope) {
     this.filename = filename;
     this.scope = scope;
+  }
+
+  public lookupQualifiedName(name: string | undefined): TypedIdentifier | undefined {
+    if (name === undefined) {
+      return undefined;
+    }
+
+    const found = this.scope.findType(name);
+    if (found) {
+      return found;
+    }
+
+    if (name.includes("=>")) {
+      const split = name.split("=>");
+      const ooName = split[0];
+      const typeName = split[1];
+      const oo = this.scope.findObjectDefinition(ooName);
+      if (oo) {
+        const f = oo.getTypeDefinitions().getByName(typeName);
+        if (f) {
+          return f;
+        }
+      }
+    }
+
+// todo: DDIC types
+
+    return undefined;
   }
 
   public resolveLikeName(node: ExpressionNode | StatementNode | undefined, headerLogic = true): AbstractType | undefined {
@@ -51,12 +81,12 @@ export class BasicTypes {
         this.scope.addReference(chain?.getFirstToken(), found, ReferenceType.TypeReference, this.filename);
       }
 
-      if (type instanceof TableType && node.getLastChild()?.get() instanceof Expressions.TableBody) {
+      if (type instanceof TableType && chain.getLastChild()?.get() instanceof Expressions.TableBody) {
         type = new TableType(type.getRowType(), false);
       } else if (type instanceof TableType && type.isWithHeader() && headerLogic === true) {
         type = type.getRowType();
       } else if (type === undefined) {
-        type = this.scope.getDDIC().lookupNoVoid(name)?.getType();
+        type = this.scope.getDDIC().lookupNoVoid(name);
       }
 
       // todo, this only looks up one level, reuse field_chain.ts?
@@ -84,19 +114,27 @@ export class BasicTypes {
           }
           return new Types.UnknownType("Type error, field not part of structure " + fullName);
         } else {
-          return new Types.UnknownType("Type error, not a structure type " + fullName);
+          if (this.scope.isOO() === false && this.scope.getDDIC().inErrorNamespace(name) === false) {
+            this.scope.addReference(children[0].getFirstToken(), undefined, ReferenceType.VoidType, this.filename);
+            return new Types.VoidType(name);
+          }
+          return new Types.UnknownType("Type error, not a structure type " + name);
         }
       }
     }
 
     if (!type) {
+      if (this.scope.isOO() === false && this.scope.getDDIC().inErrorNamespace(fullName) === false) {
+        this.scope.addReference(children[0].getFirstToken(), undefined, ReferenceType.VoidType, this.filename);
+        return new Types.VoidType(fullName);
+      }
       return new Types.UnknownType("Type error, could not resolve \"" + fullName + "\", resolveLikeName2");
     }
 
     return type;
   }
 
-  private resolveTypeName(typeName: ExpressionNode | undefined, length?: number): TypedIdentifier | AbstractType | undefined {
+  public resolveTypeName(typeName: ExpressionNode | undefined, length?: number): AbstractType | undefined {
     if (typeName === undefined) {
       return undefined;
     }
@@ -107,54 +145,58 @@ export class BasicTypes {
     }
 
     const chainText = typeName.concatTokens().toUpperCase();
-    if (chainText === "STRING") {
-      return new Types.StringType();
-    } else if (chainText === "XSTRING") {
-      return new Types.XStringType();
-    } else if (chainText === "D") {
-      return new Types.DateType();
-    } else if (chainText === "T") {
-      return new Types.TimeType();
-    } else if (chainText === "XSEQUENCE") {
-      return new Types.XSequenceType();
-    } else if (chainText === "CLIKE") {
-      return new Types.CLikeType();
-    } else if (chainText === "ANY") {
-      return new Types.AnyType();
-    } else if (chainText === "NUMERIC") {
-      return new Types.NumericGenericType();
-    } else if (chainText === "UTCLONG") { // todo, take version into account
-      return new Types.UTCLongType();
-    } else if (chainText === "DECFLOAT16") {
-      return new Types.DecFloat16Type();
-    } else if (chainText === "DECFLOAT34") {
-      return new Types.DecFloat34Type();
-    } else if (chainText === "CSEQUENCE") {
-      return new Types.CSequenceType();
-    } else if (chainText === "I" || chainText === "INT8") { // todo, take version into account
-      return new Types.IntegerType();
-    } else if (chainText === "F") {
-      return new Types.FloatType();
-    } else if (chainText === "P") {
-      return new Types.PackedType(1, 1); // todo, length and decimals
-    } else if (chainText === "C") {
-      if (length) {
-        return new Types.CharacterType(length);
-      } else {
-        return new Types.CharacterType(1);
-      }
-    } else if (chainText === "X") {
-      if (length) {
-        return new Types.HexType(length);
-      } else {
-        return new Types.HexType(1);
-      }
-    } else if (chainText === "N") {
-      if (length) {
-        return new Types.NumericType(length);
-      } else {
-        return new Types.NumericType(1);
-      }
+    switch (chainText) {
+      case "STRING":
+        return new Types.StringType();
+      case "XSTRING":
+        return new Types.XStringType();
+      case "D":
+        return new Types.DateType();
+      case "T":
+        return new Types.TimeType();
+      case "XSEQUENCE":
+        return new Types.XSequenceType();
+      case "CLIKE":
+        return new Types.CLikeType();
+      case "ANY":
+        return new Types.AnyType();
+      case "DATA":
+        return new Types.AnyType();
+      case "NUMERIC":
+        return new Types.NumericGenericType();
+      case "UTCLONG": // todo, take version into account
+        return new Types.UTCLongType();
+      case "DECFLOAT16":
+        return new Types.DecFloat16Type();
+      case "DECFLOAT34":
+        return new Types.DecFloat34Type();
+      case "CSEQUENCE":
+        return new Types.CSequenceType();
+      case "I":
+      case "INT8": // todo, take version into account
+        return new Types.IntegerType();
+      case "F":
+        return new Types.FloatType();
+      case "P":
+        return new Types.PackedType(1, 1); // todo, length and decimals
+      case "C":
+        if (length) {
+          return new Types.CharacterType(length);
+        } else {
+          return new Types.CharacterType(1);
+        }
+      case "X":
+        if (length) {
+          return new Types.HexType(length);
+        } else {
+          return new Types.HexType(1);
+        }
+      case "N":
+        if (length) {
+          return new Types.NumericType(length);
+        } else {
+          return new Types.NumericType(1);
+        }
     }
 
     const typ = this.scope.findType(chainText);
@@ -162,9 +204,10 @@ export class BasicTypes {
       const token = typeName.getFirstToken();
 
       if (chainText.includes("~")) {
-        const idef = this.scope.findInterfaceDefinition(chainText.split("~")[0]);
+        const name = chainText.split("~")[0];
+        const idef = this.scope.findInterfaceDefinition(name);
         if (idef) {
-          this.scope.addReference(token, idef, ReferenceType.ObjectOrientedReference, this.filename);
+          this.scope.addReference(token, idef, ReferenceType.ObjectOrientedReference, this.filename, {ooType: "INTF", ooName: name});
         }
       }
 
@@ -176,6 +219,8 @@ export class BasicTypes {
     if (ddic) {
       if (ddic instanceof TypedIdentifier) {
         this.scope.addReference(typeName.getFirstToken(), ddic, ReferenceType.TypeReference, this.filename);
+      } else if (ddic instanceof VoidType) {
+        this.scope.addReference(typeName.getFirstToken(), undefined, ReferenceType.VoidType, this.filename);
       }
       return ddic;
     }
@@ -204,7 +249,7 @@ export class BasicTypes {
     return undefined;
   }
 
-  public parseType(node: ExpressionNode | StatementNode): TypedIdentifier | AbstractType | undefined {
+  public parseType(node: ExpressionNode | StatementNode, name?: string): AbstractType | undefined {
     const typename = node.findFirstExpression(Expressions.TypeName);
 
     let text = node.findFirstExpression(Expressions.Type)?.concatTokens().toUpperCase();
@@ -221,7 +266,7 @@ export class BasicTypes {
       text = "TYPE";
     }
 
-    let found: TypedIdentifier | AbstractType | undefined = undefined;
+    let found: AbstractType | undefined = undefined;
     if (text.startsWith("LIKE LINE OF ")) {
       const name = node.findFirstExpression(Expressions.FieldChain)?.concatTokens();
       const type = this.resolveLikeName(node.findFirstExpression(Expressions.Type), false);
@@ -236,14 +281,19 @@ export class BasicTypes {
         return new Types.UnknownType("Type error, not a table type " + name);
       }
     } else if (text.startsWith("LIKE REF TO ")) {
-      return undefined; // todo
+      const name = node.findFirstExpression(Expressions.FieldChain)?.concatTokens();
+      const type = this.resolveLikeName(node.findFirstExpression(Expressions.Type), false);
+      if (type === undefined) {
+        return new Types.UnknownType("Type error, could not resolve \"" + name + "\", parseType");
+      }
+      return new Types.DataReference(type);
     } else if (text.startsWith("TYPE TABLE OF REF TO ")
         || text.startsWith("TYPE STANDARD TABLE OF REF TO ")
         || text.startsWith("TYPE SORTED TABLE OF REF TO ")
         || text.startsWith("TYPE HASHED TABLE OF REF TO ")) {
       found = this.resolveTypeRef(typename);
       if (found) {
-        return new Types.TableType(found, node.concatTokens().toUpperCase().includes("WITH HEADER LINE"));
+        return new Types.TableType(found, node.concatTokens().toUpperCase().includes("WITH HEADER LINE"), name);
       }
     } else if (text.startsWith("TYPE TABLE OF ")
         || text.startsWith("TYPE STANDARD TABLE OF ")
@@ -251,7 +301,7 @@ export class BasicTypes {
         || text.startsWith("TYPE HASHED TABLE OF ")) {
       found = this.resolveTypeName(typename);
       if (found) {
-        return new Types.TableType(found, node.concatTokens().toUpperCase().includes("WITH HEADER LINE"));
+        return new Types.TableType(found, node.concatTokens().toUpperCase().includes("WITH HEADER LINE"), name);
       }
     } else if (text.startsWith("LIKE TABLE OF ")
         || text.startsWith("LIKE STANDARD TABLE OF ")
@@ -259,7 +309,7 @@ export class BasicTypes {
         || text.startsWith("LIKE HASHED TABLE OF ")) {
       found = this.resolveLikeName(node);
       if (found) {
-        return new Types.TableType(found, node.concatTokens().toUpperCase().includes("WITH HEADER LINE"));
+        return new Types.TableType(found, node.concatTokens().toUpperCase().includes("WITH HEADER LINE"), name);
       }
     } else if (text === "TYPE STANDARD TABLE"
         || text === "TYPE SORTED TABLE"
@@ -278,7 +328,7 @@ export class BasicTypes {
         {name: "option", type: new Types.CharacterType(2)},
         {name: "low", type: found},
         {name: "high", type: found},
-      ]);
+      ], name);
       return new Types.TableType(structure, node.concatTokens().toUpperCase().includes("WITH HEADER LINE"));
     } else if (text.startsWith("LIKE ")) {
       let sub = node.findFirstExpression(Expressions.Type);
@@ -291,7 +341,7 @@ export class BasicTypes {
       found = this.resolveLikeName(sub);
 
       if (found && node.findDirectTokenByText("OCCURS")) {
-        found = new Types.TableType(found, node.concatTokens().toUpperCase().includes("WITH HEADER LINE"));
+        found = new Types.TableType(found, node.concatTokens().toUpperCase().includes("WITH HEADER LINE"), name);
       }
     } else if (text.startsWith("TYPE LINE OF ")) {
       const sub = node.findFirstExpression(Expressions.TypeName);
@@ -313,6 +363,19 @@ export class BasicTypes {
     } else if (text.startsWith("TYPE")) {
       found = this.resolveTypeName(typename, this.findLength(node));
 
+      const concat = node.concatTokens().toUpperCase();
+      if (found && concat.includes(" OCCURS ")) {
+        found = new Types.TableType(found, concat.includes("WITH HEADER LINE"), name);
+      } else if (found && concat.includes("WITH HEADER LINE")) {
+        if (found instanceof Types.VoidType) {
+          found = new Types.TableType(found, true);
+        } else if (!(found instanceof Types.TableType)) {
+          throw new Error("WITH HEADER LINE can only be used with internal table");
+        } else {
+          found = new Types.TableType(found.getRowType(), true);
+        }
+      }
+
       if (found === undefined && typename === undefined) {
         let length = 1;
 
@@ -324,12 +387,12 @@ export class BasicTypes {
           }
         }
 
-        found = new Types.CharacterType(length); // fallback
+        found = new Types.CharacterType(length, name); // fallback
+        if (node.findDirectTokenByText("OCCURS")) {
+          found = new Types.TableType(found, concat.includes("WITH HEADER LINE"), name);
+        }
       }
 
-      if (found && node.findDirectTokenByText("OCCURS")) {
-        found = new Types.TableType(found, node.concatTokens().toUpperCase().includes("WITH HEADER LINE"));
-      }
     }
 
     return found;
@@ -364,10 +427,13 @@ export class BasicTypes {
       if ((this.scope.getType() === ScopeType.Interface
           || this.scope.getType() === ScopeType.ClassDefinition)
           && this.scope.getName().toUpperCase() === className.toUpperCase()) {
-        foundType = this.scope.findType(subs[0])?.getType();
+        const foundId = this.scope.findType(subs[0]);
+        foundType = foundId?.getType();
         if (foundType === undefined) {
           return new Types.UnknownType("Could not resolve type " + chainText);
         }
+        this.scope.addReference(expr.getTokens()[2], foundId, ReferenceType.TypeReference, this.filename);
+
       } else {
     // lookup in local and global scope
         const obj = this.scope.findObjectDefinition(className);
@@ -376,7 +442,10 @@ export class BasicTypes {
         } else if (obj === undefined) {
           return new Types.UnknownType("Could not resolve top " + className + ", resolveTypeChain");
         }
-        this.scope.addReference(expr.getFirstToken(), obj, ReferenceType.ObjectOrientedReference, this.filename);
+        const type = obj instanceof ClassDefinition ? "CLAS" : "INTF";
+
+        this.scope.addReference(expr.getFirstToken(), obj, ReferenceType.ObjectOrientedReference, this.filename,
+                                {ooType: type, ooName: className});
 
         const byName = new ObjectOriented(this.scope).searchTypeName(obj, subs[0]);
         foundType = byName?.getType();
@@ -400,8 +469,10 @@ export class BasicTypes {
         this.scope.addReference(expr.getFirstToken(), found, ReferenceType.TypeReference, this.filename);
       }
       if (foundType === undefined && this.scope.getDDIC().inErrorNamespace(subs[0]) === false) {
+        this.scope.addReference(expr.getFirstToken(), undefined, ReferenceType.VoidType, this.filename);
         return new Types.VoidType(subs[0]);
       } else if (foundType instanceof Types.VoidType) {
+        this.scope.addReference(expr.getFirstToken(), undefined, ReferenceType.VoidType, this.filename);
         return foundType;
       } else if (foundType === undefined) {
         return new Types.UnknownType("Unknown type " + subs[0]);
@@ -410,7 +481,9 @@ export class BasicTypes {
 
     subs.shift();
     while (subs.length > 0) {
-      if (!(foundType instanceof Types.StructureType)) {
+      if (foundType instanceof Types.UnknownType) {
+        return foundType;
+      } else if (!(foundType instanceof Types.StructureType)) {
         return new Types.UnknownType("Not a structured type");
       }
       foundType = foundType.getComponentByName(subs[0]);
@@ -427,9 +500,15 @@ export class BasicTypes {
 
     const first = expr.getFirstChild()!;
     if (first.get() instanceof Expressions.Field) {
-      const name = first.getFirstToken().getStr();
+      const token = first.getFirstToken();
+      const name = token.getStr();
       const found = this.scope.findVariable(name);
-      return found?.getValue();
+      const val = found?.getValue();
+      if (typeof val === "string") {
+        this.scope.addReference(token, found, ReferenceType.DataReadReference, this.filename);
+        return val;
+      }
+      return undefined;
     } else if (first.get() instanceof Expressions.ClassName) {
       const name = first.getFirstToken().getStr();
       const obj = this.scope.findObjectDefinition(name);
@@ -438,10 +517,21 @@ export class BasicTypes {
       }
       const children = expr.getChildren();
 
-      const attr = children[2]?.getFirstToken().getStr();
+      const token = children[2]?.getFirstToken();
+      const attr = token.getStr();
       const c = new ObjectOriented(this.scope).searchConstantName(obj, attr);
       if (c instanceof ClassConstant) {
-        return c.getValue();
+        this.scope.addReference(token, c, ReferenceType.DataReadReference, this.filename);
+        const val = c.getValue();
+        if (typeof val === "string") {
+          return val;
+        } else if (typeof val === "object" && children[4]) {
+          const name = children[4].getFirstToken().getStr();
+          if (val[name] !== undefined) {
+            return val[name];
+          }
+        }
+        return undefined;
       }
       throw new Error("resolveConstantValue, constant not found " + attr);
 
@@ -462,7 +552,8 @@ export class BasicTypes {
       }
       const search = this.scope.existsObject(name);
       if (search.found === true && search.id) {
-        this.scope.addReference(chain.getFirstToken(), search.id, ReferenceType.ObjectOrientedReference, this.filename);
+        this.scope.addReference(chain.getFirstToken(), search.id, ReferenceType.ObjectOrientedReference, this.filename,
+                                {ooType: search.ooType, ooName: name});
         return new Types.ObjectReferenceType(search.id);
       }
     }
@@ -474,7 +565,12 @@ export class BasicTypes {
       return new Types.DataReference(new Types.AnyType());
     }
 
+    if (this.scope.isBadiDef(name) === true) {
+      return new Types.VoidType(name);
+    }
+
     if (this.scope.getDDIC()?.inErrorNamespace(name) === false) {
+//      this.scope.addReference(chain.getFirstToken(), undefined, ReferenceType.VoidType, this.filename);
       return new Types.VoidType(name);
     }
 

@@ -1,21 +1,18 @@
 import {IStatement} from "./_statement";
-import {verNot, str, seq, alt, opt} from "../combi";
-import {SQLTarget, SQLSource, SQLTargetTable} from "../expressions";
+import {verNot, seq, alt, opt} from "../combi";
+import {SQLSource, SQLIntoTable} from "../expressions";
 import {Version} from "../../../version";
 import {IStatementRunnable} from "../statement_runnable";
+import {SQLIntoStructure} from "../expressions/sql_into_structure";
 
 export class FetchNextCursor implements IStatement {
 
   public getMatcher(): IStatementRunnable {
-    const size = seq(str("PACKAGE SIZE"), new SQLSource());
+    const size = seq("PACKAGE SIZE", SQLSource);
 
-    const record = seq(str("INTO"),
-                       opt(str("CORRESPONDING FIELDS OF")),
-                       new SQLTarget());
-
-    const ret = seq(str("FETCH NEXT CURSOR"),
-                    new SQLSource(),
-                    alt(record, new SQLTargetTable()),
+    const ret = seq("FETCH NEXT CURSOR",
+                    SQLSource,
+                    alt(SQLIntoStructure, SQLIntoTable),
                     opt(size));
 
     return verNot(Version.Cloud, ret);

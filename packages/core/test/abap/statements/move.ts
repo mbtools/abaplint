@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 import {statementType, statementVersion} from "../_utils";
 import * as Statements from "../../../src/abap/2_statements/statements";
 import {Version} from "../../../src/version";
@@ -156,11 +157,76 @@ mock_cds_db = cl_cds_test_environment=>create_for_multiple_cds( i_for_entities =
   ( VALUE #( i_for_entity = parameter_cds-nodeactparam i_dependency_list = VALUE #( ( parameter-nodeactparam ) ) ) )
 ) ).`,
 
+  `lt_vals = VALUE #(
+    ( classnum = 'FOO_DAT' name_char = 'WER'  value = data-sdf )
+    ( classnum = 'FOO_DAS' name_char = 'EWR'  value = data-rew )
+    ( classnum = 'FOO_AMS' name_char = 'WER'  value = sdfsd )
+    ( classnum = 'FOO_AMS' name_char = 'WER'  value = data-hg )
+    ( classnum = 'FOO_AMS' name_char = 'EWR'  value = ls_gfh-value )
+    ( classnum = 'FOO_AMS' name_char = 'REW'  value = |{ data-hgf }| )
+    ( classnum = 'FOO_ROW' name_char = 'WER'  value = lv_dfgdf )
+    ( classnum = 'FOO_ROW' name_char = 'SDF'  value = data-yrt )
+    ( classnum = 'FOO_ROW' name_char = 'SDF'  value = yrt-value )
+    ( classnum = 'FOO_ROW' name_char = 'SDF'  value = |{ data-gfg }| ) ).`,
+
+  `lt_vals = VALUE #(
+      ( classnum = 'FOO_DAT' name_char = 'WER'  value = data-sdf )
+      ( classnum = 'FOO_DAS' name_char = 'EWR'  value = data-rew )
+      ( classnum = 'FOO_AMS' name_char = 'WER'  value = sdfsd )
+      ( classnum = 'FOO_AMS' name_char = 'WER'  value = abc )
+      ( classnum = 'FOO_AMS' name_char = 'ERW'  value = sdfsd )
+      ( classnum = 'FOO_AMS' name_char = 'REW'  value = sdfsd )
+      ( classnum = 'FOO_AMS' name_char = 'WER'  value = data-hg )
+      ( classnum = 'FOO_AMS' name_char = 'WER'  value = sdfds )
+      ( classnum = 'FOO_AMS' name_char = 'EWR'  value = sdfs )
+      ( classnum = 'FOO_AMS' name_char = 'EWR'  value = ls_gfh-value )
+      ( classnum = 'FOO_AMS' name_char = 'REW'  value = sdfds )
+      ( classnum = 'FOO_ROW' name_char = 'WER'  value = lv_dfgdf )
+      ( classnum = 'FOO_ROW' name_char = 'WRE'  value = sdfs )
+      ( classnum = 'FOO_ROW' name_char = 'WER'  value = sdfds )
+      ( classnum = 'FOO_ROW' name_char = 'SDF'  value = sdfds )
+      ( classnum = 'FOO_ROW' name_char = 'SDF'  value = data-yrt )
+      ( classnum = 'FOO_ROW' name_char = 'SDFS' value = sdfsd )
+      ( classnum = 'FOO_ROW' name_char = 'SDF'  value = sdfds )
+      ( classnum = 'FOO_ROW' name_char = 'SDF'  value = yrt-value )
+      ( classnum = 'FOO_ROW' name_char = 'SDF'  value = sdfsd ) ).`,
+
+  `lt_vals = VALUE #(
+      ( classnum = 'FOO_DAT' name_char = 'WER'  value = data-sdf )
+      ( classnum = 'FOO_DAS' name_char = 'EWR'  value = data-rew )
+      ( classnum = 'FOO_AMS' name_char = 'WER'  value = sdfsd )
+      ( classnum = 'FOO_AMS' name_char = 'WER'  value = |{ data-fgh NUMBER = ENVIRONMENT }| )
+      ( classnum = 'FOO_AMS' name_char = 'ERW'  value = |{ data-hgf NUMBER = ENVIRONMENT }| )
+      ( classnum = 'FOO_AMS' name_char = 'REW'  value = |{ data-hgf NUMBER = ENVIRONMENT }| )
+      ( classnum = 'FOO_AMS' name_char = 'WER'  value = data-hg )
+      ( classnum = 'FOO_AMS' name_char = 'WER'  value = |{ data-gfh NUMBER = ENVIRONMENT }| )
+      ( classnum = 'FOO_AMS' name_char = 'EWR'  value = |{ data-hfs NUMBER = ENVIRONMENT }| )
+      ( classnum = 'FOO_AMS' name_char = 'EWR'  value = ls_gfh-value )
+      ( classnum = 'FOO_AMS' name_char = 'REW'  value = |{ data-hgf }| )
+      ( classnum = 'FOO_ROW' name_char = 'WER'  value = lv_dfgdf )
+      ( classnum = 'FOO_ROW' name_char = 'WRE'  value = |{ data-fgd NUMBER = ENVIRONMENT }| )
+      ( classnum = 'FOO_ROW' name_char = 'WER'  value = |{ data-fgd NUMBER = ENVIRONMENT }| )
+      ( classnum = 'FOO_ROW' name_char = 'SDF'  value = |{ data-yrs NUMBER = ENVIRONMENT }| )
+      ( classnum = 'FOO_ROW' name_char = 'SDF'  value = data-yrt )
+      ( classnum = 'FOO_ROW' name_char = 'SDFS' value = |{ data-ytr NUMBER = ENVIRONMENT }| )
+      ( classnum = 'FOO_ROW' name_char = 'SDF'  value = |{ data-ytr NUMBER = ENVIRONMENT }| )
+      ( classnum = 'FOO_ROW' name_char = 'SDF'  value = yrt-value )
+      ( classnum = 'FOO_ROW' name_char = 'SDF'  value = |{ data-gfg }| ) ).`,
 
   "DATA(bar) = + '11'.",
   "DATA(bar) = +'sdf'.",
   "DATA(test) = VALUE string_table( ( `( 1 =`) ).",
   "DATA(test) = VALUE string_table( (`( 1 =` ) ).",
+  "result = NEW cl_oo_class( myname )->class-descript.",
+  "rv_inbound_fm = 'CONVERSION_EXIT_' && get_field_ref( iv_table = iv_table iv_field = iv_field )->edit_mask+2 && '_INPUT'.",
+  "result = xsdbool( FILTER #( messages USING KEY type IN message_error_types WHERE type = table_line ) IS NOT INITIAL ).",
+  "reported = CORRESPONDING #( DEEP update_reported ).",
+  "DATA(sdfs) = EXACT i( 5 ) + 3.",
+  "DATA(sdfs) = SWITCH i( val WHEN 2 THEN 2 ) + 2.",
+  "DATA(sdfs) = VALUE syst( mandt = '22' ) + 2.", // note that this is not a syntax error on 751, but a runtime error
+  "DATA(sdfs) = CORRESPONDING syst( val ) + 2.",  // note that this is not a syntax error on 751, but a runtime error
+  `lv_var = get_field('FOO').`,
+  `DATA(sdfs) = NEW ty_sdfsd( ( option = 'EQ' sign = 'E' low = '90' ) ).`,
 ];
 
 statementType(tests, "MOVE", Statements.Move);
@@ -282,6 +348,11 @@ const versions = [
   {abap: "DATA(mode) = SWITCH edit_mode( id_edit_mode\n" +
     "  WHEN 'U' THEN asdf\n" +
     "  ELSE THROW zcx_exception( ) ).", ver: Version.v740sp02},
+
+  {abap: `output = VALUE #(
+    FOR GROUPS _tabname OF _dd03l IN dd03l
+    GROUP BY _dd03l-tabname
+    ( _tabname ) ).`, ver: Version.v740sp08},
 
 ];
 

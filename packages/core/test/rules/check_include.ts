@@ -11,8 +11,9 @@ async function runMulti(files: {filename: string, contents: string}[]): Promise<
   }
   await reg.parseAsync();
   let issues: Issue[] = [];
+  const check = new CheckInclude().initialize(reg);
   for (const obj of reg.getObjects()) {
-    issues = issues.concat(new CheckInclude().initialize(reg).run(obj));
+    issues = issues.concat(check.run(obj));
   }
   return issues;
 }
@@ -123,6 +124,37 @@ FUNCTION-POOL ZABAPGIT_UNIT_TEST.`},
       {filename: "%3cicon%3e.prog.xml", contents: `<SUBC>I</SUBC>`},
       {filename: "zfoobar.prog.abap", contents: `INCLUDE <icon>.`},
     ]);
+    expect(issues.length).to.equals(0);
+  });
+
+  it("class example, error expected", async () => {
+    const contents = `CLASS zcl_inc DEFINITION PUBLIC FINAL CREATE PUBLIC.
+  PUBLIC SECTION.
+    METHODS sdfds.
+ENDCLASS.
+CLASS ZCL_INC IMPLEMENTATION.
+  METHOD sdfds.
+    INCLUDE zinc.
+  ENDMETHOD.
+ENDCLASS.`;
+    const issues = await runMulti([{filename: "zcl_inc.clas.abap", contents}]);
+    expect(issues.length).to.equals(1);
+  });
+
+  it("class example, ok", async () => {
+    const contents = `CLASS zcl_inc DEFINITION PUBLIC FINAL CREATE PUBLIC.
+  PUBLIC SECTION.
+    METHODS sdfds.
+ENDCLASS.
+CLASS ZCL_INC IMPLEMENTATION.
+  METHOD sdfds.
+    INCLUDE zexistsa.
+  ENDMETHOD.
+ENDCLASS.`;
+    const issues = await runMulti([
+      {filename: "zcl_inc.clas.abap", contents},
+      {filename: "zexistsa.prog.abap", contents: `WRITE 2.`},
+      {filename: "zexistsa.prog.xml", contents: `<SUBC>I</SUBC>`}]);
     expect(issues.length).to.equals(0);
   });
 

@@ -59,10 +59,10 @@ export class StatementNode extends AbstractNode<ExpressionNode | TokenNode> {
   }
 
   public getTokens(): readonly Token[] {
-    let tokens: Token[] = [];
+    const tokens: Token[] = [];
 
     for (const c of this.getChildren()) {
-      tokens = tokens.concat(this.toTokens(c));
+      tokens.push(...this.toTokens(c));
     }
 
     return tokens;
@@ -78,10 +78,10 @@ export class StatementNode extends AbstractNode<ExpressionNode | TokenNode> {
   }
 
   public getTokenNodes(): readonly TokenNode[] {
-    let tokens: TokenNode[] = [];
+    const tokens: TokenNode[] = [];
 
     for (const c of this.getChildren()) {
-      tokens = tokens.concat(this.toTokenNodess(c));
+      tokens.push(...this.toTokenNodess(c));
     }
 
     return tokens;
@@ -140,7 +140,7 @@ export class StatementNode extends AbstractNode<ExpressionNode | TokenNode> {
     for (const child of this.getChildren()) {
       return child.getFirstToken();
     }
-    throw new Error("StatementNode, getFirstToken, no children");
+    throw new Error("StatementNode, getFirstToken, no children, " + this.get().constructor.name);
   }
 
   public getLastToken(): Token {
@@ -173,8 +173,9 @@ export class StatementNode extends AbstractNode<ExpressionNode | TokenNode> {
   }
 
   public findDirectTokenByText(text: string): Token | undefined {
+    const upper = text.toUpperCase();
     for (const child of this.getChildren()) {
-      if (child instanceof TokenNode && child.get().getStr().toUpperCase() === text.toUpperCase()) {
+      if (child instanceof TokenNode && child.get().getStr().toUpperCase() === upper) {
         return child.get();
       }
     }
@@ -198,21 +199,34 @@ export class StatementNode extends AbstractNode<ExpressionNode | TokenNode> {
   }
 
   public findAllExpressions(type: new () => IStatementRunnable): readonly ExpressionNode[] {
-    let ret: ExpressionNode[] = [];
+    const ret: ExpressionNode[] = [];
     for (const child of this.getChildren()) {
       if (child instanceof TokenNode) {
         continue;
       } else if (child.get() instanceof type) {
         ret.push(child);
       } else {
-        ret = ret.concat(child.findAllExpressions(type));
+        ret.push(...child.findAllExpressions(type));
       }
     }
     return ret;
   }
 
-  public findAllExpressionsMulti(type: (new () => IStatementRunnable)[]): ExpressionNode[] {
-    let ret: ExpressionNode[] = [];
+  public findAllExpressionsRecursive(type: new () => IStatementRunnable): readonly ExpressionNode[] {
+    const ret: ExpressionNode[] = [];
+    for (const child of this.getChildren()) {
+      if (child instanceof TokenNode) {
+        continue;
+      } else if (child.get() instanceof type) {
+        ret.push(child);
+      }
+      ret.push(...child.findAllExpressions(type));
+    }
+    return ret;
+  }
+
+  public findAllExpressionsMulti(type: (new () => IStatementRunnable)[], recursive = false): ExpressionNode[] {
+    const ret: ExpressionNode[] = [];
     for (const child of this.getChildren()) {
       if (child instanceof TokenNode) {
         continue;
@@ -223,8 +237,8 @@ export class StatementNode extends AbstractNode<ExpressionNode | TokenNode> {
           ret.push(child);
         }
       }
-      if (before === ret.length) {
-        ret = ret.concat(child.findAllExpressionsMulti(type));
+      if (before === ret.length || recursive === true) {
+        ret.push(...child.findAllExpressionsMulti(type));
       }
     }
     return ret;
@@ -275,7 +289,7 @@ export class StatementNode extends AbstractNode<ExpressionNode | TokenNode> {
 ////////////////////////////////
 
   private toTokens(b: INode): readonly Token[] {
-    let tokens: Token[] = [];
+    const tokens: Token[] = [];
 
     if (b instanceof TokenNode) {
       tokens.push(b.get());
@@ -286,7 +300,7 @@ export class StatementNode extends AbstractNode<ExpressionNode | TokenNode> {
       if (c instanceof TokenNode) {
         tokens.push(c.get());
       } else {
-        tokens = tokens.concat(this.toTokens(c));
+        tokens.push(...this.toTokens(c));
       }
     }
 
@@ -294,7 +308,7 @@ export class StatementNode extends AbstractNode<ExpressionNode | TokenNode> {
   }
 
   private toTokenNodess(b: INode): readonly TokenNode[] {
-    let tokens: TokenNode[] = [];
+    const tokens: TokenNode[] = [];
 
     if (b instanceof TokenNode) {
       tokens.push(b);
@@ -305,7 +319,7 @@ export class StatementNode extends AbstractNode<ExpressionNode | TokenNode> {
       if (c instanceof TokenNode) {
         tokens.push(c);
       } else {
-        tokens = tokens.concat(this.toTokenNodess(c));
+        tokens.push(...this.toTokenNodess(c));
       }
     }
 

@@ -26,7 +26,7 @@ async function findIssues(abap: string): Promise<readonly Issue[]> {
   return rule.initialize(reg).run(reg.getFirstObject()!);
 }
 
-describe("Rule: downport, basics", () => {
+describe("Rule: downport", () => {
 
   it("parser error", async () => {
     const issues = await findIssues("parser error");
@@ -38,9 +38,19 @@ describe("Rule: downport, basics", () => {
     expect(issues.length).to.equal(0);
   });
 
-});
+  it("try downport voided value", async () => {
+    const issues = await findIssues("DATA(bar) = VALUE asdf( ).");
+    expect(issues.length).to.equal(1);
+  });
 
-describe("Rule: NEW", () => {
+  it("try downporting voided LOOP", async () => {
+    const abap = `
+  DATA lt_rows TYPE STANDARD TABLE OF voided WITH DEFAULT KEY.
+  LOOP AT lt_rows ASSIGNING FIELD-SYMBOL(<lv_row>).
+  ENDLOOP.`;
+    const issues = await findIssues(abap);
+    expect(issues.length).to.equal(1);
+  });
 
   it("Use CREATE OBJECT instead of NEW", async () => {
     const issues = await findIssues("foo = NEW #( ).");
@@ -79,9 +89,10 @@ CLASS lcl_bar IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-START-OF-SELECTION.
-  DATA str TYPE string.
-  str = to_lower( NEW lcl_bar( )->m( ) ).`;
+FORM bar.
+  DATA temp1 TYPE string.
+  temp1 = to_lower( NEW lcl_bar( )->m( ) ).
+ENDFORM.`;
 
     const expected = `CLASS lcl_bar DEFINITION.
   PUBLIC SECTION.
@@ -92,17 +103,15 @@ CLASS lcl_bar IMPLEMENTATION.
   ENDMETHOD.
 ENDCLASS.
 
-START-OF-SELECTION.
-  DATA str TYPE string.
-  DATA temp1 TYPE REF TO lcl_bar.
-CREATE OBJECT temp1 TYPE lcl_bar.
-str = to_lower( temp1->m( ) ).`;
+FORM bar.
+  DATA temp1 TYPE string.
+  DATA temp2 TYPE REF TO lcl_bar.
+  CREATE OBJECT temp2 TYPE lcl_bar.
+  temp1 = to_lower( temp2->m( ) ).
+ENDFORM.`;
 
     testFix(abap, expected);
   });
-});
-
-describe("Rule: downport, outline", () => {
 
   it("Outline DATA i definition", async () => {
     const abap = "DATA(foo) = 2.";
@@ -114,6 +123,490 @@ describe("Rule: downport, outline", () => {
     const abap = "DATA(foo) = |sdfdsfds|.";
     const issues = await findIssues(abap);
     expect(issues.length).to.equal(1);
+  });
+
+  it("Outline DATA and NEW, apply outline first", async () => {
+    const abap = `
+    CLASS lcl_class DEFINITION.
+    ENDCLASS.
+    CLASS lcl_class IMPLEMENTATION.
+    ENDCLASS.
+    DATA(lo_text) = NEW lcl_class( ).`;
+    const issues = await findIssues(abap);
+    expect(issues.length).to.equal(1);
+    expect(issues[0].getMessage()).to.include("Outline");
+  });
+
+  it("NEW, with default parameter to constructor", async () => {
+    const abap = `
+CLASS lcl_class DEFINITION.
+  PUBLIC SECTION.
+    METHODS constructor IMPORTING str TYPE string.
+ENDCLASS.
+CLASS lcl_class IMPLEMENTATION.
+  METHOD constructor.
+  ENDMETHOD.
+ENDCLASS.
+
+FORM bar.
+  DATA lo_text TYPE REF TO lcl_class.
+  lo_text = NEW lcl_class( 'bar' ).
+ENDFORM.`;
+
+    const expected = `
+CLASS lcl_class DEFINITION.
+  PUBLIC SECTION.
+    METHODS constructor IMPORTING str TYPE string.
+ENDCLASS.
+CLASS lcl_class IMPLEMENTATION.
+  METHOD constructor.
+  ENDMETHOD.
+ENDCLASS.
+
+FORM bar.
+  DATA lo_text TYPE REF TO lcl_class.
+  CREATE OBJECT lo_text TYPE lcl_class EXPORTING STR = 'bar'.
+ENDFORM.`;
+
+    testFix(abap, expected);
+  });
+
+  it("NEW, inferred type with default parameter", async () => {
+    const abap = `
+CLASS lcl_class DEFINITION.
+  PUBLIC SECTION.
+    METHODS constructor IMPORTING str TYPE string.
+ENDCLASS.
+CLASS lcl_class IMPLEMENTATION.
+  METHOD constructor.
+  ENDMETHOD.
+ENDCLASS.
+
+FORM bar.
+  DATA lo_text TYPE REF TO lcl_class.
+  lo_text = NEW #( 'bar' ).
+ENDFORM.`;
+
+    const expected = `
+CLASS lcl_class DEFINITION.
+  PUBLIC SECTION.
+    METHODS constructor IMPORTING str TYPE string.
+ENDCLASS.
+CLASS lcl_class IMPLEMENTATION.
+  METHOD constructor.
+  ENDMETHOD.
+ENDCLASS.
+
+FORM bar.
+  DATA lo_text TYPE REF TO lcl_class.
+  CREATE OBJECT lo_text EXPORTING STR = 'bar'.
+ENDFORM.`;
+
+    testFix(abap, expected);
+  });
+
+  it("outline, returning table, global type definition", async () => {
+    const abap = `
+    TYPES tab TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+
+    CLASS lcl_class DEFINITION.
+      PUBLIC SECTION.
+        CLASS-METHODS m RETURNING VALUE(val) TYPE tab.
+    ENDCLASS.
+
+    CLASS lcl_class IMPLEMENTATION.
+      METHOD m.
+      ENDMETHOD.
+    ENDCLASS.
+
+    FORM bar.
+      DATA(bar) = lcl_class=>m( ).
+    ENDFORM.`;
+
+    const expected = `
+    TYPES tab TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+
+    CLASS lcl_class DEFINITION.
+      PUBLIC SECTION.
+        CLASS-METHODS m RETURNING VALUE(val) TYPE tab.
+    ENDCLASS.
+
+    CLASS lcl_class IMPLEMENTATION.
+      METHOD m.
+      ENDMETHOD.
+    ENDCLASS.
+
+    FORM bar.
+      DATA bar TYPE tab.
+      bar = lcl_class=>m( ).
+    ENDFORM.`;
+
+    testFix(abap, expected);
+  });
+
+  it("outline, returning table, type part of class definition", async () => {
+    const abap = `
+    CLASS lcl_class DEFINITION.
+      PUBLIC SECTION.
+        TYPES tab TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+        CLASS-METHODS m RETURNING VALUE(val) TYPE tab.
+    ENDCLASS.
+
+    CLASS lcl_class IMPLEMENTATION.
+      METHOD m.
+      ENDMETHOD.
+    ENDCLASS.
+
+    FORM bar.
+      DATA(bar) = lcl_class=>m( ).
+    ENDFORM.`;
+
+    const expected = `
+    CLASS lcl_class DEFINITION.
+      PUBLIC SECTION.
+        TYPES tab TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+        CLASS-METHODS m RETURNING VALUE(val) TYPE tab.
+    ENDCLASS.
+
+    CLASS lcl_class IMPLEMENTATION.
+      METHOD m.
+      ENDMETHOD.
+    ENDCLASS.
+
+    FORM bar.
+      DATA bar TYPE lcl_class=>tab.
+      bar = lcl_class=>m( ).
+    ENDFORM.`;
+
+    testFix(abap, expected);
+  });
+
+  it("outline, returning object reference", async () => {
+    const abap = `
+    CLASS lcl_class DEFINITION.
+      PUBLIC SECTION.
+        CLASS-METHODS m RETURNING VALUE(val) TYPE REF TO lcl_class.
+    ENDCLASS.
+
+    CLASS lcl_class IMPLEMENTATION.
+      METHOD m.
+      ENDMETHOD.
+    ENDCLASS.
+
+    FORM bar.
+      DATA(foobar) = lcl_class=>m( ).
+    ENDFORM.`;
+
+    const expected = `
+    CLASS lcl_class DEFINITION.
+      PUBLIC SECTION.
+        CLASS-METHODS m RETURNING VALUE(val) TYPE REF TO lcl_class.
+    ENDCLASS.
+
+    CLASS lcl_class IMPLEMENTATION.
+      METHOD m.
+      ENDMETHOD.
+    ENDCLASS.
+
+    FORM bar.
+      DATA foobar TYPE REF TO lcl_class.
+      foobar = lcl_class=>m( ).
+    ENDFORM.`;
+
+    testFix(abap, expected);
+  });
+
+  it("outline, READ TABLE INTO", async () => {
+    const abap = `
+    DATA tab TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+    APPEND 2 TO tab.
+    READ TABLE tab INDEX 1 INTO DATA(row).`;
+
+    const expected = `
+    DATA tab TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+    APPEND 2 TO tab.
+    DATA row TYPE i.
+    READ TABLE tab INDEX 1 INTO row.`;
+
+    testFix(abap, expected);
+  });
+
+  it("EMPTY KEY", async () => {
+    const abap = `DATA tab TYPE STANDARD TABLE OF i WITH EMPTY KEY.`;
+    const expected = `DATA tab TYPE STANDARD TABLE OF i WITH DEFAULT KEY.`;
+    testFix(abap, expected);
+  });
+
+  it("downport CAST", async () => {
+    const abap = `
+    CLASS lcl_class DEFINITION.
+    ENDCLASS.
+    CLASS lcl_class IMPLEMENTATION.
+    ENDCLASS.
+    FORM bar.
+      DATA obj TYPE REF TO object.
+      DATA foo TYPE REF TO object.
+      foo = CAST lcl_class( obj ).
+    ENDFORM.`;
+
+    const expected = `
+    CLASS lcl_class DEFINITION.
+    ENDCLASS.
+    CLASS lcl_class IMPLEMENTATION.
+    ENDCLASS.
+    FORM bar.
+      DATA obj TYPE REF TO object.
+      DATA foo TYPE REF TO object.
+      DATA temp1 TYPE REF TO lcl_class.
+      temp1 ?= obj.
+      foo = temp1.
+    ENDFORM.`;
+
+    testFix(abap, expected);
+  });
+
+  it("SPLIT into table", async () => {
+    const abap = `
+  DATA lv_text TYPE string.
+  SPLIT lv_text AT |bar| INTO TABLE DATA(lt_rows).`;
+
+    const expected = `
+  DATA lv_text TYPE string.
+  DATA lt_rows TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+  SPLIT lv_text AT |bar| INTO TABLE lt_rows.`;
+
+    testFix(abap, expected);
+  });
+
+  it("LOOP assigning inline field symbol", async () => {
+    const abap = `
+  DATA lt_rows TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+  LOOP AT lt_rows ASSIGNING FIELD-SYMBOL(<lv_row>).
+  ENDLOOP.`;
+
+    const expected = `
+  DATA lt_rows TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+  FIELD-SYMBOLS <lv_row> TYPE string.
+  LOOP AT lt_rows ASSIGNING <lv_row>.
+  ENDLOOP.`;
+
+    testFix(abap, expected);
+  });
+
+  it("CONV", async () => {
+    const abap = `
+    DATA len TYPE i.
+    len = xstrlen( CONV xstring( |AA| ) ).`;
+
+    const expected = `
+    DATA len TYPE i.
+    DATA temp1 TYPE xstring.
+    temp1 = |AA|.
+    len = xstrlen( temp1 ).`;
+
+    testFix(abap, expected);
+  });
+
+  it("code after NEW", async () => {
+    const abap = `
+CLASS lcl_clas DEFINITION.
+  PUBLIC SECTION.
+    METHODS run
+      RETURNING VALUE(self) TYPE REF TO lcl_clas.
+ENDCLASS.
+CLASS lcl_clas IMPLEMENTATION.
+  METHOD run.
+  ENDMETHOD.
+ENDCLASS.
+FORM bar.
+  DATA lo_module TYPE REF TO lcl_clas.
+  lo_module = NEW lcl_clas( )->run( ).
+ENDFORM.`;
+
+    const expected = `
+CLASS lcl_clas DEFINITION.
+  PUBLIC SECTION.
+    METHODS run
+      RETURNING VALUE(self) TYPE REF TO lcl_clas.
+ENDCLASS.
+CLASS lcl_clas IMPLEMENTATION.
+  METHOD run.
+  ENDMETHOD.
+ENDCLASS.
+FORM bar.
+  DATA lo_module TYPE REF TO lcl_clas.
+  DATA temp1 TYPE REF TO lcl_clas.
+  CREATE OBJECT temp1 TYPE lcl_clas.
+  lo_module = temp1->run( ).
+ENDFORM.`;
+
+    testFix(abap, expected);
+  });
+
+  it("outline structure type", async () => {
+    const abap = `
+CLASS lcl_clas DEFINITION.
+  PUBLIC SECTION.
+    TYPES: BEGIN OF ty_structure,
+             field TYPE i,
+           END OF ty_structure.
+    CLASS-METHODS run
+      RETURNING VALUE(structure) TYPE ty_structure.
+ENDCLASS.
+CLASS lcl_clas IMPLEMENTATION.
+  METHOD run.
+  ENDMETHOD.
+ENDCLASS.
+FORM bar.
+  DATA(struc) = lcl_clas=>run( ).
+ENDFORM.`;
+
+    const expected = `
+CLASS lcl_clas DEFINITION.
+  PUBLIC SECTION.
+    TYPES: BEGIN OF ty_structure,
+             field TYPE i,
+           END OF ty_structure.
+    CLASS-METHODS run
+      RETURNING VALUE(structure) TYPE ty_structure.
+ENDCLASS.
+CLASS lcl_clas IMPLEMENTATION.
+  METHOD run.
+  ENDMETHOD.
+ENDCLASS.
+FORM bar.
+  DATA struc TYPE lcl_clas=>ty_structure.
+  struc = lcl_clas=>run( ).
+ENDFORM.`;
+
+    testFix(abap, expected);
+  });
+
+  it("LOOP AT method call", async () => {
+    const abap = `
+CLASS lcl_clas DEFINITION.
+  PUBLIC SECTION.
+    TYPES ty_tab TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+    CLASS-METHODS run RETURNING VALUE(tab) TYPE ty_tab.
+ENDCLASS.
+CLASS lcl_clas IMPLEMENTATION.
+  METHOD run.
+  ENDMETHOD.
+ENDCLASS.
+FORM bar.
+  DATA lv_int TYPE i.
+  LOOP AT lcl_clas=>run( ) INTO lv_int.
+  ENDLOOP.
+ENDFORM.`;
+
+    const expected = `
+CLASS lcl_clas DEFINITION.
+  PUBLIC SECTION.
+    TYPES ty_tab TYPE STANDARD TABLE OF i WITH DEFAULT KEY.
+    CLASS-METHODS run RETURNING VALUE(tab) TYPE ty_tab.
+ENDCLASS.
+CLASS lcl_clas IMPLEMENTATION.
+  METHOD run.
+  ENDMETHOD.
+ENDCLASS.
+FORM bar.
+  DATA lv_int TYPE i.
+  DATA(temp1) = lcl_clas=>run( ).
+  LOOP AT temp1 INTO lv_int.
+  ENDLOOP.
+ENDFORM.`;
+
+    testFix(abap, expected);
+  });
+
+  it("APPEND VALUE #", async () => {
+    const abap = `
+FORM bar.
+  TYPES: BEGIN OF ty_stru,
+           field TYPE i,
+           field2 TYPE i,
+         END OF ty_stru.
+  TYPES ty_tab TYPE STANDARD TABLE OF ty_stru WITH DEFAULT KEY.
+  DATA tab TYPE ty_tab.
+  APPEND VALUE #( field = 1 field2 = 2 ) TO tab.
+ENDFORM.`;
+
+    const expected = `
+FORM bar.
+  TYPES: BEGIN OF ty_stru,
+           field TYPE i,
+           field2 TYPE i,
+         END OF ty_stru.
+  TYPES ty_tab TYPE STANDARD TABLE OF ty_stru WITH DEFAULT KEY.
+  DATA tab TYPE ty_tab.
+  DATA temp1 TYPE ty_stru.
+  temp1-field = 1.
+  temp1-field2 = 2.
+  APPEND temp1 TO tab.
+ENDFORM.`;
+
+    testFix(abap, expected);
+  });
+
+  it("LOOP REFERENCE INTO DATA()", async () => {
+    const abap = `
+    DATA table TYPE STANDARD TABLE OF string.
+    LOOP AT table REFERENCE INTO DATA(inline).
+    ENDLOOP.`;
+
+    const expected = `
+    DATA table TYPE STANDARD TABLE OF string.
+    DATA inline TYPE REF TO string.
+    LOOP AT table REFERENCE INTO inline.
+    ENDLOOP.`;
+
+    testFix(abap, expected);
+  });
+
+  it("inline copy of table", async () => {
+    const abap = `
+    DATA txt_table TYPE STANDARD TABLE OF string.
+    DATA(inline_txt_table) = txt_table.`;
+
+    const expected = `
+    DATA txt_table TYPE STANDARD TABLE OF string.
+    DATA inline_txt_table TYPE STANDARD TABLE OF string WITH DEFAULT KEY.
+    inline_txt_table = txt_table.`;
+
+    testFix(abap, expected);
+  });
+
+  it("inline copy of table, structured", async () => {
+    const abap = `
+TYPES: BEGIN OF ty_struct,
+  num TYPE i,
+  txt TYPE string,
+END OF ty_struct.
+DATA struct_table TYPE STANDARD TABLE OF ty_struct WITH DEFAULT KEY.
+DATA(inline_struct_table) = struct_table.`;
+
+    const expected = `
+TYPES: BEGIN OF ty_struct,
+  num TYPE i,
+  txt TYPE string,
+END OF ty_struct.
+DATA struct_table TYPE STANDARD TABLE OF ty_struct WITH DEFAULT KEY.
+DATA inline_struct_table TYPE STANDARD TABLE OF ty_struct WITH DEFAULT KEY.
+inline_struct_table = struct_table.`;
+
+    testFix(abap, expected);
+  });
+
+  it("xsdbool", async () => {
+    const abap = `
+  DATA foo TYPE abap_bool.
+  foo = xsdbool( 1 = 2 ).`;
+
+    const expected = `
+  DATA foo TYPE abap_bool.
+  foo = boolc( 1 = 2 ).`;
+
+    testFix(abap, expected);
   });
 
 });

@@ -48,13 +48,14 @@ export class Procedural {
 
   public findInclude(node: StatementNode, obj: ABAPObject): ABAPFile | undefined {
 // assumption: no cyclic includes, includes not found are reported by rule "check_include"
-// todo: how to make sure code is not duplicated here and in rule "check_include" ?
+// todo: how to make sure code is not duplicated here and in rule "check_include" / include graph?
     const expr = node.findFirstExpression(Expressions.IncludeName);
     if (expr === undefined) {
       return undefined;
     }
     const name = expr.getFirstToken().getStr();
 
+    // look in the current function group
     if (obj instanceof FunctionGroup) {
       const incl = obj.getInclude(name);
       if (incl !== undefined) {
@@ -66,6 +67,17 @@ export class Procedural {
     if (prog !== undefined) {
       return prog.getABAPFiles()[0];
     }
+
+    // todo, this is slow, try determining the FUGR name from the include name
+    for (const fugr of this.reg.getObjectsByType("FUGR")) {
+      if (fugr instanceof FunctionGroup) {
+        const found = fugr.getInclude(name);
+        if (found) {
+          return found;
+        }
+      }
+    }
+
     return undefined;
   }
 
@@ -86,7 +98,7 @@ export class Procedural {
     const ddic = new DDIC(this.reg);
 
     for (const param of definition.getParameters()) {
-      let found: TypedIdentifier | AbstractType = new CharacterType(1); // fallback
+      let found: AbstractType = new CharacterType(1);
       if (param.type) {
         found = ddic.lookup(param.type);
       }

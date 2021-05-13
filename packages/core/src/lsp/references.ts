@@ -40,7 +40,7 @@ export class References {
     return locs.map(LSPUtils.identiferToLocation);
   }
 
-  public search(identifier: Identifier, node: ISpaghettiScopeNode): Identifier[] {
+  public search(identifier: Identifier, node: ISpaghettiScopeNode, exitAfterFound = false, removeDuplicates = true): Identifier[] {
     let ret: Identifier[] = [];
 
     // todo, this first assumes that the identifier is a variable?
@@ -48,19 +48,26 @@ export class References {
         || node.getIdentifier().stype === ScopeType.FunctionModule
         || node.getIdentifier().stype === ScopeType.Form) {
       ret = this.findReferences(node, identifier);
-    } else {
-      for (const o of this.reg.getObjects()) {
-        if (o instanceof ABAPObject) {
-          if (this.reg.isDependency(o)) {
-            continue; // do not search in dependencies
-          }
-          ret = ret.concat(this.findReferences(new SyntaxLogic(this.reg, o).run().spaghetti.getTop(), identifier));
+    }
+    if (ret.length > 1 && exitAfterFound === true) {
+      return ret;
+    }
+
+    for (const o of this.reg.getObjects()) {
+      if (o instanceof ABAPObject) {
+        if (this.reg.isDependency(o)) {
+          continue; // do not search in dependencies
         }
+        ret.push(...this.findReferences(new SyntaxLogic(this.reg, o).run().spaghetti.getTop(), identifier));
       }
     }
 
     // remove duplicates, might be a changing(read and write) position
-    return this.removeDuplicates(ret);
+    if (removeDuplicates === true) {
+      return this.removeDuplicates(ret);
+    } else {
+      return ret;
+    }
   }
 
 ////////////////////////////////////////////
@@ -76,21 +83,21 @@ export class References {
   }
 
   private findReferences(node: ISpaghettiScopeNode, identifier: Identifier): Identifier[] {
-    let ret: Identifier[] = [];
+    const ret: Identifier[] = [];
 
     if (node.getIdentifier().stype !== ScopeType.BuiltIn) {
       // this is for finding the definitions
-      for (const v of node.getData().vars) {
-        if (v.identifier.equals(identifier)) {
-          ret.push(v.identifier);
-        }
+      const vars = node.getData().vars;
+      const vid = vars[identifier.getName().toUpperCase()];
+      if (vid?.equals(identifier)) {
+        ret.push(vid);
       }
 
       // this is for finding the definitions
-      for (const v of node.getData().types) {
-        if (v.identifier.equals(identifier)) {
-          ret.push(v.identifier);
-        }
+      const types = node.getData().types;
+      const tid = types[identifier.getName().toUpperCase()];
+      if (tid?.equals(identifier)) {
+        ret.push(tid);
       }
 
       for (const r of node.getData().references) {
@@ -101,7 +108,7 @@ export class References {
     }
 
     for (const c of node.getChildren()) {
-      ret = ret.concat(this.findReferences(c, identifier));
+      ret.push(...this.findReferences(c, identifier));
     }
 
     return ret;

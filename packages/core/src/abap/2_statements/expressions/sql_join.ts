@@ -1,15 +1,12 @@
-import {seq, opt, alt, plus, str, Expression} from "../combi";
+import {seq, optPrio, altPrio, plusPrio, Expression} from "../combi";
 import {SQLFromSource, SQLCond} from ".";
 import {IStatementRunnable} from "../statement_runnable";
 
 export class SQLJoin extends Expression {
   public getRunnable(): IStatementRunnable {
-    const joinType = seq(opt(alt(str("INNER"), str("LEFT OUTER"), str("LEFT"))), str("JOIN"));
+    const joinType = seq(optPrio(altPrio("INNER", "LEFT OUTER", "LEFT")), "JOIN");
 
-    const join = seq(joinType,
-                     new SQLFromSource(),
-                     str("ON"),
-                     plus(new SQLCond()));
+    const join = seq(joinType, SQLFromSource, "ON", plusPrio(SQLCond));
 
     return join;
   }

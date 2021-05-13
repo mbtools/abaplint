@@ -13,6 +13,8 @@ import {IRuleMetadata, RuleTag} from "./_irule";
 import {DDIC} from "../ddic";
 import {VirtualPosition} from "../position";
 import {ABAPFile} from "../abap/abap_file";
+import {EditDraft} from "../edit_helper";
+import {IFile} from "../files/_ifile";
 
 export enum KeywordCaseStyle {
   Upper = "upper",
@@ -34,6 +36,75 @@ export class KeywordCaseConf extends BasicRuleConfig {
   public ignoreKeywords: string[] = [];
 }
 
+class Skip {
+  private readonly conf: KeywordCaseConf;
+  private skip = false;
+  private isGlobalClass = false;
+  private isGlobalIf = false;
+
+  public constructor(conf: KeywordCaseConf) {
+    this.conf = conf;
+  }
+
+  public skipStatement(statement: StatementNode): boolean {
+    const get = statement.get();
+    if (get instanceof Unknown
+      || get instanceof MacroContent
+      || get instanceof MacroCall
+      || statement.getFirstToken().getStart() instanceof VirtualPosition
+      || get instanceof Comment) {
+      return true;
+    }
+
+    if (this.conf.ignoreGlobalClassBoundaries) {
+      const node = get;
+      if (node instanceof Statements.Interface && statement.findFirstExpression(Expressions.ClassGlobal)) {
+        this.isGlobalIf = true;
+        return true;
+      } else if (this.isGlobalIf === true && node instanceof Statements.EndInterface) {
+        return true;
+      }
+      if (node instanceof Statements.ClassDefinition && statement.findFirstExpression(Expressions.ClassGlobal)) {
+        this.isGlobalClass = true;
+        return true;
+      } else if (this.isGlobalClass === true
+        && (node instanceof Statements.EndClass || node instanceof Statements.ClassImplementation)) {
+        return true;
+      }
+    }
+
+    if (this.conf.ignoreGlobalClassDefinition) {
+      if (get instanceof Statements.ClassDefinition
+        && statement.findFirstExpression(Expressions.ClassGlobal)) {
+        this.skip = true;
+        return true;
+      } else if (this.skip === true && get instanceof Statements.EndClass) {
+        this.skip = false;
+        return true;
+      } else if (this.skip === true) {
+        return true;
+      }
+    }
+
+    if (this.conf.ignoreGlobalInterface) {
+      if (get instanceof Statements.Interface
+        && statement.findFirstExpression(Expressions.ClassGlobal)) {
+        this.skip = true;
+        return true;
+      } else if (this.skip === true && get instanceof Statements.EndInterface) {
+        this.skip = false;
+        return true;
+      } else if (this.skip === true) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+}
+
+type TokenAndKeyword = {token: Token, keyword: boolean};
+
 export class KeywordCase extends ABAPRule {
   private conf = new KeywordCaseConf();
 
@@ -42,17 +113,9 @@ export class KeywordCase extends ABAPRule {
       key: "keyword_case",
       title: "Keyword case",
       shortDescription: `Checks that keywords have the same case. Non-keywords must be lower case.`,
-      extendedInformation: `https://github.com/SAP/styleguides/blob/master/clean-abap/CleanABAP.md#use-your-pretty-printer-team-settings`,
-      tags: [RuleTag.Styleguide, RuleTag.SingleFile],
+      extendedInformation: `https://github.com/SAP/styleguides/blob/main/clean-abap/CleanABAP.md#use-your-pretty-printer-team-settings`,
+      tags: [RuleTag.Styleguide, RuleTag.SingleFile, RuleTag.Quickfix],
     };
-  }
-
-  private getDescription(tokenValue: string, keyword: boolean): string {
-    if (keyword === true) {
-      return `Keyword should be ${this.conf.style} case: "${tokenValue}"`;
-    } else {
-      return `Identifiers should be lower case: "${tokenValue}"`;
-    }
   }
 
   public getConfig() {
@@ -74,11 +137,8 @@ export class KeywordCase extends ABAPRule {
 
   public runParsed(file: ABAPFile, obj: IObject) {
     const issues: Issue[] = [];
-    let skip = false;
-    let isGlobalClass = false;
-    let isGlobalIf = false;
-
     const ddic = new DDIC(this.reg);
+    const MAX_ISSUES = 100;
 
     if (this.conf.ignoreExceptions && obj instanceof Class) {
       const definition = obj.getClassDefinition();
@@ -87,74 +147,73 @@ export class KeywordCase extends ABAPRule {
       }
     }
 
+    const skip = new Skip(this.getConfig());
     for (const statement of file.getStatements()) {
-      if (statement.get() instanceof Unknown
-        || statement.get() instanceof MacroContent
-        || statement.get() instanceof MacroCall
-        || statement.getFirstToken().getStart() instanceof VirtualPosition
-        || statement.get() instanceof Comment) {
+      if (skip.skipStatement(statement) === true) {
         continue;
       }
 
-      if (this.conf.ignoreGlobalClassBoundaries) {
-        const node = statement.get();
-        if (node instanceof Statements.Interface && statement.findFirstExpression(Expressions.ClassGlobal)) {
-          isGlobalIf = true;
-          continue;
-        } else if (isGlobalIf === true && node instanceof Statements.EndInterface) {
-          continue;
+      let result = this.traverse(statement, statement.get());
+      if (result.length > 0) {
+        if (statement.getColon() !== undefined) {
+          // if its a chained statement, go token by token
+          result = [result[0]];
         }
-        if (node instanceof Statements.ClassDefinition && statement.findFirstExpression(Expressions.ClassGlobal)) {
-          isGlobalClass = true;
-          continue;
-        } else if (isGlobalClass === true
-          && (node instanceof Statements.EndClass || node instanceof Statements.ClassImplementation)) {
-          continue;
-        }
-      }
-
-      if (this.conf.ignoreGlobalClassDefinition) {
-        if (statement.get() instanceof Statements.ClassDefinition
-          && statement.findFirstExpression(Expressions.ClassGlobal)) {
-          skip = true;
-          continue;
-        } else if (skip === true && statement.get() instanceof Statements.EndClass) {
-          skip = false;
-          continue;
-        } else if (skip === true) {
-          continue;
-        }
-      }
-
-      if (this.conf.ignoreGlobalInterface) {
-        if (statement.get() instanceof Statements.Interface
-          && statement.findFirstExpression(Expressions.ClassGlobal)) {
-          skip = true;
-          continue;
-        } else if (skip === true && statement.get() instanceof Statements.EndInterface) {
-          skip = false;
-          continue;
-        } else if (skip === true) {
-          continue;
-        }
-      }
-
-      const result = this.traverse(statement, statement.get());
-      if (result.token) {
-        const issue = Issue.atToken(
-          file, result.token,
-          this.getDescription(result.token.getStr(), result.keyword),
-          this.getMetadata().key,
-          this.conf.severity);
+        const issue = this.build(result, file);
         issues.push(issue);
-        break; // one issue per file
+        if (issues.length > MAX_ISSUES) {
+          break;
+        }
       }
     }
 
     return issues;
   }
 
-  private traverse(s: StatementNode | ExpressionNode, parent: IStatement): {token: Token | undefined, keyword: boolean;} {
+//////////////////
+
+  private build(tokens: TokenAndKeyword[], file: IFile): Issue {
+    const first = tokens[0];
+    const firstToken = tokens[0].token;
+    const lastToken = tokens[tokens.length - 1].token;
+    const firstTokenValue = firstToken.getStr();
+
+    let description = "";
+    if (first.keyword === true) {
+      description = `Keyword should be ${this.conf.style} case: "${firstTokenValue}"`;
+    } else {
+      description = `Identifiers should be lower case: "${firstTokenValue}"`;
+    }
+
+    const draft = new EditDraft(file);
+    for (const token of tokens) {
+      const str = token.token.getStr();
+      const pos = token.token.getStart();
+      if (token.keyword === true) {
+        if (this.conf.style === KeywordCaseStyle.Lower) {
+          draft.replace(pos, str.toLowerCase());
+        } else {
+          draft.replace(pos, str.toUpperCase());
+        }
+      } else {
+        draft.replace(pos, str.toLowerCase());
+      }
+    }
+    const fix = draft.toEdit();
+
+    return Issue.atRange(
+      file,
+      firstToken.getStart(),
+      lastToken.getEnd(),
+      description,
+      this.getMetadata().key,
+      this.conf.severity,
+      fix);
+  }
+
+  /** returns a list of tokens which violates the keyword_case rule */
+  private traverse(s: StatementNode | ExpressionNode, parent: IStatement): TokenAndKeyword[] {
+    let ret: TokenAndKeyword[] = [];
 
     for (const child of s.getChildren()) {
       if (child instanceof TokenNodeRegex) {
@@ -163,44 +222,38 @@ export class KeywordCase extends ABAPRule {
           continue;
         }
         const str = child.get().getStr();
-        // todo, this is a hack, the parser should recongize OTHERS as a keyword
-        if (str.toUpperCase() === "OTHERS" || str.toUpperCase() === "TEXT") {
-          continue;
-        }
-        // todo, this is a hack, the parser should recigize SCREEN as a keyword
-        if (parent instanceof Statements.Loop && str.toUpperCase() === "SCREEN") {
+        const upper = str.toUpperCase();
+        // todo, this is a hack, the parser should recongize OTHERS/TEXT as a keyword
+        if (upper === "OTHERS" || upper === "TEXT") {
           continue;
         }
         if (this.conf.ignoreFunctionModuleName === true
-          && parent instanceof Statements.FunctionModule && str.toUpperCase() !== "FUNCTION") {
+          && parent instanceof Statements.FunctionModule && upper !== "FUNCTION") {
           continue;
         }
-        if (parent instanceof Statements.ModifyInternal && str.toUpperCase() === "SCREEN") {
-          continue;
-        }
-        // todo
-        if (parent instanceof Statements.FieldSymbol || parent instanceof Statements.Type) {
+        // todo, this is a hack, the parser should recigize SCREEN as a keyword
+        if (upper === "SCREEN"
+            && (parent instanceof Statements.ModifyDatabase
+              || parent instanceof Statements.ModifyInternal
+              || parent instanceof Statements.Loop)) {
           continue;
         }
         if (str !== str.toLowerCase() && child.get() instanceof Identifier) {
-          return {token: child.get(), keyword: false};
+          ret.push({token: child.get(), keyword: false});
         }
       } else if (child instanceof TokenNode) {
         const str = child.get().getStr();
         if (this.violatesRule(str) && child.get() instanceof Identifier) {
-          return {token: child.get(), keyword: true};
+          ret.push({token: child.get(), keyword: true});
         }
       } else if (child instanceof ExpressionNode) {
-        const tok = this.traverse(child, parent);
-        if (tok.token !== undefined) {
-          return tok;
-        }
+        ret = ret.concat(this.traverse(child, parent));
       } else {
-        throw new Error("traverseStatement, unexpected node type");
+        throw new Error("keyword_case, traverseStatement, unexpected node type");
       }
     }
 
-    return {token: undefined, keyword: false};
+    return ret;
   }
 
   public violatesRule(keyword: string): boolean {

@@ -4,6 +4,7 @@ import {ABAPRule} from "./_abap_rule";
 import {BasicRuleConfig} from "./_basic_rule_config";
 import {IRuleMetadata, RuleTag} from "./_irule";
 import {ABAPFile} from "../abap/abap_file";
+import {ABAPObject} from "../objects/_abap_object";
 
 export class IfInIfConf extends BasicRuleConfig {
 }
@@ -18,7 +19,7 @@ export class IfInIf extends ABAPRule {
       title: "IF in IF",
       shortDescription: `Detects nested ifs which can be refactored to a single condition using AND.`,
       extendedInformation: `https://docs.abapopenchecks.org/checks/01/
-https://github.com/SAP/styleguides/blob/master/clean-abap/CleanABAP.md#keep-the-nesting-depth-low`,
+https://github.com/SAP/styleguides/blob/main/clean-abap/CleanABAP.md#keep-the-nesting-depth-low`,
       badExample: `IF condition1.
   IF condition2.
     ...
@@ -43,8 +44,12 @@ ENDIF.`,
     this.conf = conf;
   }
 
-  public runParsed(file: ABAPFile) {
+  public runParsed(file: ABAPFile, obj: ABAPObject) {
     const issues: Issue[] = [];
+
+    if (obj.getType() === "INTF") {
+      return [];
+    }
 
     const stru = file.getStructure();
     if (stru === undefined) {

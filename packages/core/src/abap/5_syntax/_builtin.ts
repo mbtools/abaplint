@@ -46,6 +46,17 @@ class BuiltInMethod extends Identifier implements IMethodDefinition, IMethodPara
     return ret;
   }
 
+  public getDefaultImporting(): string | undefined {
+    if (this.method.mandatory === undefined) {
+      return undefined;
+    }
+    const keys = Object.keys(this.method.mandatory);
+    if (keys.length === 1) {
+      return keys[0];
+    }
+    return undefined;
+  }
+
   public getExporting(): readonly TypedIdentifier[] {
     return [];
   }
@@ -66,6 +77,7 @@ class BuiltInMethod extends Identifier implements IMethodDefinition, IMethodPara
   public getExceptions(): readonly string[] {
     return [];
   }
+
   public getVisibility(): Visibility {
     return Visibility.Public;
   }
@@ -88,6 +100,10 @@ class BuiltInMethod extends Identifier implements IMethodDefinition, IMethodPara
 
   public getParameters(): IMethodParameters {
     return this;
+  }
+
+  public getParameterDefault(_parameter: string) {
+    return undefined;
   }
 }
 
@@ -149,8 +165,8 @@ export class BuiltIn {
     ret.push({name: "LOG10", mandatory: {"val": new FloatType()}, return: new FloatType()});
     ret.push({name: "MATCH", mandatory: {"val": new StringType(), "regex": new StringType()}, optional: {"case": new CharacterType(1), "occ": new IntegerType()}, return: new StringType(), version: Version.v702});
     ret.push({name: "MATCHES", mandatory: {"val": new StringType(), "regex": new IntegerType()}, optional: {"case": new CharacterType(1), "off": new IntegerType(), "len": new IntegerType()}, return: new CharacterType(1), version: Version.v702});
-    ret.push({name: "NMAX", mandatory: {"val1": new StringType(), "val2": new StringType()}, optional: {"val3": new StringType(), "val4": new StringType(), "val5": new StringType(), "val6": new StringType(), "val7": new StringType(), "val9": new StringType()}, return: new IntegerType(), version: Version.v702});
-    ret.push({name: "NMIN", mandatory: {"val1": new StringType(), "val2": new StringType()}, optional: {"val3": new StringType(), "val4": new StringType(), "val5": new StringType(), "val6": new StringType(), "val7": new StringType(), "val9": new StringType()}, return: new IntegerType(), version: Version.v702});
+    ret.push({name: "NMAX", mandatory: {"val1": new StringType(), "val2": new StringType()}, optional: {"val3": new StringType(), "val4": new StringType(), "val5": new StringType(), "val6": new StringType(), "val7": new StringType(), "val8": new StringType(), "val9": new StringType()}, return: new IntegerType(), version: Version.v702});
+    ret.push({name: "NMIN", mandatory: {"val1": new StringType(), "val2": new StringType()}, optional: {"val3": new StringType(), "val4": new StringType(), "val5": new StringType(), "val6": new StringType(), "val7": new StringType(), "val8": new StringType(), "val9": new StringType()}, return: new IntegerType(), version: Version.v702});
     ret.push({name: "NUMOFCHAR", mandatory: {"val": new StringType()}, return: new IntegerType()});
     ret.push({name: "REPEAT", mandatory: {"val": new StringType(), "occ": new IntegerType()}, return: new StringType(), version: Version.v702});
     ret.push({name: "REPLACE", mandatory: {"val": new StringType(), "with": new StringType()}, optional: {"sub": new StringType(), "regex": new StringType(), "case": new CharacterType(1), "off": new IntegerType(), "len": new IntegerType(), "occ": new IntegerType()}, return: new StringType(), version: Version.v702});
@@ -300,7 +316,6 @@ export class BuiltIn {
     components.push({name: "scols", type: new IntegerType()});
     components.push({name: "slset", type: new CharacterType(14)});
     components.push({name: "spono", type: new CharacterType(10)});
-    components.push({name: "srows", type: new IntegerType()});
     components.push({name: "srows", type: new IntegerType()});
     components.push({name: "staco", type: new IntegerType()});
     components.push({name: "staro", type: new IntegerType()});

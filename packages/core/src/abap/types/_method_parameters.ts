@@ -1,3 +1,4 @@
+import {ExpressionNode} from "../nodes/expression_node";
 import {TypedIdentifier} from "./_typed_identifier";
 
 export interface IMethodParameters {
@@ -7,4 +8,6 @@ export interface IMethodParameters {
   getChanging(): readonly TypedIdentifier[];
   getReturning(): TypedIdentifier | undefined;
   getExceptions(): readonly string[];
+  getDefaultImporting(): string | undefined;
+  getParameterDefault(parameter: string): ExpressionNode | undefined;
 }

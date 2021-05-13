@@ -1,49 +1,118 @@
 import {ExpressionNode} from "../../nodes";
 import {CurrentScope} from "../_current_scope";
-import {ObjectReferenceType, VoidType, DataReference} from "../../types/basic";
+import {ObjectReferenceType, VoidType, DataReference, UnknownType} from "../../types/basic";
 import * as Expressions from "../../2_statements/expressions";
 import {AbstractType} from "../../types/basic/_abstract_type";
 import {ReferenceType} from "../_reference";
 import {Source} from "./source";
+import {ObjectOriented} from "../_object_oriented";
+import {IMethodDefinition} from "../../types/_method_definition";
+import {MethodParameters} from "./method_parameters";
+import {BasicTypes} from "../basic_types";
 
 export class NewObject {
   public runSyntax(node: ExpressionNode, scope: CurrentScope, targetType: AbstractType | undefined, filename: string): AbstractType {
-    const typeToken = node.findDirectExpression(Expressions.TypeNameOrInfer)?.getFirstToken();
-    const typeName = typeToken?.getStr();
+    let ret: AbstractType | undefined = undefined;
+
+    const typeExpr = node.findDirectExpression(Expressions.TypeNameOrInfer);
+    const typeToken = typeExpr?.getFirstToken();
+    const typeName = typeExpr?.concatTokens();
     if (typeName === undefined) {
       throw new Error("NewObject, child TypeNameOrInfer not found");
     } else if (typeName === "#" && targetType && targetType instanceof ObjectReferenceType) {
       scope.addReference(typeToken, targetType.getIdentifier(), ReferenceType.InferredType, filename);
-      return targetType;
+      ret = targetType;
+
+      const clas = scope.findClassDefinition(targetType.getIdentifierName());
+      if (clas?.isAbstract() === true) {
+        throw new Error(clas.getName() + " is abstract, cannot be instantiated");
+      }
     } else if (typeName === "#" && targetType) {
-      return targetType;
+      ret = targetType;
     } else if (typeName === "#") {
       throw new Error("NewObject, todo, infer type");
     }
 
-    for (const s of node.findAllExpressions(Expressions.Source)) {
-      new Source().runSyntax(s, scope, filename);
+    if (ret === undefined) {
+      const objDefinition = scope.findObjectDefinition(typeName);
+      if (objDefinition) {
+        scope.addReference(typeToken, objDefinition, ReferenceType.ObjectOrientedReference, filename);
+        const objref = new ObjectReferenceType(objDefinition);
+        const clas = scope.findClassDefinition(objref.getIdentifierName());
+        if (clas?.isAbstract() === true) {
+          throw new Error(clas.getName() + " is abstract, cannot be instantiated");
+        }
+        ret = objref;
+      }
     }
 
-    const objDefinition = scope.findObjectDefinition(typeName);
-    if (objDefinition) {
-      scope.addReference(typeToken, objDefinition, ReferenceType.ObjectOrientedReference, filename);
-      return new ObjectReferenceType(objDefinition);
+    if (ret === undefined) {
+      const basic = new BasicTypes(filename, scope);
+      const type = basic.resolveTypeName(typeExpr);
+      if (type instanceof UnknownType) {
+        ret = type;
+      } else if (type && !(type instanceof VoidType)) {
+        ret = new DataReference(type);
+      } else if (type instanceof VoidType) {
+        ret = type;
+      } else {
+        throw new Error("Type \"" + typeName + "\" not found in scope, NewObject");
+      }
+    }
+
+    if (ret instanceof ObjectReferenceType) {
+      this.parameters(node, ret, scope, filename);
     } else {
-      scope.addReference(typeToken, undefined, ReferenceType.ObjectOrientedVoidReference, filename, {className: typeName});
+      for (const s of node.findAllExpressions(Expressions.Source)) {
+        new Source().runSyntax(s, scope, filename, ret);
+      }
     }
 
-    const type = scope.findType(typeName);
-    if (type) {
-      // todo: scope.addReference
-      return new DataReference(type.getType());
+    if (ret instanceof UnknownType && scope.getDDIC().inErrorNamespace(typeName) === true) {
+      throw new Error("Class or type \"" + typeName + "\" not found");
     }
 
-    if (scope.getDDIC().inErrorNamespace(typeName) === false) {
-      return new VoidType(typeName);
-    } else {
-      throw new Error("Type \"" + typeName + "\" not found in scope, NewObject");
-    }
-
+    return ret;
   }
+
+  private parameters(node: ExpressionNode, obj: ObjectReferenceType, scope: CurrentScope, filename: string) {
+    const name = obj.getIdentifier().getName();
+    const def = scope.findObjectDefinition(name);
+    const helper = new ObjectOriented(scope);
+    // eslint-disable-next-line prefer-const
+    let {method} = helper.searchMethodName(def, "CONSTRUCTOR");
+
+    const source = node.findDirectExpression(Expressions.Source);
+    const parameters = node.findDirectExpression(Expressions.ParameterListS);
+    if (source) {
+      // single unnamed parameter
+      const type = this.defaultImportingType(method);
+      if (type === undefined) {
+        throw new Error("NewObject, no default importing parameter found for constructor, " + name);
+      }
+      new Source().runSyntax(source, scope, filename, type);
+    } else if (parameters) {
+      // parameters with names
+      if (method === undefined) {
+        throw new Error("NewObject, no parameters for constructor found, " + name);
+      }
+      new MethodParameters().checkExporting(parameters, scope, method, filename);
+    }
+    // else: no paramters, and the constructor always exist
+  }
+
+  private defaultImportingType(method: IMethodDefinition | undefined) {
+    let targetType: AbstractType | undefined = undefined;
+    if (method === undefined) {
+      return undefined;
+    }
+    const name = method.getParameters().getDefaultImporting();
+    for (const i of method.getParameters().getImporting()) {
+      if (i.getName().toUpperCase() === name) {
+        targetType = i.getType();
+      }
+    }
+    return targetType;
+  }
+
 }

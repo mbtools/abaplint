@@ -14,11 +14,16 @@ import {Data as DataStructure} from "../5_syntax/structures/data";
 import {TypeEnum} from "../5_syntax/structures/type_enum";
 import {Constants} from "../5_syntax/structures/constants";
 import {IAttributes} from "./_class_attributes";
+import {TypeDefinitions} from "./type_definitions";
+import {Types} from "../5_syntax/structures/types";
+import {Type} from "../5_syntax/statements/type";
 
 export class Attributes implements IAttributes {
   private readonly static: ClassAttribute[];
   private readonly instance: ClassAttribute[];
   private readonly constants: ClassConstant[];
+  private readonly types: TypeDefinitions;
+  private readonly tlist: TypedIdentifier[];
   private readonly filename: string;
 
   public constructor(node: StructureNode, filename: string, scope: CurrentScope) {
@@ -26,7 +31,13 @@ export class Attributes implements IAttributes {
     this.instance = [];
     this.constants = [];
     this.filename = filename;
+    this.tlist = [];
     this.parse(node, scope);
+    this.types = new TypeDefinitions(this.tlist);
+  }
+
+  public getTypes(): TypeDefinitions {
+    return this.types;
   }
 
   public getStatic(): ClassAttribute[] {
@@ -80,18 +91,19 @@ export class Attributes implements IAttributes {
 
   // todo, optimize
   public findByName(name: string): ClassAttribute | ClassConstant | undefined {
+    const upper = name.toUpperCase();
     for (const a of this.getStatic()) {
-      if (a.getName().toUpperCase() === name.toUpperCase()) {
+      if (a.getName().toUpperCase() === upper) {
         return a;
       }
     }
     for (const a of this.getInstance()) {
-      if (a.getName().toUpperCase() === name.toUpperCase()) {
+      if (a.getName().toUpperCase() === upper) {
         return a;
       }
     }
     for (const a of this.getConstants()) {
-      if (a.getName().toUpperCase() === name.toUpperCase()) {
+      if (a.getName().toUpperCase() === upper) {
         return a;
       }
     }
@@ -104,8 +116,8 @@ export class Attributes implements IAttributes {
     const cdef = node.findDirectStructure(Structures.ClassDefinition);
     if (cdef) {
       this.parseSection(cdef.findDirectStructure(Structures.PublicSection), Visibility.Public, scope);
-      this.parseSection(cdef.findDirectStructure(Structures.PrivateSection), Visibility.Private, scope);
       this.parseSection(cdef.findDirectStructure(Structures.ProtectedSection), Visibility.Protected, scope);
+      this.parseSection(cdef.findDirectStructure(Structures.PrivateSection), Visibility.Private, scope);
       return;
     }
 
@@ -129,26 +141,35 @@ export class Attributes implements IAttributes {
         if (ctyp instanceof Structures.Data) {
           const found = new DataStructure().runSyntax(c, scope, this.filename);
           if (found !== undefined) {
-            this.instance.push(new ClassAttribute(found, visibility, found.getMeta()));
-            scope.addIdentifier(found);
+            const attr = new ClassAttribute(found, visibility, found.getMeta());
+            this.instance.push(attr);
+            scope.addIdentifier(attr);
           }
         } else if (ctyp instanceof Structures.ClassData) {
           const found = new ClassDataStructure().runSyntax(c, scope, this.filename);
           if (found !== undefined) {
-            this.static.push(new ClassAttribute(found, visibility, found.getMeta()));
-            scope.addIdentifier(found);
+            const attr = new ClassAttribute(found, visibility, found.getMeta());
+            this.static.push(attr);
+            scope.addIdentifier(attr);
           }
         } else if (ctyp instanceof Structures.Constants) {
-          const found = new Constants().runSyntax(c, scope, this.filename);
+          const {type: found, values} = new Constants().runSyntax(c, scope, this.filename);
           if (found !== undefined) {
-            this.constants.push(new ClassConstant(found, visibility, "todo"));
-            scope.addIdentifier(found);
+            const attr = new ClassConstant(found, visibility, values);
+            this.constants.push(attr);
+            scope.addIdentifier(attr);
           }
         } else if (ctyp instanceof Structures.TypeEnum) {
           const enums = new TypeEnum().runSyntax(c, scope, this.filename);
           for (const e of enums) {
           // for now add ENUM values as constants
-            this.constants.push(new ClassConstant(e, visibility, "todo"));
+            this.constants.push(new ClassConstant(e, visibility, "novalueClassAttributeEnum"));
+          }
+        } else if (ctyp instanceof Structures.Types) {
+          const res = new Types().runSyntax(c, scope, this.filename);
+          if (res) {
+            scope.addType(res);
+            this.tlist.push(res);
           }
         } else {
           // begin recursion
@@ -162,8 +183,15 @@ export class Attributes implements IAttributes {
         } else if (ctyp instanceof Statements.Constant) {
           const found = new ConstantStatement().runSyntax(c, scope, this.filename);
           if (found) {
-            this.constants.push(new ClassConstant(found, visibility, found.getValue() || "todo, constant value fallback"));
-            scope.addIdentifier(found);
+            const attr = new ClassConstant(found, visibility, found.getValue() || "todo, constant value fallback");
+            this.constants.push(attr);
+            scope.addIdentifier(attr);
+          }
+        } else if (ctyp instanceof Statements.Type) {
+          const res = new Type().runSyntax(c, scope, this.filename);
+          if (res) {
+            scope.addType(res);
+            this.tlist.push(res);
           }
         }
       }

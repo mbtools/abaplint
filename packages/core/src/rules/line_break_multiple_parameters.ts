@@ -6,6 +6,7 @@ import {IRuleMetadata, RuleTag} from "./_irule";
 import {EditHelper} from "../edit_helper";
 import {VirtualPosition} from "../position";
 import {ABAPFile} from "../abap/abap_file";
+import {ABAPObject} from "../objects/_abap_object";
 
 export class LineBreakMultipleParametersConf extends BasicRuleConfig {
 }
@@ -19,7 +20,7 @@ export class LineBreakMultipleParameters extends ABAPRule {
       key: "line_break_multiple_parameters",
       title: "Line break multiple parameters",
       shortDescription: `Line break multiple parameters`,
-      extendedInformation: `https://github.com/SAP/styleguides/blob/master/clean-abap/CleanABAP.md#line-break-multiple-parameters`,
+      extendedInformation: `https://github.com/SAP/styleguides/blob/main/clean-abap/CleanABAP.md#line-break-multiple-parameters`,
       badExample: `method( parameter1 = value parameter2 = value ).`,
       goodExample: `method( parameter1 = value\n        parameter2 = value ).`,
       tags: [RuleTag.Whitespace, RuleTag.Styleguide, RuleTag.Quickfix, RuleTag.SingleFile],
@@ -34,8 +35,12 @@ export class LineBreakMultipleParameters extends ABAPRule {
     this.conf = conf;
   }
 
-  public runParsed(file: ABAPFile) {
+  public runParsed(file: ABAPFile, obj: ABAPObject) {
     const issues: Issue[] = [];
+
+    if (obj.getType() === "INTF") {
+      return [];
+    }
 
     for (const s of file.getStatements()) {
       for (const e of s.findAllExpressions(Expressions.ParameterListS)) {

@@ -3,13 +3,22 @@ import {AbstractType} from "../abap/types/basic/_abstract_type";
 import * as Types from "../abap/types/basic";
 import {IRegistry} from "../_iregistry";
 import {DDIC} from "../ddic";
-import {IdentifierMeta, TypedIdentifier} from "../abap/types/_typed_identifier";
 
 export class Domain extends AbstractObject {
+  private parsedXML: {
+    description?: string,
+    datatype?: string,
+    length?: string,
+    decimals?: string,
+  } | undefined;
   private parsedType: AbstractType | undefined;
 
   public getType(): string {
     return "DOMA";
+  }
+
+  public getDescription(): string | undefined {
+    return this.parsedXML?.description;
   }
 
   public getAllowedNaming() {
@@ -20,34 +29,43 @@ export class Domain extends AbstractObject {
   }
 
   public setDirty(): void {
+    this.parsedXML = undefined;
     this.parsedType = undefined;
     super.setDirty();
   }
 
-  public parseType(reg: IRegistry): TypedIdentifier {
-    if (this.parsedType === undefined) {
-      this.parsedType = this.parseXML(reg);
+  public parseType(reg: IRegistry): AbstractType {
+    if (this.parsedType) {
+      return this.parsedType;
+    } else if (this.parsedXML === undefined) {
+      return new Types.UnknownType("Domain " + this.getName() + " parser error", this.getName());
     }
-    return TypedIdentifier.from(
-      this.getIdentifier()!,
-      this.parsedType,
-      [IdentifierMeta.DDIC]);
+    const ddic = new DDIC(reg);
+    this.parsedType = ddic.textToType(this.parsedXML.datatype, this.parsedXML.length, this.parsedXML.decimals, this.getName());
+    return this.parsedType;
   }
 
-///////////////
-
-  private parseXML(reg: IRegistry): AbstractType {
-    const parsed = super.parseRaw();
-    if (parsed === undefined) {
-      return new Types.UnknownType("Domain " + this.getName() + "parser error");
+  public parse() {
+    if (this.parsedXML) {
+      return {updated: false, runtime: 0};
     }
 
-    const ddic = new DDIC(reg);
-    const dd01v = parsed.abapGit["asx:abap"]["asx:values"].DD01V;
-    const datatype = dd01v.DATATYPE?._text;
-    const length = dd01v.LENG?._text;
-    const decimals = dd01v.DECIMALS?._text;
-    return ddic.textToType(datatype, length, decimals, this.getName());
+    const start = Date.now();
+    this.parsedXML = {};
+    const parsed = super.parseRaw2();
+    if (parsed === undefined) {
+      return {updated: false, runtime: 0};
+    }
+
+    const dd01v = parsed.abapGit?.["asx:abap"]?.["asx:values"]?.DD01V;
+    this.parsedXML = {
+      description: dd01v?.DDTEXT,
+      datatype: dd01v?.DATATYPE,
+      length: dd01v?.LENG,
+      decimals: dd01v?.DECIMALS,
+    };
+    const end = Date.now();
+    return {updated: true, runtime: end - start};
   }
 
 }

@@ -24,7 +24,7 @@ export class PrefixIsCurrentClass extends ABAPRule {
       title: "Prefix is current class",
       shortDescription: `Reports errors if the current class or interface references itself with "current_class=>"`,
       // eslint-disable-next-line max-len
-      extendedInformation: `https://github.com/SAP/styleguides/blob/master/clean-abap/CleanABAP.md#omit-the-self-reference-me-when-calling-an-instance-method`,
+      extendedInformation: `https://github.com/SAP/styleguides/blob/main/clean-abap/CleanABAP.md#omit-the-self-reference-me-when-calling-an-instance-method`,
       tags: [RuleTag.Styleguide, RuleTag.Quickfix, RuleTag.SingleFile],
     };
   }
@@ -54,15 +54,25 @@ export class PrefixIsCurrentClass extends ABAPRule {
       if (name === undefined) {
         continue;
       }
+      const staticAccess = name + "=>";
 
       for (const e of s.findAllExpressions(TypeName)) {
-        if (e.concatTokens().toUpperCase().startsWith(name + "=>")) {
+        const concat = e.concatTokens().toUpperCase();
+        if (concat.startsWith(staticAccess)) {
+          const stat = e.findDirectTokenByText("=>");
+          if (stat === undefined) {
+            continue;
+          }
+          const start = new Position(stat.getRow(), stat.getCol() - name.length);
+          const end = new Position(stat.getRow(), stat.getCol() + 2);
+          const fix = EditHelper.deleteRange(file, start, end);
           issues.push(Issue.atToken(
             file,
             e.getFirstToken(),
             "Reference to current interface can be omitted",
             this.getMetadata().key,
-            this.conf.severity));
+            this.conf.severity,
+            fix));
         }
       }
 
@@ -78,8 +88,8 @@ export class PrefixIsCurrentClass extends ABAPRule {
     }
 
     const issues: Issue[] = [];
-    let classStructures = struc.findDirectStructures(Structures.ClassImplementation);
-    classStructures = classStructures.concat(struc.findDirectStructures(Structures.ClassDefinition));
+    const classStructures = struc.findDirectStructures(Structures.ClassImplementation);
+    classStructures.push(...struc.findDirectStructures(Structures.ClassDefinition));
     const meAccess = "ME->";
 
     for (const c of classStructures) {
@@ -87,7 +97,8 @@ export class PrefixIsCurrentClass extends ABAPRule {
       const staticAccess = className + "=>";
 
       for (const s of c.findAllStatementNodes()) {
-        if (s.concatTokensWithoutStringsAndComments().toUpperCase().includes(staticAccess)) {
+        const concat = s.concatTokensWithoutStringsAndComments().toUpperCase();
+        if (concat.includes(staticAccess)) {
           const tokenPos = s.findTokenSequencePosition(className, "=>");
           if (tokenPos) {
             const end = new Position(tokenPos.getRow(), tokenPos.getCol() + className.length + 2);
@@ -101,7 +112,7 @@ export class PrefixIsCurrentClass extends ABAPRule {
               fix));
           }
         } else if (this.conf.omitMeInstanceCalls === true
-            && s.concatTokensWithoutStringsAndComments().toUpperCase().includes(meAccess)
+            && concat.includes(meAccess)
             && s.findFirstExpression(MethodCall)) {
           const tokenPos = s.findTokenSequencePosition("me", "->");
           if (tokenPos) {

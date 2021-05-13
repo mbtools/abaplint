@@ -1,7 +1,7 @@
 import {KeywordCase, KeywordCaseConf, KeywordCaseStyle} from "../../src/rules/keyword_case";
-import {testRule} from "./_utils";
+import {testRule, testRuleFix, TestRuleType} from "./_utils";
 
-const tests = [
+const tests: TestRuleType = [
   {abap: "if a = b.", cnt: 1},
   {abap: "foo = |sdf|.", cnt: 0},
   {abap: "foo = boolc( 1 = 2 ).", cnt: 0},
@@ -16,8 +16,8 @@ const tests = [
     OTHERS      = 2.`, cnt: 0},
   {abap: "LOOP AT SCREEN.", cnt: 0},
   {abap: "MODIFY SCREEN.", cnt: 0},
-  {abap: "FIELD-SYMBOLS <lv_dst> TYPE ANY.", cnt: 0}, // todo, "ANY" should be lower case
-  {abap: "FIELD-SYMBOLS <ls_auth> LIKE LINE OF gt_auth.", cnt: 0}, // todo
+  {abap: "FIELD-SYMBOLS <lv_dst> TYPE any.", cnt: 0},
+  {abap: "FIELD-SYMBOLS <ls_auth> LIKE LINE OF gt_auth.", cnt: 0},
   {abap: "SELECT SINGLE ccnocliind FROM t000 INTO lv_ind WHERE mandt = sy-mandt.", cnt: 0},
   {abap: "SORT mt_items BY txt ASCENDING AS TEXT.", cnt: 0},
   {abap: "DELETE ADJACENT DUPLICATES FROM mt_requirements COMPARING ALL FIELDS.", cnt: 0},
@@ -56,6 +56,26 @@ END-OF-DEFINITION.
 _bar.`, cnt: 0},
 
   {abap: `SYSTEM-CALL OBJMGR CLONE me TO result.`, cnt: 0},
+  {abap: `write BAR.`, cnt: 1},
+  {abap: `
+LOOP AT SCREEN INTO DATA(wa).
+  MODIFY screen FROM wa.
+ENDLOOP.`, cnt: 0},
+  {abap: `
+LOOP AT SCREEN INTO DATA(wa).
+  MODIFY SCREEN FROM wa.
+ENDLOOP.`, cnt: 0},
+  {abap: `
+DATA foo TYPE string.
+DATA bar1 TYPE string.
+DATA bar2 TYPE string.
+SPLIT foo AT 'i' INTO bar1 bar2 IN CHARACTER MODE.`, cnt: 0},
+  {abap: `
+SELECT mandt, mtext
+  INTO TABLE @DATA(sdf)
+  FROM t000
+  GROUP BY mandt, mtext, ort01, mwaer
+  ORDER BY mwaer.`, cnt: 0},
 ];
 
 testRule(tests, KeywordCase);
@@ -106,8 +126,8 @@ const tests4 = [
     others      = 2.`, cnt: 0},
   {abap: "LOOP AT SCREEN.", cnt: 1},
   {abap: "MODIFY SCREEN.", cnt: 1},
-  {abap: "field-symbols <lv_dst> type ANY.", cnt: 0}, // todo, "ANY" should be lower case
-  {abap: "field-symbols <ls_auth> like line of gt_auth.", cnt: 0}, // todo
+  {abap: "field-symbols <lv_dst> type any.", cnt: 0},
+  {abap: "field-symbols <ls_auth> like line of gt_auth.", cnt: 0},
   {abap: "select single ccnocliind from t000 into lv_ind where mandt = sy-mandt.", cnt: 0},
   {abap: "sort mt_items by txt ascending as text.", cnt: 0},
   {abap: "delete adjacent duplicates from mt_requirements comparing all fields.", cnt: 0},
@@ -168,7 +188,7 @@ const testLowerCaseGlobalClassSuite1 = [
         method x. endmethod.
       ENDCLASS.
       `,
-    cnt: 1,
+    cnt: 4,
   },
   {
     abap: `
@@ -176,7 +196,7 @@ const testLowerCaseGlobalClassSuite1 = [
         methods x.
       ENDINTERFACE.
       `,
-    cnt: 1,
+    cnt: 2,
   },
   {
     abap: `
@@ -223,3 +243,28 @@ const configLowerCaseGlobalClass2 = {
   ignoreGlobalClassBoundaries: true,
 };
 testRule(testLowerCaseGlobalClassSuite2, KeywordCase, configLowerCaseGlobalClass2, "keywordCase: lower + ignore boundaries");
+
+const fixTests = [
+  {
+    input: "write bar.",
+    output: "WRITE bar.",
+  },
+  {
+    input: "WRITE BAR.",
+    output: "WRITE bar.",
+  },
+  {
+    input: "write BAR.",
+    output: "WRITE bar.",
+  },
+  {
+    input: "write\nBAR.",
+    output: "WRITE\nbar.",
+  },
+  {
+    input: "call\nfunction\n'BAR'.",
+    output: "CALL\nFUNCTION\n'BAR'.",
+  },
+];
+
+testRuleFix(fixTests, KeywordCase);

@@ -1,86 +1,59 @@
-import {str, seq, per, alt, Expression} from "../combi";
+import {seq, per, altPrio, ver, Expression} from "../combi";
 import {Source} from ".";
 import {IStatementRunnable} from "../statement_runnable";
+import {Version} from "../../../version";
 
 export class StringTemplateFormatting extends Expression {
   public getRunnable(): IStatementRunnable {
 
     // https://help.sap.com/doc/abapdocu_752_index_htm/7.52/en-us/abapcompute_string_format_options.htm
-    const alphaOptions = alt(str("OUT"),
-                             str("RAW"),
-                             str("IN"),
-                             new Source());
+    const alphaOptions = altPrio("OUT", "RAW", "IN", Source);
 
-    const alignOptions = alt(str("LEFT"),
-                             str("RIGHT"),
-                             str("CENTER"),
-                             new Source());
+    const alignOptions = altPrio("LEFT", "RIGHT", "CENTER", Source);
 
-    const dateTimeOptions = alt(str("RAW"),
-                                str("ISO"),
-                                str("USER"),
-                                str("ENVIRONMENT"),
-                                new Source());
+    const dateTimeOptions = altPrio("RAW", "ISO", "USER", "ENVIRONMENT", Source);
 
-    const timeStampOptions = (alt(str("SPACE"),
-                                  str("ISO"),
-                                  str("USER"),
-                                  str("ENVIRONMENT"),
-                                  new Source()));
+    const timeStampOptions = altPrio("SPACE", "ISO", "USER", "ENVIRONMENT", Source);
 
-    const numberOptions = alt(str("RAW"),
-                              str("USER"),
-                              str("ENVIRONMENT"),
-                              new Source());
+    const numberOptions = altPrio("RAW", "USER", "ENVIRONMENT", Source);
 
-    const signOptions = alt(str("LEFT"),
-                            str("LEFTPLUS"),
-                            str("LEFTSPACE"),
-                            str("RIGHT"),
-                            str("RIGHTPLUS"),
-                            str("RIGHTSPACE"),
-                            new Source());
+    const signOptions = altPrio("LEFT", "LEFTPLUS", "LEFTSPACE", "RIGHT", "RIGHTPLUS", "RIGHTSPACE", Source);
 
-    const caseOptions = alt(str("RAW"),
-                            str("UPPER"),
-                            str("LOWER"),
-                            new Source());
+    const caseOptions = altPrio("RAW", "UPPER", "LOWER", Source);
 
-    const zeroXSDOptions = alt(str("YES"),
-                               str("NO"),
-                               new Source());
+    const zeroXSDOptions = altPrio("YES", "NO", Source);
 
-    const styleOptions = alt(str("SIMPLE"),
-                             str("SIGN_AS_POSTFIX"),
-                             str("SCALE_PRESERVING"),
-                             str("SCIENTIFIC"),
-                             str("SCIENTIFIC_WITH_LEADING_ZERO"),
-                             str("SCALE_PRESERVING_SCIENTIFIC"),
-                             str("ENGINEERING "),
-                             new Source());
+    const styleOptions = altPrio("SIMPLE",
+                                 "SIGN_AS_POSTFIX",
+                                 "SCALE_PRESERVING",
+                                 "SCIENTIFIC",
+                                 "SCIENTIFIC_WITH_LEADING_ZERO",
+                                 "SCALE_PRESERVING_SCIENTIFIC",
+                                 "ENGINEERING",
+                                 Source);
 
-    const width = seq(str("WIDTH"), str("="), new Source());
-    const align = seq(str("ALIGN"), str("="), alignOptions);
-    const timezone = seq(str("TIMEZONE"), str("="), new Source());
-    const timestamp = seq(str("TIMESTAMP"), str("="), timeStampOptions);
-    const pad = seq(str("PAD"), str("="), new Source());
-    const number = seq(str("NUMBER"), str("="), numberOptions);
-    const sign = seq(str("SIGN"), str("="), signOptions);
-    const decimals = seq(str("DECIMALS"), str("="), new Source());
-    const alpha = seq(str("ALPHA"), str("="), alphaOptions);
+    const width = seq("WIDTH =", Source);
+    const align = seq("ALIGN =", alignOptions);
+    const timezone = seq("TIMEZONE =", Source);
+    const timestamp = seq("TIMESTAMP =", timeStampOptions);
+    const pad = seq("PAD =", Source);
+    const number = seq("NUMBER =", numberOptions);
+    const sign = seq("SIGN =", signOptions);
+    const decimals = seq("DECIMALS =", Source);
+    const alpha = ver(Version.v740sp02, seq("ALPHA =", alphaOptions));
+    const xsd = ver(Version.v740sp02, seq("XSD =", zeroXSDOptions));
 
-    const formatting = alt(seq(str("TIME"), str("="), dateTimeOptions),
-                           seq(str("DATE"), str("="), dateTimeOptions),
-                           seq(str("CASE"), str("="), caseOptions),
-                           seq(str("EXPONENT"), new Source()),
-                           seq(str("ZERO"), str("="), zeroXSDOptions),
-                           seq(str("XSD"), str("="), zeroXSDOptions),
-                           seq(str("STYLE"), str("="), styleOptions),
-                           seq(str("CURRENCY"), str("="), new Source()),
-                           seq(str("COUNTRY"), str("="), new Source()),
-                           per(sign, number, decimals),
-                           per(timezone, timestamp),
-                           per(width, pad, alpha, align));
+    const formatting = altPrio(seq("TIME =", dateTimeOptions),
+                               seq("DATE =", dateTimeOptions),
+                               seq("CASE =", caseOptions),
+                               seq("EXPONENT", Source),
+                               seq("ZERO =", zeroXSDOptions),
+                               xsd,
+                               seq("STYLE =", styleOptions),
+                               seq("CURRENCY =", Source),
+                               seq("COUNTRY =", Source),
+                               per(sign, number, decimals, width, pad, alpha, align),
+                               per(timezone, timestamp));
 
     return formatting;
   }

@@ -5,7 +5,7 @@ import * as minimist from "minimist";
 import * as ProgressBar from "progress";
 import * as childProcess from "child_process";
 import * as JSON5 from "json5";
-import {Issue, IProgress, IFile, Position, Config, Registry, MemoryFile, IRegistry} from "@abaplint/core";
+import {Issue, IProgress, IFile, Position, Config, Registry, Version, MemoryFile, IRegistry} from "@abaplint/core";
 import {Formatter} from "./formatters/_format";
 import {FileOperations} from "./file_operations";
 import {ApackDependencyProvider} from "./apack_dependency_provider";
@@ -52,7 +52,7 @@ function loadConfig(filename: string | undefined): {config: Config, base: string
     }
   } else {
     if (fs.existsSync(filename) === false) {
-      process.stderr.write("Specified abaplint configuration file does not exist, using default config\n");
+      process.stderr.write("ERROR: Specified abaplint configuration file does not exist, using default config\n");
       return {config: Config.getDefault(), base: "."};
     } else if (fs.statSync(filename).isDirectory() === true) {
       process.stderr.write("Supply filename, not directory, using default config\n");
@@ -61,8 +61,17 @@ function loadConfig(filename: string | undefined): {config: Config, base: string
     f = filename;
   }
 
+  // evil hack to get JSON5 working
+  // @ts-ignore
+  JSON5.parse = JSON5.default.parse;
+
   process.stderr.write("Using config: " + f + "\n");
   const json = fs.readFileSync(f, "utf8");
+  const parsed = JSON5.parse(json);
+  if (Object.keys(Version).some(v => v === parsed.syntax.version) === false) {
+    throw "Error: Unknown version in abaplint.json";
+  }
+
   return {
     config: new Config(json),
     base: path.dirname(f) === process.cwd() ? "." : path.dirname(f),
@@ -120,7 +129,7 @@ function displayHelp(): string {
     "  abaplint -d | --default   show default configuration\n" +
     "\n" +
     "Options:\n" +
-    "  -f, --format <format>  output format (standard, total, json, summary, junit)\n" +
+    "  -f, --format <format>  output format (standard, total, json, summary, junit, codeframe)\n" +
     "  --outformat <format>   output format, use in combination with outfile\n" +
     "  --outfile <file>       output issues to file in format\n" +
     "  --fix                  apply quick fixes to files\n" +
@@ -194,7 +203,7 @@ async function run() {
     let extra = "";
     if (argv["fix"] && reg) {
       // @ts-ignore
-      issues = applyFixes(issues, reg, fs);
+      issues = applyFixes(issues, reg, fs, progress);
       extra = "Fixes applied";
     } else if (argv["rename"] && reg) {
       if (issues.length === 0) {

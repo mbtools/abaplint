@@ -10,7 +10,9 @@ export enum RuleTag {
   Whitespace = "Whitespace",
   Naming = "Naming",
   Quickfix = "Quickfix",
+  Performance = "Performance",
   Syntax = "Syntax",
+  Security = "Security",
   /** Relevant wrt the official SAP ABAP style guide*/
   Styleguide = "Styleguide",
   /** Single file compatible, the rule gives correct results when having only information about the single file */
@@ -20,8 +22,7 @@ export enum RuleTag {
 /** Rule Metadata */
 export interface IRuleMetadata {
   /** Rule key, no whitespace allowed, always lower case, words separated by underscore
-   * Used in abaplint.json configuration files
-   */
+   * Used in abaplint.json configuration files */
   key: string;
   /** Rule title */
   title: string;
@@ -35,6 +36,10 @@ export interface IRuleMetadata {
   extendedInformation?: string;
   /** Various tags with additional usage information */
   tags?: RuleTag[];
+  /** Pragma that can be used to suppress the issue */
+  pragma?: string;
+  /** Pseudo comment that can be used to suppress the issue */
+  pseudoComment?: string;
 }
 
 /** Rule Interface */

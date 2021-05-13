@@ -7,7 +7,7 @@ import {TypedIdentifier} from "../../types/_typed_identifier";
 
 export class IncludeType {
   public runSyntax(node: StatementNode, scope: CurrentScope, filename: string): IStructureComponent[] | VoidType {
-    let components: IStructureComponent[] = [];
+    const components: IStructureComponent[] = [];
 
     const iname = node.findFirstExpression(Expressions.TypeName);
     if (iname === undefined) {
@@ -15,18 +15,23 @@ export class IncludeType {
     }
     const name = iname.getFirstToken().getStr();
 
-    const ityp = new BasicTypes(filename, scope).parseType(iname);
+    let ityp = new BasicTypes(filename, scope).parseType(iname);
+    const as = node.findExpressionAfterToken("AS")?.concatTokens();
+    if (as && ityp instanceof StructureType) {
+      ityp = new StructureType(ityp.getComponents().concat([{name: as, type: ityp}]));
+    }
+
     if (ityp
         && ityp instanceof TypedIdentifier
         && ityp.getType() instanceof StructureType) {
       const stru = ityp.getType() as StructureType;
-      components = components.concat(stru.getComponents());
+      components.push(...stru.getComponents());
     } else if (ityp && ityp instanceof StructureType) {
-      components = components.concat(ityp.getComponents());
+      components.push(...ityp.getComponents());
     } else if (scope.getDDIC().inErrorNamespace(name) === false) {
       return new VoidType(name);
     } else {
-      throw new Error("IncludeType, type not found " + iname.concatTokens());
+      throw new Error("IncludeType, type not found \"" + iname.concatTokens() + "\"");
     }
 
     return components;

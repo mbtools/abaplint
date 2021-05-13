@@ -1,20 +1,19 @@
 import {IStatement} from "./_statement";
-import {str, opt, seq} from "../combi";
+import {opt, seq, ver} from "../combi";
 import {NamespaceSimpleName} from "../expressions";
 import {IStatementRunnable} from "../statement_runnable";
+import {Version} from "../../../version";
 
 export class TypeEnumBegin implements IStatement {
 
   public getMatcher(): IStatementRunnable {
-    const structure = seq(str("STRUCTURE"), new NamespaceSimpleName());
+    const structure = seq("STRUCTURE", NamespaceSimpleName);
 
-    const base = seq(str("BASE TYPE"), new NamespaceSimpleName());
+    const base = seq("BASE TYPE", NamespaceSimpleName);
 
-    const em = seq(str("ENUM"), new NamespaceSimpleName(), opt(structure), opt(base));
+    const em = seq("ENUM", NamespaceSimpleName, opt(structure), opt(base));
 
-    const begin = seq(str("BEGIN OF"), em);
-
-    const ret = seq(str("TYPES"), begin);
+    const ret = ver(Version.v751, seq("TYPES", "BEGIN OF", em));
 
     return ret;
   }

@@ -1,15 +1,18 @@
-import {str, alt, seq, opt, Expression, ver, tok} from "../combi";
+import {altPrio, seq, optPrio, Expression, ver, tok} from "../combi";
 import {SQLAsName, Dynamic, SQLCDSParameters, DatabaseTable, FieldChain} from ".";
 import {IStatementRunnable} from "../statement_runnable";
 import {Version} from "../../../version";
 import {WAt} from "../../1_lexer/tokens";
+import {WithName} from "./with_name";
 
 export class SQLFromSource extends Expression {
   public getRunnable(): IStatementRunnable {
     // https://help.sap.com/doc/abapdocu_752_index_htm/7.52/en-US/abennews-752-open_sql.htm#!ABAP_MODIFICATION_1@1@
-    const tab = ver(Version.v752, seq(tok(WAt), new FieldChain()));
-    const aas = seq(str("AS"), new SQLAsName());
+    const tab = ver(Version.v752, seq(tok(WAt), FieldChain));
+    const aas = seq("AS", SQLAsName);
 
-    return seq(alt(new Dynamic(), seq(new DatabaseTable(), opt(new SQLCDSParameters())), tab), opt(aas));
+    return seq(altPrio(Dynamic, WithName, seq(DatabaseTable, optPrio(SQLCDSParameters)), tab),
+               optPrio(ver(Version.v752, "WITH PRIVILEGED ACCESS")),
+               optPrio(aas));
   }
 }

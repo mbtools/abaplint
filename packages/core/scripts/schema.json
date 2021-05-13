@@ -94,10 +94,6 @@
           "description": "Detects BREAK and BREAK-POINTS",
           "type": "boolean"
         },
-        "communication": {
-          "description": "Detects communication",
-          "type": "boolean"
-        },
         "defaultKey": {
           "description": "Detects DEFAULT KEY definitions, from version v740sp02 and up",
           "type": "boolean"
@@ -107,11 +103,7 @@
           "type": "boolean"
         },
         "describeLines": {
-          "description": "Detects DESRIBE TABLE LINES, use lines() instead",
-          "type": "boolean"
-        },
-        "endselect": {
-          "description": "Detects ENDSELECT",
+          "description": "Detects DESCRIBE TABLE LINES, use lines() instead",
           "type": "boolean"
         },
         "exclude": {
@@ -121,14 +113,6 @@
           },
           "type": "array"
         },
-        "execSQL": {
-          "description": "Detects execSQL (dynamic SQL)",
-          "type": "boolean"
-        },
-        "kernelCall": {
-          "description": "Detects kernel calls",
-          "type": "boolean"
-        },
         "severity": {
           "$ref": "#/definitions/Severity",
           "description": "Problem severity"
@@ -136,20 +120,11 @@
         "statics": {
           "description": "Detects statics",
           "type": "boolean"
-        },
-        "systemCall": {
-          "description": "Detects SYSTEM-CALL",
-          "type": "boolean"
         }
       },
       "required": [
         "define",
-        "endselect",
-        "execSQL",
-        "kernelCall",
-        "communication",
         "statics",
-        "systemCall",
         "defaultKey",
         "break",
         "describeLines"
@@ -402,6 +377,9 @@
         "selectSingle": {
           "type": "boolean"
         },
+        "selectTable": {
+          "type": "boolean"
+        },
         "severity": {
           "$ref": "#/definitions/Severity",
           "description": "Problem severity"
@@ -414,6 +392,7 @@
         "openDataset",
         "authorityCheck",
         "selectSingle",
+        "selectTable",
         "updateDatabase",
         "insertDatabase",
         "modifyDatabase",
@@ -661,6 +640,90 @@
       "required": [
         "max"
       ],
+      "type": "object"
+    },
+    "DangerousStatementConf": {
+      "additionalProperties": false,
+      "properties": {
+        "deleteDynpro": {
+          "type": "boolean"
+        },
+        "deleteReport": {
+          "type": "boolean"
+        },
+        "deleteTextpool": {
+          "type": "boolean"
+        },
+        "exclude": {
+          "description": "List of file regex filename patterns to exclude, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "execSQL": {
+          "description": "Detects execSQL (dynamic SQL)",
+          "type": "boolean"
+        },
+        "generateDynpro": {
+          "type": "boolean"
+        },
+        "generateReport": {
+          "type": "boolean"
+        },
+        "generateSubroutine": {
+          "type": "boolean"
+        },
+        "importDynpro": {
+          "type": "boolean"
+        },
+        "insertReport": {
+          "description": "Detects INSERT REPORT",
+          "type": "boolean"
+        },
+        "kernelCall": {
+          "description": "Detects kernel calls",
+          "type": "boolean"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        },
+        "systemCall": {
+          "description": "Detects SYSTEM-CALL",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "execSQL",
+        "kernelCall",
+        "systemCall",
+        "insertReport",
+        "generateDynpro",
+        "generateReport",
+        "generateSubroutine",
+        "deleteReport",
+        "deleteTextpool",
+        "deleteDynpro",
+        "importDynpro"
+      ],
+      "type": "object"
+    },
+    "DbOperationInLoopConf": {
+      "additionalProperties": false,
+      "properties": {
+        "exclude": {
+          "description": "List of file regex filename patterns to exclude, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        }
+      },
       "type": "object"
     },
     "DefinitionsTopConf": {
@@ -1163,7 +1226,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks for ambiguity between deleting or modifying from internal and database table\nAdd \"TABLE\" keyword or \"@\" for escaping SQL variables\nTags: SingleFile\nhttps://rules.abaplint.org/ambiguous_statement"
+              "description": "Checks for ambiguity between deleting or modifying from internal and database table\nAdd \"TABLE\" keyword or \"@\" for escaping SQL variables\n\nOnly works if the target version is 740sp05 or above\nTags: SingleFile\nhttps://rules.abaplint.org/ambiguous_statement"
             },
             "avoid_use": {
               "anyOf": [
@@ -1185,7 +1248,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Check BEGIN OF and END OF names match\nTags: Syntax, Quickfix, SingleFile\nhttps://rules.abaplint.org/begin_end_names"
+              "description": "Check BEGIN OF and END OF names match, plus there must be statements between BEGIN and END\nTags: Syntax, Quickfix, SingleFile\nhttps://rules.abaplint.org/begin_end_names"
             },
             "begin_single_include": {
               "anyOf": [
@@ -1207,7 +1270,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks that usages of CALL TRANSACTION contain an authority-check.\nTags: Styleguide, SingleFile\nhttps://rules.abaplint.org/call_transaction_authority_check"
+              "description": "Checks that usages of CALL TRANSACTION contain an authority-check.\nTags: Styleguide, SingleFile, Security\nhttps://rules.abaplint.org/call_transaction_authority_check"
             },
             "chain_mainly_declarations": {
               "anyOf": [
@@ -1295,7 +1358,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Enables syntax check and variable resolution\nTags: Experimental, Syntax\nhttps://rules.abaplint.org/check_syntax"
+              "description": "Enables syntax check and variable resolution\nTags: Syntax\nhttps://rules.abaplint.org/check_syntax"
             },
             "check_text_elements": {
               "anyOf": [
@@ -1396,6 +1459,28 @@
               ],
               "description": "Cyclomatic complexity, only reported for methods\nTags: SingleFile\nhttps://rules.abaplint.org/cyclomatic_complexity"
             },
+            "dangerous_statement": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/DangerousStatementConf"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "Detects potentially dangerous statements\nTags: SingleFile, Security\nhttps://rules.abaplint.org/dangerous_statement"
+            },
+            "db_operation_in_loop": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/DbOperationInLoopConf"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "Database operation in LOOP/DO/WHILE\nTags: SingleFile, Performance\nhttps://rules.abaplint.org/db_operation_in_loop"
+            },
             "definitions_top": {
               "anyOf": [
                 {
@@ -1405,7 +1490,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks that definitions are placed at the beginning of methods.\nTags: SingleFile\nhttps://rules.abaplint.org/definitions_top"
+              "description": "Checks that definitions are placed at the beginning of METHODs and FORMs.\nTags: SingleFile, Quickfix\nhttps://rules.abaplint.org/definitions_top"
             },
             "description_empty": {
               "anyOf": [
@@ -1603,7 +1688,18 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Find identical contents in IFs\n\nPrerequsites: code is pretty printed with identical cAsE\n\nChained statments are ignored\nTags: SingleFile\nhttps://rules.abaplint.org/identical_contents"
+              "description": "Find identical contents in blocks inside IFs, both in the beginning and in the end.\n\nPrerequsites: code is pretty printed with identical cAsE\n\nChained statments are ignored\nTags: SingleFile\nhttps://rules.abaplint.org/identical_contents"
+            },
+            "identical_descriptions": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/IdenticalDescriptionsConf"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "Searches for objects with the same type and same description\nhttps://rules.abaplint.org/identical_descriptions"
             },
             "identical_form_names": {
               "anyOf": [
@@ -1614,7 +1710,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Detects identically named FORMs\nhttps://rules.abaplint.org/identical_form_names"
+              "description": "Detects identically named FORMs\nTags: Syntax\nhttps://rules.abaplint.org/identical_form_names"
             },
             "if_in_if": {
               "anyOf": [
@@ -1671,6 +1767,17 @@
               ],
               "description": "Checks for inline data declarations in older releases. Only active for versions less than v740sp02\nTags: Syntax, SingleFile\nhttps://rules.abaplint.org/inline_data_old_versions"
             },
+            "intf_referencing_clas": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/IntfReferencingClasConf"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "Interface contains references to class\nhttps://rules.abaplint.org/intf_referencing_clas"
+            },
             "keep_single_parameter_on_one_line": {
               "anyOf": [
                 {
@@ -1691,7 +1798,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks that keywords have the same case. Non-keywords must be lower case.\nTags: Styleguide, SingleFile\nhttps://rules.abaplint.org/keyword_case"
+              "description": "Checks that keywords have the same case. Non-keywords must be lower case.\nTags: Styleguide, SingleFile, Quickfix\nhttps://rules.abaplint.org/keyword_case"
             },
             "line_break_multiple_parameters": {
               "anyOf": [
@@ -1792,6 +1899,17 @@
               ],
               "description": "Searches for expressions where extra parenthesis can safely be removed\nTags: SingleFile\nhttps://rules.abaplint.org/many_parenthesis"
             },
+            "max_one_method_parameter_per_line": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/MaxOneMethodParameterPerLineConf"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "Keep max one method parameter description per line\nTags: SingleFile, Whitespace\nhttps://rules.abaplint.org/max_one_method_parameter_per_line"
+            },
             "max_one_statement": {
               "anyOf": [
                 {
@@ -1813,6 +1931,17 @@
                 }
               ],
               "description": "In message statements, check that the message class + id exist\nhttps://rules.abaplint.org/message_exists"
+            },
+            "method_implemented_twice": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/MethodImplementedTwiceConf"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "Reports an error if a method is implemented or defined twice\nTags: SingleFile, Syntax\nhttps://rules.abaplint.org/method_implemented_twice"
             },
             "method_length": {
               "anyOf": [
@@ -1858,6 +1987,17 @@
               ],
               "description": "Checks that methods don't have a mixture of returning and exporting/changing parameters\nTags: Styleguide, SingleFile\nhttps://rules.abaplint.org/mix_returning"
             },
+            "modify_only_own_db_tables": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ModifyOnlyOwnDBTablesConf"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "Modify only own DB tables\nTags: Security, SingleFile\nhttps://rules.abaplint.org/modify_only_own_db_tables"
+            },
             "msag_consistency": {
               "anyOf": [
                 {
@@ -1878,7 +2018,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks for a \"-\" in FORM and DATA names\nTags: SingleFile\nhttps://rules.abaplint.org/names_no_dash"
+              "description": "Checks for a \"-\" in FORM, DATA, PARAMETER and SELECT-OPTION names\nTags: SingleFile, Naming\nhttps://rules.abaplint.org/names_no_dash"
             },
             "nesting": {
               "anyOf": [
@@ -1913,6 +2053,17 @@
               ],
               "description": "Checks that classes and interfaces don't contain any public attributes.\nExceptions are excluded from this rule.\nTags: Styleguide, SingleFile\nhttps://rules.abaplint.org/no_public_attributes"
             },
+            "no_yoda_conditions": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/NoYodaConditionsConf"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "Finds Yoda conditions and reports issues\nTags: SingleFile\nhttps://rules.abaplint.org/no_yoda_conditions"
+            },
             "object_naming": {
               "anyOf": [
                 {
@@ -1933,7 +2084,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks for usages of certain obsolete statements\nTags: SingleFile\nhttps://rules.abaplint.org/obsolete_statement"
+              "description": "Checks for usages of certain obsolete statements\nTags: SingleFile, Styleguide\nhttps://rules.abaplint.org/obsolete_statement"
             },
             "omit_parameter_name": {
               "anyOf": [
@@ -1944,7 +2095,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Omit the parameter name in single parameter calls\nTags: Styleguide\nhttps://rules.abaplint.org/omit_parameter_name"
+              "description": "Omit the parameter name in single parameter calls\nTags: Styleguide, Quickfix\nhttps://rules.abaplint.org/omit_parameter_name"
             },
             "omit_receiving": {
               "anyOf": [
@@ -1956,6 +2107,17 @@
                 }
               ],
               "description": "Omit RECEIVING\nTags: Styleguide, SingleFile\nhttps://rules.abaplint.org/omit_receiving"
+            },
+            "parser_702_chaining": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/Parser702ChainingConf"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "ABAP on 702 does not allow for method chaining with IMPORTING/EXPORTING/CHANGING keywords,\nthis rule finds these and reports errors.\nOnly active on target version 702 and below.\nTags: Syntax, SingleFile\nhttps://rules.abaplint.org/parser_702_chaining"
             },
             "parser_error": {
               "anyOf": [
@@ -1988,7 +2150,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Prefer inline to up-front declarations.\nActivates if language version is v740sp02 or above.\nVariables must be local(METHOD or FORM).\nNo generic or void typed variables.\nFirst position used must be a full/pure write.\nTags: Styleguide, Upport, Experimental, Quickfix\nhttps://rules.abaplint.org/prefer_inline"
+              "description": "Prefer inline to up-front declarations.\nTags: Styleguide, Upport, Experimental, Quickfix\nhttps://rules.abaplint.org/prefer_inline"
             },
             "prefer_is_not": {
               "anyOf": [
@@ -1999,7 +2161,18 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Prefer IS NOT to NOT IS\nTags: Styleguide, SingleFile\nhttps://rules.abaplint.org/prefer_is_not"
+              "description": "Prefer IS NOT to NOT IS\nTags: Styleguide, Quickfix, SingleFile\nhttps://rules.abaplint.org/prefer_is_not"
+            },
+            "prefer_raise_exception_new": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/PreferRaiseExceptionNewConf"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "Prefer RAISE EXCEPTION NEW to RAISE EXCEPTION TYPE\nTags: Styleguide, SingleFile\nhttps://rules.abaplint.org/prefer_raise_exception_new"
             },
             "prefer_returning_to_exporting": {
               "anyOf": [
@@ -2032,7 +2205,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Configure undesired operator variants\nTags: SingleFile\nhttps://rules.abaplint.org/preferred_compare_operator"
+              "description": "Configure undesired operator variants\nTags: SingleFile, Quickfix\nhttps://rules.abaplint.org/preferred_compare_operator"
             },
             "prefix_is_current_class": {
               "anyOf": [
@@ -2076,7 +2249,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "\nEnsures you have no descriptions in metadata of methods, parameters, etc.\n\nClass descriptions are required, see rule description_empty.\n\nConsider using ABAP Doc for documentation.\n\nhttps://rules.abaplint.org/remove_descriptions"
+              "description": "Ensures you have no descriptions in metadata of methods, parameters, etc.\n\nClass descriptions are required, see rule description_empty.\n\nConsider using ABAP Doc for documentation.\nhttps://rules.abaplint.org/remove_descriptions"
             },
             "rfc_error_handling": {
               "anyOf": [
@@ -2088,6 +2261,28 @@
                 }
               ],
               "description": "Checks that exceptions 'system_failure' and 'communication_failure' are handled in RFC calls\nTags: SingleFile\nhttps://rules.abaplint.org/rfc_error_handling"
+            },
+            "select_add_order_by": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/SelectAddOrderByConf"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "SELECTs add ORDER BY clause\n\nThis will make sure that the SELECT statement returns results in the same sequence on different databases\n\nadd ORDER BY PRIMARY KEY if in doubt\nTags: SingleFile\nhttps://rules.abaplint.org/select_add_order_by"
+            },
+            "select_performance": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/SelectPerformanceConf"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "Various checks regarding SELECT performance.\nTags: SingleFile, Performance\nhttps://rules.abaplint.org/select_performance"
             },
             "selection_screen_naming": {
               "anyOf": [
@@ -2208,7 +2403,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks that tables do not have the enhancement category 'not classified'\nhttps://rules.abaplint.org/tabl_enhancement_category"
+              "description": "Checks that tables do not have the enhancement category 'not classified'. \nYou may use standard report RS_DDIC_CLASSIFICATION_FINAL for adjustment.\nhttps://rules.abaplint.org/tabl_enhancement_category"
             },
             "try_without_catch": {
               "anyOf": [
@@ -2243,6 +2438,17 @@
               ],
               "description": "Allows you to enforce a pattern for TYPES definitions\nTags: Naming, SingleFile\nhttps://rules.abaplint.org/types_naming"
             },
+            "uncaught_exception": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/UncaughtExceptionConf"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "Uncaught Exception\n\n      Does not report any issues if the code contains syntax errors\nTags: Syntax\nhttps://rules.abaplint.org/uncaught_exception"
+            },
             "unknown_types": {
               "anyOf": [
                 {
@@ -2252,7 +2458,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Enables check for unknown data types, respects errorNamespace\nTags: Experimental, Syntax\nhttps://rules.abaplint.org/unknown_types"
+              "description": "Enables check for unknown data types, respects errorNamespace\nTags: Syntax\nhttps://rules.abaplint.org/unknown_types"
             },
             "unreachable_code": {
               "anyOf": [
@@ -2265,6 +2471,17 @@
               ],
               "description": "Checks for unreachable code.\nTags: SingleFile\nhttps://rules.abaplint.org/unreachable_code"
             },
+            "unsecure_fae": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/UnsecureFAEConf"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "Checks for unsecure FAE\nTags: Experimental\nhttps://rules.abaplint.org/unsecure_fae"
+            },
             "unused_methods": {
               "anyOf": [
                 {
@@ -2274,7 +2491,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks for unused methods\nTags: Experimental\nhttps://rules.abaplint.org/unused_methods"
+              "description": "Checks for unused methods\nhttps://rules.abaplint.org/unused_methods"
             },
             "unused_types": {
               "anyOf": [
@@ -2296,7 +2513,7 @@
                   "type": "boolean"
                 }
               ],
-              "description": "Checks for unused variables and constants\nTags: Experimental, Quickfix\nhttps://rules.abaplint.org/unused_variables"
+              "description": "Checks for unused variables and constants\nTags: Quickfix\nhttps://rules.abaplint.org/unused_variables"
             },
             "use_bool_expression": {
               "anyOf": [
@@ -2308,6 +2525,17 @@
                 }
               ],
               "description": "Use boolean expression, xsdbool from 740sp08 and up, boolc from 702 and up\nTags: Upport, Styleguide, Quickfix, SingleFile\nhttps://rules.abaplint.org/use_bool_expression"
+            },
+            "use_class_based_exceptions": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/UseClassBasedExceptionsConf"
+                },
+                {
+                  "type": "boolean"
+                }
+              ],
+              "description": "Use class based exceptions, checks interface and class definitions\nTags: Styleguide, SingleFile\nhttps://rules.abaplint.org/use_class_based_exceptions"
             },
             "use_line_exists": {
               "anyOf": [
@@ -2422,6 +2650,10 @@
         "skipGeneratedPersistentClasses": {
           "type": "boolean"
         },
+        "skipIncludesWithoutMain": {
+          "description": "Do not report any issues for includes without main programs",
+          "type": "boolean"
+        },
         "useApackDependencies": {
           "description": "Clone and parse dependencies specified in .apack-manifest.xml if it is present",
           "type": "boolean"
@@ -2510,7 +2742,6 @@
         }
       },
       "required": [
-        "version",
         "errorNamespace"
       ],
       "type": "object"
@@ -2533,6 +2764,23 @@
       "type": "object"
     },
     "IdenticalContentsConf": {
+      "additionalProperties": false,
+      "properties": {
+        "exclude": {
+          "description": "List of file regex filename patterns to exclude, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        }
+      },
+      "type": "object"
+    },
+    "IdenticalDescriptionsConf": {
       "additionalProperties": false,
       "properties": {
         "exclude": {
@@ -2628,6 +2876,7 @@
       "additionalProperties": false,
       "properties": {
         "alignTryCatch": {
+          "description": "Align TRY CATCH, TRY and CATCH should have the same indentation",
           "type": "boolean"
         },
         "exclude": {
@@ -2679,6 +2928,33 @@
           "description": "Problem severity"
         }
       },
+      "type": "object"
+    },
+    "IntfReferencingClasConf": {
+      "additionalProperties": false,
+      "properties": {
+        "allow": {
+          "description": "List of classes allowed to be referenced, regex, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "exclude": {
+          "description": "List of file regex filename patterns to exclude, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        }
+      },
+      "required": [
+        "allow"
+      ],
       "type": "object"
     },
     "KeepSingleParameterCallsOnOneLineConf": {
@@ -3022,6 +3298,23 @@
       },
       "type": "object"
     },
+    "MaxOneMethodParameterPerLineConf": {
+      "additionalProperties": false,
+      "properties": {
+        "exclude": {
+          "description": "List of file regex filename patterns to exclude, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        }
+      },
+      "type": "object"
+    },
     "MaxOneStatementConf": {
       "additionalProperties": false,
       "properties": {
@@ -3040,6 +3333,23 @@
       "type": "object"
     },
     "MessageExistsConf": {
+      "additionalProperties": false,
+      "properties": {
+        "exclude": {
+          "description": "List of file regex filename patterns to exclude, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        }
+      },
+      "type": "object"
+    },
+    "MethodImplementedTwiceConf": {
       "additionalProperties": false,
       "properties": {
         "exclude": {
@@ -3186,6 +3496,34 @@
       },
       "type": "object"
     },
+    "ModifyOnlyOwnDBTablesConf": {
+      "additionalProperties": false,
+      "properties": {
+        "exclude": {
+          "description": "List of file regex filename patterns to exclude, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "ownTables": {
+          "description": "Case insensitve regex for own tables",
+          "type": "string"
+        },
+        "reportDynamic": {
+          "type": "boolean"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        }
+      },
+      "required": [
+        "reportDynamic",
+        "ownTables"
+      ],
+      "type": "object"
+    },
     "NamesNoDashConf": {
       "additionalProperties": false,
       "properties": {
@@ -3285,6 +3623,23 @@
       "required": [
         "allowReadOnly"
       ],
+      "type": "object"
+    },
+    "NoYodaConditionsConf": {
+      "additionalProperties": false,
+      "properties": {
+        "exclude": {
+          "description": "List of file regex filename patterns to exclude, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        }
+      },
       "type": "object"
     },
     "ObjectNamingConf": {
@@ -3421,6 +3776,10 @@
           "description": "Check for ADD statement",
           "type": "boolean"
         },
+        "communication": {
+          "description": "Checks for COMMUNICATION",
+          "type": "boolean"
+        },
         "compute": {
           "description": "Check for COMPUTE statement",
           "type": "boolean"
@@ -3440,6 +3799,10 @@
           "description": "Checks for FIELD-SYMBOLS ... STRUCTURE",
           "type": "boolean"
         },
+        "freeMemory": {
+          "description": "FREE MEMORY, without ID",
+          "type": "boolean"
+        },
         "load": {
           "description": "Checks for addition LOAD",
           "type": "boolean"
@@ -3456,12 +3819,28 @@
           "description": "Checks for usages of OCCURS",
           "type": "boolean"
         },
+        "pack": {
+          "description": "Checks for PACK",
+          "type": "boolean"
+        },
+        "parameter": {
+          "description": "Checks for PARAMETER",
+          "type": "boolean"
+        },
+        "ranges": {
+          "description": "Checks for RANGES",
+          "type": "boolean"
+        },
         "refresh": {
           "description": "Check for REFRESH statement",
           "type": "boolean"
         },
         "requested": {
           "description": "Checks for usages of IS REQUESTED",
+          "type": "boolean"
+        },
+        "selectWithoutInto": {
+          "description": "Checks for SELECT without INTO",
           "type": "boolean"
         },
         "setExtended": {
@@ -3499,7 +3878,13 @@
         "withHeaderLine",
         "fieldSymbolStructure",
         "typePools",
-        "load"
+        "load",
+        "parameter",
+        "ranges",
+        "communication",
+        "pack",
+        "selectWithoutInto",
+        "freeMemory"
       ],
       "type": "object"
     },
@@ -3521,6 +3906,23 @@
       "type": "object"
     },
     "OmitReceivingConf": {
+      "additionalProperties": false,
+      "properties": {
+        "exclude": {
+          "description": "List of file regex filename patterns to exclude, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        }
+      },
+      "type": "object"
+    },
+    "Parser702ChainingConf": {
       "additionalProperties": false,
       "properties": {
         "exclude": {
@@ -3596,6 +3998,23 @@
       "type": "object"
     },
     "PreferIsNotConf": {
+      "additionalProperties": false,
+      "properties": {
+        "exclude": {
+          "description": "List of file regex filename patterns to exclude, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        }
+      },
+      "type": "object"
+    },
+    "PreferRaiseExceptionNewConf": {
       "additionalProperties": false,
       "properties": {
         "exclude": {
@@ -3828,6 +4247,52 @@
           "description": "Problem severity"
         }
       },
+      "type": "object"
+    },
+    "SelectAddOrderByConf": {
+      "additionalProperties": false,
+      "properties": {
+        "exclude": {
+          "description": "List of file regex filename patterns to exclude, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        }
+      },
+      "type": "object"
+    },
+    "SelectPerformanceConf": {
+      "additionalProperties": false,
+      "properties": {
+        "endSelect": {
+          "description": "Detects ENDSELECT",
+          "type": "boolean"
+        },
+        "exclude": {
+          "description": "List of file regex filename patterns to exclude, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "selectStar": {
+          "description": "Detects SELECT *",
+          "type": "boolean"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        }
+      },
+      "required": [
+        "endSelect",
+        "selectStar"
+      ],
       "type": "object"
     },
     "SelectionScreenNamingConf": {
@@ -4128,6 +4593,23 @@
       ],
       "type": "object"
     },
+    "UncaughtExceptionConf": {
+      "additionalProperties": false,
+      "properties": {
+        "exclude": {
+          "description": "List of file regex filename patterns to exclude, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        }
+      },
+      "type": "object"
+    },
     "UnknownTypesConf": {
       "additionalProperties": false,
       "properties": {
@@ -4146,6 +4628,23 @@
       "type": "object"
     },
     "UnreachableCodeConf": {
+      "additionalProperties": false,
+      "properties": {
+        "exclude": {
+          "description": "List of file regex filename patterns to exclude, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        }
+      },
+      "type": "object"
+    },
+    "UnsecureFAEConf": {
       "additionalProperties": false,
       "properties": {
         "exclude": {
@@ -4234,6 +4733,23 @@
       "type": "object"
     },
     "UseBoolExpressionConf": {
+      "additionalProperties": false,
+      "properties": {
+        "exclude": {
+          "description": "List of file regex filename patterns to exclude, case insensitive",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "Problem severity"
+        }
+      },
+      "type": "object"
+    },
+    "UseClassBasedExceptionsConf": {
       "additionalProperties": false,
       "properties": {
         "exclude": {

@@ -1,15 +1,15 @@
-import {str, seq, opt, star, tok, Expression} from "../combi";
+import {seq, optPrio, starPrio, tok, Expression} from "../combi";
 import {WParenLeftW, WParenRightW} from "../../1_lexer/tokens";
 import {SQLJoin, SQLFromSource} from ".";
 import {IStatementRunnable} from "../statement_runnable";
 
 export class SQLFrom extends Expression {
   public getRunnable(): IStatementRunnable {
-    const from = seq(str("FROM"),
-                     star(tok(WParenLeftW)),
-                     new SQLFromSource());
+    const from = seq("FROM",
+                     starPrio(tok(WParenLeftW)),
+                     SQLFromSource);
 
-    const source = seq(from, star(seq(opt(tok(WParenRightW)), new SQLJoin(), opt(tok(WParenRightW)))));
+    const source = seq(from, starPrio(seq(optPrio(tok(WParenRightW)), SQLJoin, optPrio(tok(WParenRightW)))));
 
     return source;
   }

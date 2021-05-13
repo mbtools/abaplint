@@ -30,10 +30,9 @@ const xml = `<?xml version="1.0" encoding="utf-8"?>
 
 describe("rule, xml_consistency, error", async () => {
 
-  it("test", async () => {
+  it("test, name mismatch", async () => {
     const reg = new Registry().addFile(new MemoryFile("zcl_lars.clas.xml", xml));
     const issues = await run(reg);
-
     expect(issues.length).to.equals(1);
   });
 });
@@ -131,6 +130,12 @@ ENDINTERFACE.`;
 describe("xml consistency", () => {
   it("parser error", async () => {
     const reg = new Registry().addFile(new MemoryFile("zcl_lars.msag.xml", `parser error`));
+    const issues = await run(reg);
+    expect(issues.length).to.equals(1);
+  });
+
+  it("parser error, DTEL", async () => {
+    const reg = new Registry().addFile(new MemoryFile("zdtel.dtel.xml", `parser error`));
     const issues = await run(reg);
     expect(issues.length).to.equals(1);
   });

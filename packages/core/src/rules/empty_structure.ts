@@ -35,7 +35,7 @@ export class EmptyStructure extends ABAPRule {
       key: "empty_structure",
       title: "Find empty blocks",
       shortDescription: `Checks that the code does not contain empty blocks.`,
-      extendedInformation: `https://github.com/SAP/styleguides/blob/master/clean-abap/CleanABAP.md#no-empty-if-branches`,
+      extendedInformation: `https://github.com/SAP/styleguides/blob/main/clean-abap/CleanABAP.md#no-empty-if-branches`,
       tags: [RuleTag.Styleguide, RuleTag.SingleFile],
     };
   }
@@ -60,24 +60,24 @@ export class EmptyStructure extends ABAPRule {
       return [];
     }
 
-    let candidates: StructureNode[] = [];
+    const candidates: StructureNode[] = [];
     if (this.getConfig().loop === true) {
-      candidates = candidates.concat(stru.findAllStructures(Structures.Loop));
+      candidates.push(...stru.findAllStructures(Structures.Loop));
     }
     if (this.getConfig().while === true) {
-      candidates = candidates.concat(stru.findAllStructures(Structures.While));
+      candidates.push(...stru.findAllStructures(Structures.While));
     }
     if (this.getConfig().case === true) {
-      candidates = candidates.concat(stru.findAllStructures(Structures.Case));
+      candidates.push(...stru.findAllStructures(Structures.Case));
     }
     if (this.getConfig().select === true) {
-      candidates = candidates.concat(stru.findAllStructures(Structures.Select));
+      candidates.push(...stru.findAllStructures(Structures.Select));
     }
     if (this.getConfig().do === true) {
-      candidates = candidates.concat(stru.findAllStructures(Structures.Do));
+      candidates.push(...stru.findAllStructures(Structures.Do));
     }
     if (this.getConfig().at === true) {
-      candidates = candidates.concat(stru.findAllStructures(Structures.At));
+      candidates.push(...stru.findAllStructures(Structures.At));
     }
 
     for (const l of candidates) {
@@ -91,7 +91,7 @@ export class EmptyStructure extends ABAPRule {
     if (this.getConfig().try === true) {
       const tries = stru.findAllStructures(Structures.Try);
       for (const t of tries) {
-        const normal = t.findDirectStructure(Structures.Normal);
+        const normal = t.findDirectStructure(Structures.Body);
         if (normal === undefined) {
           const token = t.getFirstToken();
           const issue = Issue.atToken(

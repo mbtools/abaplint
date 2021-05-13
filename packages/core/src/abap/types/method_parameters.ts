@@ -15,7 +15,7 @@ import {ReferenceType} from "../5_syntax/_reference";
 // this.exceptions = [];
 // also consider RAISING vs EXCEPTIONS
 
-export class MethodParameters implements IMethodParameters{
+export class MethodParameters implements IMethodParameters {
   private readonly importing: TypedIdentifier[];
   private readonly optional: string[];
   private readonly exporting: TypedIdentifier[];
@@ -23,6 +23,7 @@ export class MethodParameters implements IMethodParameters{
   private preferred: string | undefined;
   private returning: TypedIdentifier | undefined;
   private readonly exceptions: string[]; // todo, not filled
+  private readonly defaults: {[index: string]: ExpressionNode};
   private readonly filename: string;
 
   public constructor(node: StatementNode, filename: string, scope: CurrentScope) {
@@ -34,6 +35,7 @@ export class MethodParameters implements IMethodParameters{
     this.exporting = [];
     this.changing = [];
     this.optional = [];
+    this.defaults = {};
     this.returning = undefined;
     this.preferred = undefined;
     this.exceptions = [];
@@ -43,14 +45,14 @@ export class MethodParameters implements IMethodParameters{
   }
 
   public getAll(): TypedIdentifier[] {
-    let ret: TypedIdentifier[] = [];
+    const ret: TypedIdentifier[] = [];
     const returning = this.getReturning();
     if (returning) {
       ret.push(returning);
     }
-    ret = ret.concat(this.getImporting());
-    ret = ret.concat(this.getExporting());
-    ret = ret.concat(this.getChanging());
+    ret.push(...this.getImporting());
+    ret.push(...this.getExporting());
+    ret.push(...this.getChanging());
     return ret;
   }
 
@@ -63,8 +65,8 @@ export class MethodParameters implements IMethodParameters{
       return this.preferred;
     }
 
-    const candidates = this.importing.map(i => i.getName().toUpperCase());
-    candidates.filter(c => this.optional.includes(c) );
+    let candidates = this.importing.map(i => i.getName().toUpperCase());
+    candidates = candidates.filter(c => this.optional.indexOf(c) < 0);
     if (candidates.length === 1) {
       return candidates[0];
     }
@@ -90,6 +92,10 @@ export class MethodParameters implements IMethodParameters{
 
   public getExceptions() {
     return this.exceptions;
+  }
+
+  public getParameterDefault(parameter: string) {
+    return this.defaults[parameter.toUpperCase()];
   }
 
 ///////////////////
@@ -126,7 +132,7 @@ export class MethodParameters implements IMethodParameters{
 
     const importing = node.findFirstExpression(Expressions.MethodDefImporting);
     if (importing) {
-      this.add(this.importing, importing, scope, IdentifierMeta.MethodImporting);
+      this.add(this.importing, importing, scope, [IdentifierMeta.MethodImporting]);
       if (importing.concatTokens().toUpperCase().includes(" PREFERRED PARAMETER")) {
         this.preferred = importing.getLastToken().getStr().toUpperCase();
       }
@@ -134,12 +140,12 @@ export class MethodParameters implements IMethodParameters{
 
     const exporting = node.findFirstExpression(Expressions.MethodDefExporting);
     if (exporting) {
-      this.add(this.exporting, exporting, scope, IdentifierMeta.MethodExporting);
+      this.add(this.exporting, exporting, scope, [IdentifierMeta.MethodExporting]);
     }
 
     const changing = node.findFirstExpression(Expressions.MethodDefChanging);
     if (changing) {
-      this.add(this.changing, changing, scope, IdentifierMeta.MethodChanging);
+      this.add(this.changing, changing, scope, [IdentifierMeta.MethodChanging]);
     }
 
     const returning = node.findFirstExpression(Expressions.MethodDefReturning);
@@ -148,16 +154,24 @@ export class MethodParameters implements IMethodParameters{
     }
   }
 
-  private add(target: TypedIdentifier[], source: ExpressionNode, scope: CurrentScope, meta: IdentifierMeta): void {
+  private add(target: TypedIdentifier[], source: ExpressionNode, scope: CurrentScope, meta: IdentifierMeta[]): void {
     for (const opt of source.findAllExpressions(Expressions.MethodParamOptional)) {
       const p = opt.findDirectExpression(Expressions.MethodParam);
       if (p === undefined) {
         continue;
       }
-      target.push(new MethodParam().runSyntax(p, scope, this.filename, [meta]));
+      target.push(new MethodParam().runSyntax(p, scope, this.filename, meta));
       if (opt.getLastToken().getStr().toUpperCase() === "OPTIONAL") {
         const name = target[target.length - 1].getName().toUpperCase();
         this.optional.push(name);
+      } else if (opt.findFirstExpression(Expressions.Default)) {
+        const name = target[target.length - 1].getName().toUpperCase();
+        this.optional.push(name);
+
+        const val = opt.findFirstExpression(Expressions.Default)?.getLastChild();
+        if (val && val instanceof ExpressionNode) {
+          this.defaults[name] = val;
+        }
       }
     }
     if (target.length > 0) {
@@ -166,7 +180,7 @@ export class MethodParameters implements IMethodParameters{
 
     const params = source.findAllExpressions(Expressions.MethodParam);
     for (const param of params) {
-      target.push(new MethodParam().runSyntax(param, scope, this.filename, [meta]));
+      target.push(new MethodParam().runSyntax(param, scope, this.filename, meta));
     }
   }
 

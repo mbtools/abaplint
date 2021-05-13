@@ -95,17 +95,20 @@ export class Class extends ABAPObject {
 
     this.parsedXML = {};
 
-    const parsed = super.parseRaw();
+    const parsed = super.parseRaw2();
     if (parsed === undefined
         || parsed.abapGit["asx:abap"]["asx:values"] === undefined) {
       return;
     }
 
     const vseo = parsed.abapGit["asx:abap"]["asx:values"].VSEOCLASS;
+    if (vseo === undefined) {
+      return;
+    }
 
-    this.parsedXML.category = vseo.CATEGORY?._text;
-    this.parsedXML.description = vseo.DESCRIPT ? vseo.DESCRIPT._text : "";
-    this.parsedXML.name = vseo.CLSNAME ? vseo.CLSNAME._text : "";
+    this.parsedXML.category = vseo.CATEGORY;
+    this.parsedXML.description = vseo.DESCRIPT ? vseo.DESCRIPT : "";
+    this.parsedXML.name = vseo.CLSNAME ? vseo.CLSNAME : "";
   }
 
 }

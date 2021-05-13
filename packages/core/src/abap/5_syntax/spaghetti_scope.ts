@@ -12,11 +12,11 @@ abstract class ScopeData {
 
   public constructor() {
     this.data = {
-      vars: [],
+      vars: {},
       cdefs: [],
       idefs: [],
       forms: [],
-      types: [],
+      types: {},
       deferred: [],
       references: [],
     };
@@ -59,37 +59,15 @@ export class SpaghettiScopeNode extends ScopeData implements ISpaghettiScopeNode
     return this.identifier;
   }
 
-  public getNextSibling(): SpaghettiScopeNode | undefined {
-    const parent = this.getParent();
-    if (parent === undefined) {
-      return undefined;
+  public calcCoverage(): {start: Position, end: Position} {
+    if (this.identifier.end === undefined) {
+      throw new Error("internal error, caclCoverage");
     }
-
-    let returnNext = false;
-    for (const sibling of parent.getChildren()) {
-      if (sibling.getIdentifier().stype === this.getIdentifier().stype
-          && sibling.getIdentifier().sname === this.getIdentifier().sname) {
-        returnNext = true;
-      } else if (returnNext === true) {
-        return sibling;
-      }
-    }
-
-    return undefined;
+    return {start: this.identifier.start, end: this.identifier.end};
   }
 
-  public calcCoverage(): {start: Position, end: Position} {
-    let end: Position | undefined;
-
-    // assumption: children start positions in ascending order
-    const sibling = this.getNextSibling();
-    if (sibling !== undefined && sibling.getIdentifier().filename === this.getIdentifier().filename) {
-      end = sibling.getIdentifier().start;
-    } else {
-      end = new Position(Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
-    }
-
-    return {start: this.identifier.start, end};
+  public setEnd(end: Position): void {
+    this.identifier.end = end;
   }
 
   public findDeferred(name: string): Identifier | undefined {
@@ -110,9 +88,10 @@ export class SpaghettiScopeNode extends ScopeData implements ISpaghettiScopeNode
   public findClassDefinition(name: string): IClassDefinition | undefined {
     let search: SpaghettiScopeNode | undefined = this;
 
+    const upper = name.toUpperCase();
     while (search !== undefined) {
       for (const cdef of search.getData().cdefs) {
-        if (cdef.getName().toUpperCase() === name.toUpperCase()) {
+        if (cdef.getName().toUpperCase() === upper) {
           return cdef;
         }
       }
@@ -125,9 +104,10 @@ export class SpaghettiScopeNode extends ScopeData implements ISpaghettiScopeNode
   public findFormDefinition(name: string): IFormDefinition | undefined {
     let search: SpaghettiScopeNode | undefined = this;
 
+    const upper = name.toUpperCase();
     while (search !== undefined) {
       for (const form of search.getData().forms) {
-        if (form.getName().toUpperCase() === name.toUpperCase()) {
+        if (form.getName().toUpperCase() === upper) {
           return form;
         }
       }
@@ -137,6 +117,7 @@ export class SpaghettiScopeNode extends ScopeData implements ISpaghettiScopeNode
     return undefined;
   }
 
+  // todo, can be deleted, not called from anywhere?
   public listFormDefinitions(): IFormDefinition[] {
     let search: SpaghettiScopeNode | undefined = this;
     const ret: IFormDefinition[] = [];
@@ -170,11 +151,11 @@ export class SpaghettiScopeNode extends ScopeData implements ISpaghettiScopeNode
   public findType(name: string): TypedIdentifier | undefined {
     let search: SpaghettiScopeNode | undefined = this;
 
+    const upper = name.toUpperCase();
     while (search !== undefined) {
-      for (const local of search.getData().types) {
-        if (local.name.toUpperCase() === name.toUpperCase()) {
-          return local.identifier;
-        }
+      const data = search.getData();
+      if (data.types[upper]) {
+        return data.types[upper];
       }
       search = search.getParent();
     }
@@ -185,11 +166,11 @@ export class SpaghettiScopeNode extends ScopeData implements ISpaghettiScopeNode
   public findVariable(name: string): TypedIdentifier | undefined {
     let search: SpaghettiScopeNode | undefined = this;
 
+    const upper = name.toUpperCase();
     while (search !== undefined) {
-      for (const local of search.getData().vars) {
-        if (local.name.toUpperCase() === name.toUpperCase()) {
-          return local.identifier;
-        }
+      const data = search.getData();
+      if (data.vars[upper]) {
+        return data.vars[upper];
       }
       search = search.getParent();
     }
@@ -197,12 +178,13 @@ export class SpaghettiScopeNode extends ScopeData implements ISpaghettiScopeNode
     return undefined;
   }
 
+  // TODO, this method can be deleted? its only used in tests?
   public findScopeForVariable(name: string): IScopeIdentifier | undefined {
     let search: SpaghettiScopeNode | undefined = this;
 
     while (search !== undefined) {
-      for (const local of search.getData().vars) {
-        if (local.name.toUpperCase() === name.toUpperCase()) {
+      for (const local in search.getData().vars) {
+        if (local === name.toUpperCase()) {
           return search.getIdentifier();
         }
       }
@@ -227,9 +209,10 @@ export class SpaghettiScope implements ISpaghettiScope {
 
     for (const n of this.allNodes()) {
       if (n.getIdentifier().filename === filename) {
-        for (const v of n.getData().vars) {
-          if (v.identifier.getFilename() === filename) {
-            ret.push(v);
+        const vars = n.getData().vars;
+        for (const v in vars) {
+          if (vars[v].getFilename() === filename) {
+            ret.push({name: v, identifier: vars[v]});
           }
         }
       }
@@ -282,12 +265,12 @@ export class SpaghettiScope implements ISpaghettiScope {
 
   private allNodes(): SpaghettiScopeNode[] {
     const ret: SpaghettiScopeNode[] = [];
-    let stack: SpaghettiScopeNode[] = [this.node];
+    const stack: SpaghettiScopeNode[] = [this.node];
 
     while (stack.length > 0) {
       const current = stack.pop()!;
       ret.push(current);
-      stack = stack.concat(current.getChildren());
+      stack.push(...current.getChildren());
     }
 
     return ret;
@@ -299,6 +282,7 @@ export class SpaghettiScope implements ISpaghettiScope {
       return undefined;
     }
 
+    // possible optimization: binary search the nodes
     for (const c of node.getChildren()) {
       const result = this.lookupPositionTraverse(p, filename, c);
       if (result !== undefined) {
@@ -306,10 +290,9 @@ export class SpaghettiScope implements ISpaghettiScope {
       }
     }
 
-    if (node.getIdentifier().filename === filename) {
-      if (p.isBetween(coverage.start, coverage.end)) {
-        return node;
-      }
+    if (node.getIdentifier().filename === filename
+        && p.isBetween(coverage.start, coverage.end)) {
+      return node;
     }
 
     return undefined;

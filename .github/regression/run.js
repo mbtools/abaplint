@@ -2,32 +2,37 @@
 const fs = require("fs");
 const childProcess = require("child_process");
 
-// todo, also output analysis runtimes
-
-const repos = JSON.parse(process.env.REPOS);
+const repos = JSON.parse(process.env.REPOS).sort();
 console.dir(repos);
 
 let map = {};
 for (let r of repos) {
   map[r] = {};
 
-  childProcess.execSync("git clone https://github.com/" + r + ".git");
+  childProcess.execSync("git clone --recurse-submodules https://github.com/" + r + ".git");
 
   let folder = r.split("/")[1];
 
+  let configFile = folder + "/abaplint.json";
+  if (fs.existsSync(configFile) === false) {
+    configFile = folder + "/abaplint.jsonc";
+  }
+
   map[r].before_start = new Date();
-  childProcess.execSync("node ./abaplint_before " + folder + "/abaplint.json -f json > output.json || true");
+  childProcess.execSync("node ./abaplint_before " + configFile + " -f json > output.json || true");
   map[r].before_end = new Date();
   map[r].before = JSON.parse(fs.readFileSync("output.json", "utf-8"));
 
   map[r].after_start = new Date();
-  childProcess.execSync("node ./abaplint_after " + folder + "/abaplint.json -f json > output.json || true");
+  childProcess.execSync("node ./abaplint_after " + configFile + " -f json > output.json || true");
   map[r].after_end = new Date();
   map[r].after = JSON.parse(fs.readFileSync("output.json", "utf-8"));
 
   try {
-    map[r].version = require(`./${folder}/abaplint.json`).syntax.version;
-    map[r].version = map[r].version.trim();
+    const raw = fs.readFileSync(configFile).toString();
+    const reg = new RegExp(/"version": "(\w+)",/);
+    const match = raw.match(reg);
+    map[r].version = match[1].trim();
   } catch {
     map[r].version = "?";
   }
@@ -58,11 +63,11 @@ for (let name in map) {
   comment += map[name].version.trim() + " |\n";
 
   for (const i of map[name].after) {
-    if (issues.length > 3000) { // keep the comment at a reasonable size
+    if (issues.length > 4000) { // keep the comment at a reasonable size
       continue;
     }
     let urlFile = i.file.split("/").splice(1).join("/");
-    let url = "https://github.com/" + name + "/blob/master/" + urlFile + "#L" + i.start.row;
+    let url = "https://github.com/" + name + "/blob/main/" + urlFile + "#L" + i.start.row;
     issues += "[`" + i.file + ":" + i.start.row + "`](" + url + "): " + i.description + "(" + i.key + ")\n"
   }
 }

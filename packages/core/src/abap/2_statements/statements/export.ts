@@ -1,38 +1,40 @@
 import {IStatement} from "./_statement";
-import {str, seq, alt, altPrio, opt, per, plus, tok} from "../combi";
+import {seq, alt, altPrio, opt, regex, per, plus, tok} from "../combi";
 import {ParenLeft, ParenRightW} from "../../1_lexer/tokens";
-import {Target, Source, Dynamic, ParameterS, FieldSub, SimpleName, NamespaceSimpleName} from "../expressions";
+import {Target, Source, Dynamic, ParameterS, FieldSub, NamespaceSimpleName, FieldSymbol} from "../expressions";
 import {IStatementRunnable} from "../statement_runnable";
 
 // todo, cloud, split?
 export class Export implements IStatement {
 
   public getMatcher(): IStatementRunnable {
-    const from = seq(str("FROM"), new Source());
-    const client = seq(str("CLIENT"), new Source());
-    const id = seq(str("ID"), new Source());
-    const using = seq(str("USING"), new Source());
+    const from = seq("FROM", Source);
+    const client = seq("CLIENT", Source);
+    const id = seq("ID", Source);
+    const using = seq("USING", Source);
 
-    const cluster = seq(new NamespaceSimpleName(),
+    const cluster = seq(NamespaceSimpleName,
                         tok(ParenLeft),
-                        new SimpleName(),
+                        regex(/^[\w$%\^]{2}$/),
                         tok(ParenRightW));
 
-    const buffer = seq(str("DATA BUFFER"), new Target());
-    const memory = seq(str("MEMORY ID"), new Source());
-    const table = seq(str("INTERNAL TABLE"), new Target());
-    const shared = seq(alt(str("SHARED MEMORY"), str("SHARED BUFFER")), cluster, per(from, client, id));
-    const database = seq(str("DATABASE"), cluster, per(from, client, id, using));
+    const buffer = seq("DATA BUFFER", Target);
+    const memory = seq("MEMORY", opt(seq("ID", Source)));
+    const table = seq("INTERNAL TABLE", Target);
+    const shared = seq(alt("SHARED MEMORY", "SHARED BUFFER"), cluster, per(from, client, id));
+    const database = seq("DATABASE", cluster, per(from, client, id, using));
 
     const target = alt(buffer, memory, database, table, shared);
 
-    const source = alt(plus(altPrio(new ParameterS(), seq(new FieldSub(), from), new FieldSub())),
-                       new Dynamic());
+    const left = alt(FieldSub, FieldSymbol);
 
-    const compression = seq(str("COMPRESSION"), alt(str("ON"), str("OFF")));
-    const hint = seq(str("CODE PAGE HINT"), new Source());
+    const source = alt(plus(altPrio(ParameterS, seq(left, from), left)),
+                       Dynamic);
 
-    return seq(str("EXPORT"), source, str("TO"), target, opt(compression), opt(hint));
+    const compression = seq("COMPRESSION", alt("ON", "OFF"));
+    const hint = seq("CODE PAGE HINT", Source);
+
+    return seq("EXPORT", source, "TO", target, opt(compression), opt(hint));
   }
 
 }

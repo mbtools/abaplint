@@ -1,37 +1,37 @@
 import {IStatement} from "./_statement";
-import {str, seq, alt, opt, per, plus, altPrio} from "../combi";
-import {Target, Source, Dynamic, ComponentCompare, ComponentCond, SimpleName, Field, FieldSub} from "../expressions";
+import {seq, alt, opt, optPrio, per, plus, altPrio} from "../combi";
+import {Target, Source, Dynamic, ComponentCompare, ComponentCond, SimpleName, Field, FieldSub, FieldOffset, FieldLength} from "../expressions";
 import {IStatementRunnable} from "../statement_runnable";
 
 export class DeleteInternal implements IStatement {
 
   public getMatcher(): IStatementRunnable {
 // todo, is READ and DELETE similar? something can be reused?
-    const index = seq(str("INDEX"), new Source());
+    const index = seq("INDEX", Source);
 
-    const using = seq(str("USING KEY"), alt(new SimpleName(), new Dynamic()));
+    const using = seq("USING KEY", altPrio(SimpleName, Dynamic));
 
-    const fromTo = seq(opt(seq(str("FROM"), new Source())),
-                       opt(seq(str("TO"), new Source())));
+    const fromTo = seq(optPrio(seq("FROM", Source)),
+                       optPrio(seq("TO", Source)));
 
-    const where = seq(str("WHERE"), alt(new ComponentCond(), new Dynamic()));
+    const where = seq("WHERE", alt(ComponentCond, Dynamic));
 
-    const key = seq(str("WITH TABLE KEY"),
-                    opt(seq(new SimpleName(), str("COMPONENTS"))),
-                    plus(new ComponentCompare()));
+    const key = seq("WITH TABLE KEY",
+                    opt(seq(SimpleName, "COMPONENTS")),
+                    plus(ComponentCompare));
 
-    const table = seq(opt(str("TABLE")),
-                      new Target(),
+    const table = seq(opt("TABLE"),
+                      Target,
                       alt(per(index, using), fromTo, key), opt(where));
 
-    const adjacent = seq(str("ADJACENT DUPLICATES FROM"),
-                         new Target(),
-                         opt(seq(str("COMPARING"), altPrio(str("ALL FIELDS"), plus(alt(new FieldSub(), new Dynamic()))))),
-                         opt(seq(str("USING KEY"), new Field())));
+    const f = seq(FieldSub, optPrio(FieldOffset), optPrio(FieldLength));
 
-//    const fs = seq(new FieldSymbol(), where);
+    const adjacent = seq("ADJACENT DUPLICATES FROM",
+                         Target,
+                         opt(seq("COMPARING", altPrio("ALL FIELDS", plus(altPrio(f, Dynamic))))),
+                         optPrio(seq("USING KEY", Field)));
 
-    return seq(str("DELETE"), alt(table, adjacent));
+    return seq("DELETE", alt(table, adjacent));
   }
 
 }

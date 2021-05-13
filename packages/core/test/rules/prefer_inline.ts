@@ -194,7 +194,65 @@ ENDFORM.`);
     expect(issues.length).to.equal(0);
   });
 
+  it("skip if data is casted", async () => {
+    const issues = await findIssues(`
+  CLASS lcl_bar DEFINITION.
+  ENDCLASS.
+  CLASS lcl_bar IMPLEMENTATION.
+  ENDCLASS.
+
+  FORM bar.
+    DATA io_repo TYPE REF TO lcl_bar.
+    DATA lo_repo_online TYPE REF TO lcl_bar.
+    lo_repo_online ?= io_repo.
+  ENDFORM.`);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("skip if there is a read in the same statement", async () => {
+    const issues = await findIssues(`
+FORM bar.
+  DATA lv_prev TYPE i.
+  DATA lv_count TYPE i.
+  lv_prev = lv_prev + lv_count.
+ENDFORM.`);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("skip if BEGIN OF", async () => {
+    const issues = await findIssues(`
+FORM bar.
+  DATA BEGIN OF ls_udmo_long_text.
+  DATA language TYPE dm40t-sprache.
+  DATA header   TYPE thead.
+  DATA content TYPE xstring.
+  DATA END OF ls_udmo_long_text.
+  ls_udmo_long_text = 'A'.
+ENDFORM.`);
+    expect(issues.length).to.equal(0);
+  });
+
+  it("Dont inline ls_files, there is a type reference", async () => {
+    const issues = await findIssues(`
+  FORM bar.
+    DATA: ls_files TYPE string,
+          ls_like LIKE ls_files.
+    ls_files = 'abc'.
+  ENDFORM.`);
+    expect(issues.length).to.equal(0);
+  });
+
 ////////////////////
+
+  it.skip("Dont inline, type P, this will change the type?", async () => {
+    const issues = await findIssues(`
+FORM asdf.
+  DATA lv_moo TYPE p DECIMALS 3.
+  lv_moo = 2.
+  WRITE: / lv_moo.
+ENDFORM.`);
+    expect(issues.length).to.equal(0);
+  });
 
   it.skip("Types should not change when inlining", async () => {
     const issues = await findIssues(`

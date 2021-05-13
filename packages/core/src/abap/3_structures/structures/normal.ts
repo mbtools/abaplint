@@ -202,6 +202,11 @@ export class Normal implements IStructure {
                sta(Statements.Wait),
                sta(Statements.Window),
                sta(Statements.Write),
+               sta(Statements.CommitEntities),
+               sta(Statements.ModifyEntities),
+               sta(Statements.ReadEntities),
+               sta(Statements.RollbackEntities),
+
                sub(Structures.Define),
                sub(Structures.TestInjection),
                sub(Structures.TestSeam),
@@ -215,6 +220,7 @@ export class Normal implements IStructure {
                sub(Structures.Data),
                sub(Structures.TypeEnum),
                sub(Structures.While),
+               sub(Structures.With),
                sub(Structures.Do),
                sub(Structures.ExecSQL));
   }

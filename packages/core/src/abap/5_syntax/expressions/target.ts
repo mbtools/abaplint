@@ -10,13 +10,15 @@ import {ComponentName} from "./component_name";
 import {AttributeName} from "./attribute_name";
 import {FieldOffset} from "./field_offset";
 import {ReferenceType} from "../_reference";
+import {TableExpression} from "./table_expression";
 
 export class Target {
   public runSyntax(node: ExpressionNode, scope: CurrentScope, filename: string): AbstractType | undefined {
 
-    if (node.concatTokens().includes("-")) {
+    const concat = node.concatTokens();
+    if (concat.includes("-")) {
       // workaround for names with dashes
-      const found = scope.findVariable(node.concatTokens());
+      const found = scope.findVariable(concat);
       if (found) {
         scope.addReference(node.getFirstToken(), found, ReferenceType.DataWriteReference, filename);
         return found.getType();
@@ -53,19 +55,19 @@ export class Target {
         if (!(context instanceof ObjectReferenceType)
             && !(context instanceof DataReference)
             && !(context instanceof VoidType)) {
-          throw new Error("Not a object reference");
+          throw new Error("Not a object reference, target");
         }
       } else if (current.get() instanceof Expressions.ComponentName) {
         context = new ComponentName().runSyntax(context, current);
-      } else if (current.get() instanceof Expressions.TableExpression) {
-        if (context instanceof VoidType) {
-          continue;
-        }
-        if (!(context instanceof TableType)) {
+      } else if (current instanceof ExpressionNode
+          && current.get() instanceof Expressions.TableExpression) {
+        if (!(context instanceof TableType) && !(context instanceof VoidType)) {
           throw new Error("Table expression, expected table");
         }
-        // todo, additional validations
-        context = context.getRowType();
+        new TableExpression().runSyntax(current, scope, filename);
+        if (!(context instanceof VoidType)) {
+          context = context.getRowType();
+        }
       } else if (current.get() instanceof Expressions.AttributeName) {
         const type = children.length === 0 ? ReferenceType.DataWriteReference : ReferenceType.DataReadReference;
         context = new AttributeName().runSyntax(context, current, scope, filename, type);
@@ -109,7 +111,7 @@ export class Target {
         scope.addReference(token, found, ReferenceType.ObjectOrientedReference, filename);
         return new ObjectReferenceType(found);
       } else if (scope.getDDIC().inErrorNamespace(name) === false) {
-        scope.addReference(token, undefined, ReferenceType.ObjectOrientedVoidReference, filename);
+        scope.addReference(token, undefined, ReferenceType.ObjectOrientedVoidReference, filename, {ooName: name, ooType: "CLAS"});
         return new VoidType(name);
       } else {
         return new UnknownType(name + " unknown, Target");

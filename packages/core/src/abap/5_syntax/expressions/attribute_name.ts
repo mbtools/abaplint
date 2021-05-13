@@ -26,9 +26,9 @@ export class AttributeName {
     let ret: AbstractType | undefined = undefined;
 
     if (context instanceof ObjectReferenceType) {
-      const def = scope.findObjectDefinition(context.getName());
+      const def = scope.findObjectDefinition(context.getIdentifierName());
       if (def === undefined) {
-        throw new Error("Definition for \"" + context.getName() + "\" not found in scope");
+        throw new Error("Definition for \"" + context.getIdentifierName() + "\" not found in scope");
       }
       const token = node.getFirstToken();
       const name = token.getStr();
@@ -51,19 +51,19 @@ export class AttributeName {
       ret = found.getType();
     } else if (context instanceof DataReference) {
       const sub = context.getType();
-      if (!(sub instanceof StructureType)) {
-        throw new Error("Data reference not structured");
-      }
       const name = node.getFirstToken().getStr();
       if (name === "*") {
         return sub;
+      }
+      if (!(sub instanceof StructureType)) {
+        throw new Error("Data reference not structured");
       }
       ret = sub.getComponentByName(name);
       if (ret === undefined) {
         throw new Error("Component \"" + name + "\" not found in data reference structure");
       }
     } else {
-      throw new Error("Not a object reference");
+      throw new Error("Not a object reference, attribute name");
     }
 
     return ret;

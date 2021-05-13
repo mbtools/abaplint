@@ -1,5 +1,6 @@
-import {statementType} from "../_utils";
+import {statementType, statementVersion} from "../_utils";
 import * as Statements from "../../../src/abap/2_statements/statements";
+import {Version} from "../../../src/version";
 
 const tests = [
   "SELECT SINGLE objct FROM tobj INTO lv_objct WHERE objct = ms_item-obj_name.",
@@ -232,6 +233,40 @@ SELECT DISTINCT b~partner, c~name_first, c~name_last, c~name_org1, c~name_grp1, 
     ON l~partner_guid = c~partner_guid
   WHERE t~iban = 'IBAN'
   INTO TABLE @DATA(foo).`,
+
+  `SELECT @zcl_class=>option-eq AS option, devclass AS low
+    FROM tdevc
+    INTO CORRESPONDING FIELDS OF TABLE @target.`,
+
+  `SELECT * FROM cds_view WITH PRIVILEGED ACCESS WHERE test = @foo INTO CORRESPONDING FIELDS OF TABLE @rt_values.`,
+  `SELECT foo, bar FROM dbtab WHERE id = @key-id AND name IS NOT INITIAL INTO TABLE @DATA(result).`,
+  `SELECT SINGLE * FROM usr02 INTO @DATA(sdf) WHERE bname = @text-001.`,
+  "SELECT SUM( (l_field) ) INTO l_value FROM (l_table).",
+  "SELECT COUNT( DISTINCT ( field ) ) FROM voided INTO @DATA(lv_result).",
+  `SELECT SINGLE foo, bar FROM tab INTO (@lv_moo, @DATA(lv_bar)).`,
+  `SELECT SINGLE FROM rfcdes FIELDS rfcdest WHERE rfcdest = @lv_rfcdes INTO @lv_rfcdes.`,
+  `SELECT SINGLE FROM tadir FIELDS object, obj_name WHERE devclass = @co_package INTO @DATA(ls_object).`,
+
+  `SELECT a~bar, c~*
+    FROM bar AS a
+    INNER JOIN moo AS b ON a~field1 = b~field2
+    INNER JOIN sdf AS c ON c~field3 = b~field4
+    INTO TABLE @DATA(lt_final).`,
 ];
 
 statementType(tests, "SELECT", Statements.Select);
+
+const versions = [
+  {abap: "SELECT field, uuid( ) AS uuid FROM table INTO TABLE @DATA(result).", ver: Version.v754},
+  {abap: "SELECT SINGLE abs( field ) FROM ztable INTO @DATA(sdfsd).", ver: Version.v751},
+  {abap: `SELECT FROM ztable
+    FIELDS
+    CASE status
+      WHEN '1' THEN '2'
+      ELSE '3'
+    END
+  INTO TABLE @DATA(sdfsd).`, ver: Version.v740sp05},
+
+];
+
+statementVersion(versions, "SELECT", Statements.Select);

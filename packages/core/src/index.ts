@@ -41,6 +41,10 @@ import {BuiltIn} from "./abap/5_syntax/_builtin";
 import {ABAPFile} from "./abap/abap_file";
 import {MemoryFile} from "./files/memory_file";
 import {Renamer} from "./objects/rename/renamer";
+import * as Info from "./abap/4_file_information/_abap_file_information";
+import {Visibility} from "./abap/4_file_information/visibility";
+import {Identifier} from "./abap/4_file_information/_identifier";
+import {Severity} from "./severity";
 
 // do not include this file from anywhere within abaplint
 // https://github.com/abaplint/abaplint/issues/873
@@ -49,11 +53,11 @@ import {Renamer} from "./objects/rename/renamer";
 export {MemoryFile, Issue, Config, Version, ReferenceType,
   Registry, LanguageServer, MethodLengthStats, IProgress, BuiltIn,
   Artifacts, ArtifactsObjects, ArtifactsRules, Objects, IFile,
-  Structures, Statements, Expressions, Types, Nodes, IConfig,
+  Structures, Statements, Expressions, Types, Nodes, IConfig, Identifier,
   ISpaghettiScope, ISpaghettiScopeNode, Empty, Unknown, Comment,
   IClassDefinition, IMethodLengthResult, VirtualPosition, IObject,
   AbstractType, TypedIdentifier, BasicTypes, ScopeType, INode, Token, IEdit,
   IDependency, AbstractFile, SpaghettiScopeNode, applyEditSingle, applyEditList,
   Tokens, ABAPObject, SyntaxLogic, SpaghettiScope, IdentifierMeta,
   ABAPFile, CurrentScope, IRegistry, Position, PrettyPrinter, Renamer as Rename,
-  IRenameSettings};
+  IRenameSettings, Info, Visibility, Severity};

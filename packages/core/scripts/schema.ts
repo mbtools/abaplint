@@ -25,6 +25,8 @@ import {CommentedCodeConf} from "../src/rules/commented_code";
 import {ConstructorVisibilityPublicConf} from "../src/rules/constructor_visibility_public";
 import {ContainsTabConf} from "../src/rules/contains_tab";
 import {CyclomaticComplexityConf} from "../src/rules/cyclomatic_complexity";
+import {DangerousStatementConf} from "../src/rules/dangerous_statement";
+import {DbOperationInLoopConf} from "../src/rules/db_operation_in_loop";
 import {DefinitionsTopConf} from "../src/rules/definitions_top";
 import {DescriptionEmptyConf} from "../src/rules/description_empty";
 import {DoubleSpaceConf} from "../src/rules/double_space";
@@ -44,12 +46,14 @@ import {FunctionalWritingConf} from "../src/rules/functional_writing";
 import {GlobalClassConf} from "../src/rules/global_class";
 import {IdenticalConditionsConf} from "../src/rules/identical_conditions";
 import {IdenticalContentsConf} from "../src/rules/identical_contents";
+import {IdenticalDescriptionsConf} from "../src/rules/identical_descriptions";
 import {IdenticalFormNamesConf} from "../src/rules/identical_form_names";
 import {IfInIfConf} from "../src/rules/if_in_if";
 import {ImplementMethodsConf} from "../src/rules/implement_methods";
 import {InStatementIndentationConf} from "../src/rules/in_statement_indentation";
 import {IndentationConf} from "../src/rules/indentation";
 import {InlineDataOldVersionsConf} from "../src/rules/inline_data_old_versions";
+import {IntfReferencingClasConf} from "../src/rules/intf_referencing_clas";
 import {KeepSingleParameterCallsOnOneLineConf} from "../src/rules/keep_single_parameter_on_one_line";
 import {KeywordCaseConf} from "../src/rules/keyword_case";
 import {LineBreakMultipleParametersConf} from "../src/rules/line_break_multiple_parameters";
@@ -61,25 +65,31 @@ import {LocalTestclassLocationConf} from "../src/rules/local_testclass_location"
 import {LocalVariableNamesConf} from "../src/rules/local_variable_names";
 import {MainFileContentsConf} from "../src/rules/main_file_contents";
 import {ManyParenthesisConf} from "../src/rules/many_parenthesis";
+import {MaxOneMethodParameterPerLineConf} from "../src/rules/max_one_method_parameter_per_line";
 import {MaxOneStatementConf} from "../src/rules/max_one_statement";
 import {MessageExistsConf} from "../src/rules/message_exists";
+import {MethodImplementedTwiceConf} from "../src/rules/method_implemented_twice";
 import {MethodLengthConf} from "../src/rules/method_length";
 import {MethodOverwritesBuiltInConf} from "../src/rules/method_overwrites_builtin";
 import {MethodParameterNamesConf} from "../src/rules/method_parameter_names";
 import {MixReturningConf} from "../src/rules/mix_returning";
+import {ModifyOnlyOwnDBTablesConf} from "../src/rules/modify_only_own_db_tables";
 import {MSAGConsistencyConf} from "../src/rules/msag_consistency";
 import {NamesNoDashConf} from "../src/rules/names_no_dash";
 import {NestingConf} from "../src/rules/nesting";
 import {NewlineBetweenMethodsConf} from "../src/rules/newline_between_methods";
 import {NoPublicAttributesConf} from "../src/rules/no_public_attributes";
+import {NoYodaConditionsConf} from "../src/rules/no_yoda_conditions";
 import {ObjectNamingConf} from "../src/rules/object_naming";
 import {ObsoleteStatementConf} from "../src/rules/obsolete_statement";
 import {OmitParameterNameConf} from "../src/rules/omit_parameter_name";
 import {OmitReceivingConf} from "../src/rules/omit_receiving";
+import {Parser702ChainingConf} from "../src/rules/parser_702_chaining";
 import {ParserErrorConf} from "../src/rules/parser_error";
 import {ParserMissingSpaceConf} from "../src/rules/parser_missing_space";
 import {PreferInlineConf} from "../src/rules/prefer_inline";
 import {PreferIsNotConf} from "../src/rules/prefer_is_not";
+import {PreferRaiseExceptionNewConf} from "../src/rules/prefer_raise_exception_new";
 import {PreferReturningToExportingConf} from "../src/rules/prefer_returning_to_exporting";
 import {PreferXsdboolConf} from "../src/rules/prefer_xsdbool";
 import {PreferredCompareOperatorConf} from "../src/rules/preferred_compare_operator";
@@ -88,6 +98,8 @@ import {ReduceStringTemplatesConf} from "../src/rules/reduce_string_templates";
 import {ReleaseIdocConf} from "../src/rules/release_idoc";
 import {RemoveDescriptionsConf} from "../src/rules/remove_descriptions";
 import {RFCErrorHandlingConf} from "../src/rules/rfc_error_handling";
+import {SelectAddOrderByConf} from "../src/rules/select_add_order_by";
+import {SelectPerformanceConf} from "../src/rules/select_performance";
 import {SelectionScreenNamingConf} from "../src/rules/selection_screen_naming";
 import {SequentialBlankConf} from "../src/rules/sequential_blank";
 import {ShortCaseConf} from "../src/rules/short_case";
@@ -102,12 +114,15 @@ import {TABLEnhancementCategoryConf} from "../src/rules/tabl_enhancement_categor
 import {TryWithoutCatchConf} from "../src/rules/try_without_catch";
 import {TypeFormParametersConf} from "../src/rules/type_form_parameters";
 import {TypesNamingConf} from "../src/rules/types_naming";
+import {UncaughtExceptionConf} from "../src/rules/uncaught_exception";
 import {UnknownTypesConf} from "../src/rules/unknown_types";
 import {UnreachableCodeConf} from "../src/rules/unreachable_code";
+import {UnsecureFAEConf} from "../src/rules/unsecure_fae";
 import {UnusedMethodsConf} from "../src/rules/unused_methods";
 import {UnusedTypesConf} from "../src/rules/unused_types";
 import {UnusedVariablesConf} from "../src/rules/unused_variables";
 import {UseBoolExpressionConf} from "../src/rules/use_bool_expression";
+import {UseClassBasedExceptionsConf} from "../src/rules/use_class_based_exceptions";
 import {UseLineExistsConf} from "../src/rules/use_line_exists";
 import {UseNewConf} from "../src/rules/use_new";
 import {WhenOthersLastConf} from "../src/rules/when_others_last";
@@ -147,6 +162,8 @@ export interface IConfig {
     "constructor_visibility_public"?: ConstructorVisibilityPublicConf | boolean,
     "contains_tab"?: ContainsTabConf | boolean,
     "cyclomatic_complexity"?: CyclomaticComplexityConf | boolean,
+    "dangerous_statement"?: DangerousStatementConf | boolean,
+    "db_operation_in_loop"?: DbOperationInLoopConf | boolean,
     "definitions_top"?: DefinitionsTopConf | boolean,
     "description_empty"?: DescriptionEmptyConf | boolean,
     "double_space"?: DoubleSpaceConf | boolean,
@@ -166,12 +183,14 @@ export interface IConfig {
     "global_class"?: GlobalClassConf | boolean,
     "identical_conditions"?: IdenticalConditionsConf | boolean,
     "identical_contents"?: IdenticalContentsConf | boolean,
+    "identical_descriptions"?: IdenticalDescriptionsConf | boolean,
     "identical_form_names"?: IdenticalFormNamesConf | boolean,
     "if_in_if"?: IfInIfConf | boolean,
     "implement_methods"?: ImplementMethodsConf | boolean,
     "in_statement_indentation"?: InStatementIndentationConf | boolean,
     "indentation"?: IndentationConf | boolean,
     "inline_data_old_versions"?: InlineDataOldVersionsConf | boolean,
+    "intf_referencing_clas"?: IntfReferencingClasConf | boolean,
     "keep_single_parameter_on_one_line"?: KeepSingleParameterCallsOnOneLineConf | boolean,
     "keyword_case"?: KeywordCaseConf | boolean,
     "line_break_multiple_parameters"?: LineBreakMultipleParametersConf | boolean,
@@ -183,25 +202,31 @@ export interface IConfig {
     "local_variable_names"?: LocalVariableNamesConf | boolean,
     "main_file_contents"?: MainFileContentsConf | boolean,
     "many_parenthesis"?: ManyParenthesisConf | boolean,
+    "max_one_method_parameter_per_line"?: MaxOneMethodParameterPerLineConf | boolean,
     "max_one_statement"?: MaxOneStatementConf | boolean,
     "message_exists"?: MessageExistsConf | boolean,
+    "method_implemented_twice"?: MethodImplementedTwiceConf | boolean,
     "method_length"?: MethodLengthConf | boolean,
     "method_overwrites_builtin"?: MethodOverwritesBuiltInConf | boolean,
     "method_parameter_names"?: MethodParameterNamesConf | boolean,
     "mix_returning"?: MixReturningConf | boolean,
+    "modify_only_own_db_tables"?: ModifyOnlyOwnDBTablesConf | boolean,
     "msag_consistency"?: MSAGConsistencyConf | boolean,
     "names_no_dash"?: NamesNoDashConf | boolean,
     "nesting"?: NestingConf | boolean,
     "newline_between_methods"?: NewlineBetweenMethodsConf | boolean,
     "no_public_attributes"?: NoPublicAttributesConf | boolean,
+    "no_yoda_conditions"?: NoYodaConditionsConf | boolean,
     "object_naming"?: ObjectNamingConf | boolean,
     "obsolete_statement"?: ObsoleteStatementConf | boolean,
     "omit_parameter_name"?: OmitParameterNameConf | boolean,
     "omit_receiving"?: OmitReceivingConf | boolean,
+    "parser_702_chaining"?: Parser702ChainingConf | boolean,
     "parser_error"?: ParserErrorConf | boolean,
     "parser_missing_space"?: ParserMissingSpaceConf | boolean,
     "prefer_inline"?: PreferInlineConf | boolean,
     "prefer_is_not"?: PreferIsNotConf | boolean,
+    "prefer_raise_exception_new"?: PreferRaiseExceptionNewConf | boolean,
     "prefer_returning_to_exporting"?: PreferReturningToExportingConf | boolean,
     "prefer_xsdbool"?: PreferXsdboolConf | boolean,
     "preferred_compare_operator"?: PreferredCompareOperatorConf | boolean,
@@ -210,6 +235,8 @@ export interface IConfig {
     "release_idoc"?: ReleaseIdocConf | boolean,
     "remove_descriptions"?: RemoveDescriptionsConf | boolean,
     "rfc_error_handling"?: RFCErrorHandlingConf | boolean,
+    "select_add_order_by"?: SelectAddOrderByConf | boolean,
+    "select_performance"?: SelectPerformanceConf | boolean,
     "selection_screen_naming"?: SelectionScreenNamingConf | boolean,
     "sequential_blank"?: SequentialBlankConf | boolean,
     "short_case"?: ShortCaseConf | boolean,
@@ -224,12 +251,15 @@ export interface IConfig {
     "try_without_catch"?: TryWithoutCatchConf | boolean,
     "type_form_parameters"?: TypeFormParametersConf | boolean,
     "types_naming"?: TypesNamingConf | boolean,
+    "uncaught_exception"?: UncaughtExceptionConf | boolean,
     "unknown_types"?: UnknownTypesConf | boolean,
     "unreachable_code"?: UnreachableCodeConf | boolean,
+    "unsecure_fae"?: UnsecureFAEConf | boolean,
     "unused_methods"?: UnusedMethodsConf | boolean,
     "unused_types"?: UnusedTypesConf | boolean,
     "unused_variables"?: UnusedVariablesConf | boolean,
     "use_bool_expression"?: UseBoolExpressionConf | boolean,
+    "use_class_based_exceptions"?: UseClassBasedExceptionsConf | boolean,
     "use_line_exists"?: UseLineExistsConf | boolean,
     "use_new"?: UseNewConf | boolean,
     "when_others_last"?: WhenOthersLastConf | boolean,

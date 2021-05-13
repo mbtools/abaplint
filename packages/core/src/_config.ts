@@ -9,6 +9,8 @@ export interface IGlobalConfig {
   skipGeneratedFunctionGroups: boolean;
   /** Clone and parse dependencies specified in .apack-manifest.xml if it is present */
   useApackDependencies?: boolean;
+  /** Do not report any issues for includes without main programs */
+  skipIncludesWithoutMain?: boolean;
   /** list of files to exclude, case insensitive regex */
   exclude?: string[];
 }
@@ -24,7 +26,7 @@ export interface IDependency {
 
 export interface ISyntaxSettings {
   /** ABAP language version */
-  version: Version;
+  version?: Version;
   /** Report error for objects in this regex namespace. Types not in namespace will be void */
   errorNamespace: string;
   /** List of full named global constants */

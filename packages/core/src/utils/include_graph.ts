@@ -1,6 +1,6 @@
 import {Include} from "../abap/2_statements/statements";
 import {IncludeName} from "../abap/2_statements/expressions";
-import {FunctionGroup, Program} from "../objects";
+import {Class, FunctionGroup, Program} from "../objects";
 import {CheckInclude} from "../rules/check_include";
 import {Position} from "../position";
 import {Issue} from "../issue";
@@ -65,10 +65,10 @@ class Graph {
   }
 
   public findTop(filename: string): IVertex[] {
-    let ret: IVertex[] = [];
+    const ret: IVertex[] = [];
     for (const e of this.edges) {
       if (e.from === filename) {
-        ret = ret.concat(this.findTop(e.to));
+        ret.push(...this.findTop(e.to));
       }
     }
     if (ret.length === 0) {
@@ -173,7 +173,6 @@ export class IncludeGraph implements IIncludeGraph {
 
   private addVertices() {
     for (const o of getABAPObjects(this.reg)) {
-
       if (o instanceof Program) {
         const file = o.getMainABAPFile();
         if (file) {
@@ -181,6 +180,13 @@ export class IncludeGraph implements IIncludeGraph {
             filename: file.getFilename(),
             includeName: o.getName(),
             include: o.isInclude()});
+        }
+      } else if (o instanceof Class) {
+        for (const f of o.getSequencedFiles()) {
+          this.graph.addVertex({
+            filename: f.getFilename(),
+            includeName: o.getName(),
+            include: false});
         }
       } else if (o instanceof FunctionGroup) {
         for (const i of o.getIncludeFiles()) {

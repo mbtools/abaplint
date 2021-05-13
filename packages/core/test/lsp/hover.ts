@@ -280,6 +280,23 @@ bar = NEW #( ).`;
     expect(hover?.value).to.contain("lcl_bar");
   });
 
+  it("Hover inferred row type", () => {
+    const abap = `FORM bar.
+  TYPES: BEGIN OF ty_stru,
+    field TYPE i,
+    END OF ty_stru.
+  TYPES: ty_tab TYPE STANDARD TABLE OF ty_stru WITH DEFAULT KEY.
+  DATA tab TYPE ty_tab.
+  APPEND VALUE #( field = 1 ) TO tab.
+ENDFORM.`;
+    const file = new MemoryFile("zfoo.prog.abap", abap);
+    const reg = new Registry().addFile(file).parse();
+    const hover = new Hover(reg).find(buildPosition(file, 6, 15));
+    expect(hover).to.not.equal(undefined);
+    expect(hover?.value).to.contain("Inferred");
+    expect(hover?.value).to.contain("ty_stru");
+  });
+
   it("Hover data element", () => {
     const xml = `
     <?xml version="1.0" encoding="utf-8"?>
@@ -302,12 +319,14 @@ bar = NEW #( ).`;
     const file = new MemoryFile("zfoo.prog.abap", abap);
     const reg = new Registry().addFiles([file, dtel]).parse();
     const hoverVariable = new Hover(reg).find(buildPosition(file, 0, 6));
-    expect(hoverVariable).to.not.equal(undefined);
+    expect(hoverVariable).to.not.equal(undefined, "variable");
     expect(hoverVariable?.value).to.contain("ZDDIC");
+    /*
     const hoverDDIC = new Hover(reg).find(buildPosition(file, 0, 15));
-    expect(hoverDDIC).to.not.equal(undefined);
+    expect(hoverDDIC).to.not.equal(undefined, "ddic");
     expect(hoverDDIC?.value).to.contain("ddic");
     expect(hoverDDIC?.value).to.contain("ZDDIC");
+    */
   });
 
   it("Hover method definition name", () => {
@@ -334,7 +353,6 @@ ENDCLASS.`;
     const hoverVariable = new Hover(reg).find(buildPosition(file, 0, 6));
     expect(hoverVariable).to.not.equal(undefined);
     expect(hoverVariable?.value).to.contain("FIELD1");
-    expect(hoverVariable?.value).to.contain("ZTAB");
   });
 
   it("Hover function module name", () => {
@@ -694,6 +712,244 @@ ENDIF.`;
     expect(hover1).to.not.equal(undefined);
     expect(hover1?.value).to.contain("Reference", "hover1");
     expect(hover1?.value).to.contain("lif_properties", "hover1");
+  });
+
+  it("hover type in interface should contain fully qualified name", () => {
+    const abap = `INTERFACE zif_wasm_value PUBLIC.
+  TYPES ty_values TYPE STANDARD TABLE OF REF TO zif_wasm_value WITH DEFAULT KEY.
+ENDINTERFACE.`;
+    const file = new MemoryFile("zif_interface.intf.abap", abap);
+    const reg = new Registry().addFile(file).parse();
+    const hover = new Hover(reg).find(buildPosition(file, 1, 10));
+    expect(hover).to.not.equal(undefined);
+    expect(hover?.value).to.contain("zif_wasm_value=>ty_values");
+  });
+
+  it("hover, interface method", () => {
+    const abap = `INTERFACE zif_test.
+  METHODS moo.
+ENDINTERFACE.
+
+CLASS zcl_super DEFINITION.
+  PUBLIC SECTION.
+    INTERFACES zif_test.
+ENDCLASS.
+CLASS zcl_super IMPLEMENTATION.
+  METHOD zif_test~moo.
+  ENDMETHOD.
+ENDCLASS.
+
+START-OF-SELECTION.
+  DATA bar TYPE REF TO zcl_super.
+  CREATE OBJECT bar.
+  bar->zif_test~moo( ).`;
+    const file = new MemoryFile("zprog.prog.abap", abap);
+    const reg = new Registry().addFile(file).parse();
+    const hover = new Hover(reg).find(buildPosition(file, 16, 10));
+    expect(hover).to.not.equal(undefined);
+    expect(hover?.value).to.contain(`MethodReference`);
+    expect(hover?.value).to.contain(`{"ooName":"zif_test","ooType":"INTF"}`);
+  });
+
+  it("hover, aliased method reference from interface", () => {
+    const abap = `INTERFACE zif_test.
+  METHODS moo.
+ENDINTERFACE.
+
+CLASS zcl_super DEFINITION.
+  PUBLIC SECTION.
+    INTERFACES zif_test.
+    ALIASES moo FOR zif_test~moo.
+ENDCLASS.
+CLASS zcl_super IMPLEMENTATION.
+  METHOD zif_test~moo.
+  ENDMETHOD.
+ENDCLASS.
+
+FORM bar.
+  DATA bar TYPE REF TO zcl_super.
+  CREATE OBJECT bar.
+  bar->moo( ).
+ENDFORM.`;
+    const file = new MemoryFile("zprog.prog.abap", abap);
+    const reg = new Registry().addFile(file).parse();
+    const hover = new Hover(reg).find(buildPosition(file, 17, 8));
+    expect(hover).to.not.equal(undefined);
+    expect(hover?.value).to.contain(`MethodReference`);
+    expect(hover?.value).to.contain(`{"ooName":"zif_test","ooType":"INTF"}`);
+  });
+
+  it("hover, CATCH oo reference expected", () => {
+// note that lcx is not really an excpetion for this test case
+    const abap = `CLASS lcx DEFINITION.
+ENDCLASS.
+CLASS lcx IMPLEMENTATION.
+ENDCLASS.
+FORM bar.
+  TRY.
+    CATCH lcx.
+  ENDTRY.
+ENDFORM.`;
+    const file = new MemoryFile("zprog.prog.abap", abap);
+    const reg = new Registry().addFile(file).parse();
+    const hover = new Hover(reg).find(buildPosition(file, 6, 12));
+    expect(hover).to.not.equal(undefined);
+    expect(hover?.value).to.contain(`ObjectOrientedReference`);
+  });
+
+  it("hover, MethodImplementationReference", () => {
+    const abap = `CLASS lcl_bar DEFINITION.
+  PUBLIC SECTION.
+    METHODS name.
+ENDCLASS.
+CLASS lcl_bar IMPLEMENTATION.
+  METHOD name.
+  ENDMETHOD.
+ENDCLASS.`;
+    const file = new MemoryFile("zprog.prog.abap", abap);
+    const reg = new Registry().addFile(file).parse();
+    const hover = new Hover(reg).find(buildPosition(file, 5, 10));
+    expect(hover).to.not.equal(undefined);
+    expect(hover?.value).to.contain(`MethodImplementationReference`);
+  });
+
+  it("hover, method reference via CALL METHOD", () => {
+    const abap = `CLASS lcl_bar DEFINITION.
+  PUBLIC SECTION.
+    METHODS name IMPORTING foo TYPE i.
+ENDCLASS.
+CLASS lcl_bar IMPLEMENTATION.
+  METHOD name.
+    WRITE / foo.
+  ENDMETHOD.
+ENDCLASS.
+START-OF-SELECTION.
+  PERFORM bar.
+FORM bar.
+  DATA bar TYPE REF TO lcl_bar.
+  CREATE OBJECT bar.
+  CALL METHOD bar->name( 1 ).
+ENDFORM.`;
+    const file = new MemoryFile("zprog.prog.abap", abap);
+    const reg = new Registry().addFile(file).parse();
+    const hover = new Hover(reg).find(buildPosition(file, 14, 22));
+    expect(hover).to.not.equal(undefined);
+    expect(hover?.value).to.contain(`MethodReference`);
+  });
+
+  it("hover, expect one write reference", () => {
+    const abap = `CLASS lcl_bar DEFINITION.
+  PUBLIC SECTION.
+    METHODS bar EXPORTING int TYPE i.
+ENDCLASS.
+CLASS lcl_bar IMPLEMENTATION.
+  METHOD bar.
+  ENDMETHOD.
+ENDCLASS.
+FORM run.
+  DATA lo_bar TYPE REF TO lcl_bar.
+  DATA lv_int TYPE i.
+  CREATE OBJECT lo_bar.
+  lo_bar->bar( IMPORTING int = lv_int ).
+ENDFORM.
+START-OF-SELECTION.
+  PERFORM run.`;
+    const file = new MemoryFile("zprog.prog.abap", abap);
+    const reg = new Registry().addFile(file).parse();
+    const hover = new Hover(reg).find(buildPosition(file, 12, 33));
+    expect(hover).to.not.equal(undefined);
+    expect(hover?.value).to.contain(`DataWriteReference`);
+    expect(hover?.value.split("DataWriteReference").length).to.equal(2);
+  });
+
+  it("hover interfaced interface", () => {
+    const abap = `INTERFACE top.
+  ENDINTERFACE.
+  INTERFACE sub.
+    INTERFACES top.
+  ENDINTERFACE.`;
+    const file = new MemoryFile("zprog.prog.abap", abap);
+    const reg = new Registry().addFile(file).parse();
+    const hover = new Hover(reg).find(buildPosition(file, 3, 16));
+    expect(hover).to.not.equal(undefined);
+    expect(hover?.value).to.contain(`ObjectOrientedReference`);
+  });
+
+  it("hover voided interfaced interface", () => {
+    const abap = `INTERFACE sub.
+    INTERFACES voided.
+  ENDINTERFACE.`;
+    const file = new MemoryFile("zprog.prog.abap", abap);
+    const reg = new Registry().addFile(file).parse();
+    const hover = new Hover(reg).find(buildPosition(file, 1, 16));
+    expect(hover).to.not.equal(undefined);
+    expect(hover?.value).to.contain(`Void`);
+  });
+
+  it("hover voided TYPE sfdsfdsdsfds", () => {
+    const abap = `DATA foo TYPE sfdsfdsdsfds.`;
+    const file = new MemoryFile("zprog.prog.abap", abap);
+    const reg = new Registry().addFile(file).parse();
+    const hover = new Hover(reg).find(buildPosition(file, 0, 20));
+    expect(hover).to.not.equal(undefined);
+    expect(hover?.value).to.contain(`Void`);
+  });
+
+  it("hover voided TYPE arch_usr", () => {
+    const abap = `DATA sdf TYPE arch_usr-arch_comit.`;
+    const file = new MemoryFile("zprog.prog.abap", abap);
+    const reg = new Registry().addFile(file).parse();
+    const hover = new Hover(reg).find(buildPosition(file, 0, 15));
+    expect(hover).to.not.equal(undefined);
+    expect(hover?.value).to.contain(`Void`);
+  });
+
+  it("hover voided structured TYPE", () => {
+    const abap = `TYPES: BEGIN OF ty,
+    obj  TYPE tadir-object,
+    name TYPE tadir-obj_name,
+  END OF ty.`;
+    const file = new MemoryFile("zprog.prog.abap", abap);
+    const reg = new Registry().addFile(file).parse();
+    const hover = new Hover(reg).find(buildPosition(file, 1, 16));
+    expect(hover).to.not.equal(undefined);
+    expect(hover?.value).to.contain(`Void`);
+  });
+
+  it("hover, voided db table", () => {
+    const abap = `SELECT * FROM bar INTO TABLE @DATA(sdfds).`;
+    const file = new MemoryFile("zprog.prog.abap", abap);
+    const reg = new Registry().addFile(file).parse();
+    const hover = new Hover(reg).find(buildPosition(file, 0, 15));
+    expect(hover).to.not.equal(undefined);
+    expect(hover?.value).to.contain(`Void`);
+  });
+
+  it("hover, expect one void", () => {
+    // note that in this case abaplint does not know if its a class or a ddic object
+    const abap = `DATA foo TYPE REF TO cl_sdfsd.`;
+    const file = new MemoryFile("zprog.prog.abap", abap);
+    const reg = new Registry().addFile(file).parse();
+    const hover = new Hover(reg).find(buildPosition(file, 0, 22));
+    expect(hover).to.not.equal(undefined);
+    const count = (hover?.value.match(/VoidType/g) || []).length;
+    expect(count).to.equal(1);
+  });
+
+  it("hover, static modifier", () => {
+    const abap = `CLASS lcl_bar DEFINITION.
+  PUBLIC SECTION.
+    CLASS-DATA: BEGIN OF bar,
+                  field TYPE string,
+                END OF bar.
+ENDCLASS.
+CLASS lcl_bar IMPLEMENTATION.
+ENDCLASS.`;
+    const file = new MemoryFile("zprog.prog.abap", abap);
+    const reg = new Registry().addFile(file).parse();
+    const hover = new Hover(reg).find(buildPosition(file, 2, 26));
+    expect(hover).to.not.equal(undefined);
+    expect(hover?.value).to.contain("static");
   });
 
 });

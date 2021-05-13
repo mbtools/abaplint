@@ -8,7 +8,6 @@ import {IInterfaceDefinition, IImplementing} from "./_interface_definition";
 import {IAttributes} from "./_class_attributes";
 import {ITypeDefinitions} from "./_type_definitions";
 import {Attributes} from "./class_attributes";
-import {TypeDefinitions} from "./type_definitions";
 import {Visibility} from "../4_file_information/visibility";
 import {ScopeType} from "../5_syntax/_scope_type";
 import {IEventDefinition} from "./_event_definition";
@@ -17,6 +16,7 @@ import {IMethodDefinitions} from "./_method_definitions";
 import {MethodDefinitions} from "./method_definitions";
 import {IAliases} from "./_aliases";
 import {Aliases} from "./aliases";
+import {ReferenceType} from "../5_syntax/_reference";
 
 export class InterfaceDefinition extends Identifier implements IInterfaceDefinition {
   private readonly node: StructureNode;
@@ -40,9 +40,9 @@ export class InterfaceDefinition extends Identifier implements IInterfaceDefinit
     this.events = [];
     this.implementing = [];
 
-    scope.push(ScopeType.Interface, name.getStr(), name.getStart(), filename);
+    scope.push(ScopeType.Interface, name.getStr(), node.getFirstToken().getStart(), filename);
     this.parse(scope);
-    scope.pop();
+    scope.pop(node.getLastToken().getEnd());
   }
 
   public getSuperClass(): undefined {
@@ -84,9 +84,8 @@ export class InterfaceDefinition extends Identifier implements IInterfaceDefinit
 /////////////////
 
   private parse(scope: CurrentScope) {
-    this.typeDefinitions = new TypeDefinitions(this.node, this.filename, scope);
-
     this.attributes = new Attributes(this.node, this.filename, scope);
+    this.typeDefinitions = this.attributes.getTypes();
 
     this.methodDefinitions = new MethodDefinitions(this.node, this.filename, scope);
 
@@ -96,9 +95,19 @@ export class InterfaceDefinition extends Identifier implements IInterfaceDefinit
     }
 
     for (const i of this.node.findAllStatements(Statements.InterfaceDef)) {
-      const name = i.findDirectExpression(Expressions.InterfaceName)?.getFirstToken().getStr();
+      const token = i.findDirectExpression(Expressions.InterfaceName)?.getFirstToken();
+      const name = token?.getStr();
       if (name) {
         this.implementing.push({name, partial: false});
+
+        const idef = scope.findInterfaceDefinition(name);
+        if (idef) {
+          scope.addReference(token, idef, ReferenceType.ObjectOrientedReference, this.filename);
+        } else if (scope.getDDIC().inErrorNamespace(name) === false) {
+          scope.addReference(token, undefined, ReferenceType.ObjectOrientedVoidReference, this.filename);
+        } else {
+          throw new Error("Interface " + name + " unknown");
+        }
       }
     }
 

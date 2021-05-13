@@ -1,7 +1,7 @@
 import * as Expressions from "../../2_statements/expressions";
 import {StatementNode} from "../../nodes";
 import {CurrentScope} from "../_current_scope";
-import {VoidType, TableType, UnknownType} from "../../types/basic";
+import {VoidType, TableType, UnknownType, DataReference} from "../../types/basic";
 import {Target} from "../expressions/target";
 import {Source} from "../expressions/source";
 import {InlineData} from "../expressions/inline_data";
@@ -10,8 +10,9 @@ import {FSTarget} from "../expressions/fstarget";
 import {ComponentCompare} from "../expressions/component_compare";
 import {ComponentCond} from "../expressions/component_cond";
 import {Dynamic} from "../expressions/dynamic";
+import {StatementSyntax} from "../_statement_syntax";
 
-export class Loop {
+export class Loop implements StatementSyntax {
   public runSyntax(node: StatementNode, scope: CurrentScope, filename: string): void {
     let target = node.findDirectExpression(Expressions.Target);
     const targetType = target ? new Target().runSyntax(target, scope, filename) : undefined;
@@ -20,7 +21,7 @@ export class Loop {
     }
 
     const sources = node.findDirectExpressions(Expressions.Source);
-    let firstSource = node.findDirectExpression(Expressions.BasicSource);
+    let firstSource = node.findDirectExpression(Expressions.SimpleSource2);
     if (firstSource === undefined) {
       firstSource = sources[0];
     }
@@ -36,6 +37,9 @@ export class Loop {
 
     if (sourceType instanceof TableType) {
       sourceType = sourceType.getRowType();
+      if (node.concatTokens().toUpperCase().includes(" REFERENCE INTO ")) {
+        sourceType = new DataReference(sourceType);
+      }
     }
 
     const inline = target?.findDirectExpression(Expressions.InlineData);
